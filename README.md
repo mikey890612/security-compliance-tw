@@ -27,11 +27,14 @@ Top 10 for LLM Applications（2025），提供給 Claude Code、Cursor
 
 ## 三支 skill
 
-| Skill | 時機 | 產出 |
-|---|---|---|
-| **`sec-audit`** | 送掃之前 / 拿到掃描報告之後 | `security-audit/findings.md`、`false-positives.md` |
-| **`sec-harden`** | 寫程式的當下 | 專案的 `AGENTS.md`、Cursor `.mdc`、Cline / Windsurf / Copilot 規則檔 |
-| **`sec-deliverables`** | 要交文件時 | 附表十查檢表、源碼查檢表、測試報告、威脅建模、RTM、委外 RFP |
+| Skill | 時機 | 產出 | 使用說明 |
+|---|---|---|---|
+| **`sec-audit`** | 送掃之前 / 拿到掃描報告之後 | `security-audit/findings.md`、`false-positives.md` | [詳細用法](docs/usage/sec-audit.md) |
+| **`sec-harden`** | 寫程式的當下 | 專案的 `AGENTS.md`、Cursor `.mdc`、Cline / Windsurf / Copilot 規則檔 | [詳細用法](docs/usage/sec-harden.md) |
+| **`sec-deliverables`** | 要交文件時 | 附表十查檢表、源碼查檢表、測試報告、威脅建模、RTM、委外 RFP | [詳細用法](docs/usage/sec-deliverables.md) |
+
+**第一次用建議從 [`sec-audit`](docs/usage/sec-audit.md) 開始**——
+它會告訴你這個專案現在的體質，另外兩支的產出都依賴它的結果。
 
 ### sec-audit 的兩個模式
 
