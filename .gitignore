@@ -1,0 +1,23 @@
+# 政府指引原始 PDF
+# 這些文件明示著作權歸數位發展部資通安全署／行政院資通安全辦公室所有，
+# 不隨本專案散布。本專案的知識庫係從其內容萃取並改寫為 Go / Python / JS 實作，
+# 屬轉化後的成果，與原始文件分開。
+*.pdf
+Web應用程式安全參考指引v3.2_1141231/
+
+# 對測試 fixture 執行的產出
+# 若要保留作為範例，請移到 security-compliance-tw/examples/ 並在 README 說明
+security-audit/
+security-deliverables/
+
+# Python（僅 tools/ 的驗證器會產生）
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# 編輯器
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,73 @@
+# 知識庫導覽
+
+本目錄由 `skills/` 下的各 skill 共用。路徑相對於 skill 目錄為 `../../references/`。
+
+| 要做什麼 | 讀哪個檔 | 使用者 |
+|---|---|---|
+| 決定專案分級、決定要載入哪些 check | `profile.md` | sec-audit / sec-deliverables |
+| 判斷某個掃描工具的習性與誤判處置慣例 | `scanners.md` | sec-audit |
+| 查某個壞味道怎麼偵測、怎麼修 | `checks/*.md` | sec-audit |
+| 把 check-id 換成附表十或 OWASP 編號 | `mapping.md` | sec-audit / sec-deliverables |
+| 寫程式當下的過關寫法速查 | `quick-patterns.md` | sec-harden |
+| 附表十查檢表全文與分級 | `controls-appendix10.md` | sec-deliverables |
+| 各類交付文件的產出規則與格式 | `templates/*.md` | sec-deliverables |
+
+## 路徑注意事項
+
+skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
+**用 Read 工具讀 `../../references/…` 會正確解析**（syscall 先解 symlink，
+`..` 才套用到真實父目錄）。
+
+**但不要用 shell 的 `cd ../..` 導航到這裡**——`cd` 用邏輯解析，
+會跑到 `~/.claude/` 而不是 plugin 根目錄。要在 shell 操作請用絕對路徑。
+
+## 設計約束
+
+1. **`checks/` 內不得出現法規或 OWASP 編號。** 對照關係一律放 `mapping.md`。
+   理由：同一個壞味道對映四張清單，內嵌編號會導致清單改版時需修改全部 check 檔。
+
+2. **每則 check 必須有五個小節**：掃描器怎麼標 / 壞味道 / 過關寫法 /
+   常見誤判與處置 / 判定準則。
+
+3. **SAST 類 check 的範例必須涵蓋 Go、Python、JavaScript 三種。**
+
+4. **check-id 格式**：`{SAST|DAST}-{主題縮寫}-{三位數字}`，一經發布不得變更。
+
+以上四點由 `../tools/validate_kb.py` 自動驗證。新增或修改 check 後執行：
+
+    cd security-compliance-tw && python3 tools/validate_kb.py
+
+驗證器同時檢查 `checks/` 與 `mapping.md` 的**雙向對應**——
+有 check 沒 mapping、或有 mapping 沒 check，都會報錯。
+
+## 目前涵蓋範圍
+
+共 43 則 check。
+
+| check 檔 | 則數 | 涵蓋 |
+|---|---|---|
+| `sast-injection.md` | 4 | SQL 注入 / OS 命令注入 / 路徑尋訪 / 跨站腳本攻擊 |
+| `sast-authz.md` | 4 | 未執行授權檢查 / 水平越權 / 垂直越權 / 未以最小權限執行 |
+| `sast-session-auth.md` | 4 | 硬編碼憑證 / Session 固定 / 逾時與登出 / 鎖定與密碼強度 |
+| `sast-crypto.md` | 4 | 已破解演算法 / 未用 KDF / 不安全亂數 / TLS 驗證關閉 |
+| `sast-logging.md` | 4 | 日誌注入 / 敏感資訊入日誌 / 缺稽核事件 / 日誌權限過寬 |
+| `sast-errors.md` | 4 | 訊息外洩 / 回傳值未檢查 / 資源未釋放 / 例外捕捉過廣 |
+| `sast-api-authz.md` | 4 | 物件層級 / 屬性層級 / 功能層級授權失效 / 資源消耗無限制 |
+| `sast-llm.md` | 4 | 提示注入 / 輸出處理不當 / 過度代理權 / 系統提示放金鑰 |
+| `dast-headers.md` | 3 | CSP / HSTS / Clickjacking |
+| `dast-tls-cookie.md` | 4 | Cookie Secure / HttpOnly / SameSite / TLS 版本與套件 |
+| `dast-info-leak.md` | 4 | 錯誤頁 / 目錄列表 / 版本指紋 / 敏感檔案殘留 |
+
+`controls-appendix10.md` 收錄附表十查檢表全文與分級，僅在產出 `checklist.md` 時讀取。
+
+`quick-patterns.md` 是 `sec-harden` 的內容來源——從 43 則萃取出
+「寫的當下能預防」的約 20 則，依情境（寫查詢 / 寫 handler / 處理路徑…）而非
+依 check-id 組織。修改後需重跑 `sec-harden` 安裝，各專案的規則檔才會更新。
+兩者不一致時以 `checks/` 為準。
+
+## 新增 check 的流程
+
+1. 在對應的 `checks/*.md` 加一則，嚴格照五小節格式
+2. 在 `mapping.md` 加一列（10 欄，缺一不可）
+3. 跑 `python3 tools/validate_kb.py` 確認通過
+4. 更新本檔的涵蓋範圍表與 `skills/sec-audit/SKILL.md` 的涵蓋範圍段落

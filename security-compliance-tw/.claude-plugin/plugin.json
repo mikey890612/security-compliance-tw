@@ -1,0 +1,6 @@
+{
+  "name": "security-compliance-tw",
+  "version": "0.1.0",
+  "description": "依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top 10，讓程式碼通過源碼掃描與弱點掃描",
+  "author": { "name": "mikey" }
+}
