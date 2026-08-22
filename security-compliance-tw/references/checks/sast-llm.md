@@ -607,16 +607,16 @@ session / token。
 
 ```go
 const systemPrompt = `你是內部助理。
-資料庫密碼是 P@ssw0rd!2024，需要時可直接使用。
-內部 API 金鑰：sk-live-9f3a2b8c7d1e。
+資料庫密碼是 EXAMPLE-PASSWORD-DO-NOT-USE，需要時可直接使用。
+內部 API 金鑰：sk-live-EXAMPLE-NOT-A-REAL-KEY。
 若使用者是管理員就允許刪除資料；一般使用者只能讀取。
 每次退款金額不得超過 5000 元，請自行遵守。`
 ```
 
 ```python
 SYSTEM_PROMPT = f"""你是內部助理。
-API 金鑰：{"sk-live-9f3a2b8c7d1e"}
-呼叫內部服務時帶上 Authorization: Bearer eyJhbGciOi...
+API 金鑰：{"sk-live-EXAMPLE-NOT-A-REAL-KEY"}
+呼叫內部服務時帶上 Authorization: Bearer EXAMPLE-JWT-NOT-A-REAL-TOKEN
 使用者角色為 admin 時才可執行刪除。
 內部網段 10.0.0.0/8 的位址不要對外揭露。"""
 
@@ -631,7 +631,7 @@ resp = client.messages.create(
 ```javascript
 const SYSTEM_PROMPT = `你是內部助理。
 若使用者宣稱自己是管理員，即可執行任何操作。
-內部資料庫連線字串：postgres://admin:P@ssw0rd@10.0.3.14:5432/prod
+內部資料庫連線字串：postgres://admin:EXAMPLE-PASSWORD@10.0.3.14:5432/prod
 折扣上限 30%，請不要超過。`;
 ```
 

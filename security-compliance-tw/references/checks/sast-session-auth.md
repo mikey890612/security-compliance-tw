@@ -30,10 +30,10 @@
 ### 壞味道
 
 ```go
-const dbPassword = "P@ssw0rd1234"
+const dbPassword = "EXAMPLE-PASSWORD-DO-NOT-USE"
 var jwtSecret = []byte("my-super-secret-key")
 
-db, _ := sql.Open("mysql", "root:P@ssw0rd1234@tcp(10.0.0.5:3306)/app")
+db, _ := sql.Open("mysql", "root:EXAMPLE-PASSWORD-DO-NOT-USE@tcp(10.0.0.5:3306)/app")
 
 if user == "admin" && pass == "admin123" {  // 後門帳號
 	return true
@@ -41,10 +41,10 @@ if user == "admin" && pass == "admin123" {  // 後門帳號
 ```
 
 ```python
-DB_PASSWORD = "P@ssw0rd1234"
+DB_PASSWORD = "EXAMPLE-PASSWORD-DO-NOT-USE"
 SECRET_KEY = "django-insecure-8f3k2j4h5g6f7d8s9a0"
 
-conn = pymysql.connect(host="10.0.0.5", user="root", password="P@ssw0rd1234")
+conn = pymysql.connect(host="10.0.0.5", user="root", password="EXAMPLE-PASSWORD-DO-NOT-USE")
 
 def login(u, p):
     return u == "admin" and p == "admin123"
@@ -52,7 +52,7 @@ def login(u, p):
 
 ```javascript
 const JWT_SECRET = "my-super-secret-key";
-const dbUrl = "postgres://root:P@ssw0rd1234@10.0.0.5:5432/app";
+const dbUrl = "postgres://root:EXAMPLE-PASSWORD-DO-NOT-USE@10.0.0.5:5432/app";
 
 app.use(session({ secret: "keyboard cat" }));
 ```
