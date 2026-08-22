@@ -205,4 +205,7 @@ API 層與 AI 層內容：
 
 ## 授權
 
-MIT
+MIT（見 [LICENSE](LICENSE)）。
+
+涉及外部來源的部分——法規本文、參考指引、OWASP 清單、掃描工具規則名稱——
+的處理方式與界線，見 [NOTICE.md](NOTICE.md)。

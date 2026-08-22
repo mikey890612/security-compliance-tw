@@ -19,24 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-NOTICE ON THIRD-PARTY CONTENT / 第三方內容聲明
-
-The security control items and classification levels contained in
-`security-compliance-tw/references/controls-appendix10.md` originate from
-Appendix 10 of the Regulations on Classification of Cyber Security
-Responsibility Levels (資通安全責任等級分級辦法 附表十), a regulation issued
-under Taiwan's Cyber Security Management Act. Under Article 9 of Taiwan's
-Copyright Act, constitutions, acts, regulations, and official documents are
-not eligible for copyright protection.
-
-本專案 `references/controls-appendix10.md` 所收錄之控制措施與分級，出自
-《資通安全責任等級分級辦法》附表十，屬法規命令。依著作權法第 9 條，
-命令不得為著作權之標的。
-
-Reference guidelines published by 數位發展部資通安全署 and
-行政院資通安全辦公室 are cited for their technical concepts only. Their
-original PDF documents, implementation examples, and layout remain the
-property of the respective agencies and are NOT redistributed by this project.
