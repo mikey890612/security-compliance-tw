@@ -1,0 +1,7 @@
+# id	enabled	mode	dest_template
+claude	1	skill-dir	~/.claude/skills/{skill}
+cursor	1	skill-dir	~/.cursor/skills/{skill}
+agents-hub	1	skill-dir	~/.agents/skills/{skill}
+cline	1	doc-only	
+windsurf	1	doc-only	
+copilot	1	doc-only	
