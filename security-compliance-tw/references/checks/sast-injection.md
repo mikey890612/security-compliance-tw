@@ -10,10 +10,10 @@
 |---|---|---|---|---|
 | Fortify | SQL Injection | Critical | unverified | — |
 | Checkmarx | SQL_Injection | High | unverified | — |
-| Semgrep | `*.security.*.string-formatted-query` / `*.sql-injection*` | ERROR | unverified | — |
+| Semgrep | `*.security.*.string-formatted-query` / `*.sql-injection*` | ERROR | verified | testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json#rule=go.lang.security.audit.database.string-formatted-query.string-formatted-query |
 | SonarQube | S3649 | Blocker | unverified | — |
-| gosec | G201（SQL 字串格式化）/ G202（SQL 字串串接） | HIGH | unverified | — |
-| bandit | B608 | MEDIUM | unverified | — |
+| gosec | G201（SQL 字串格式化）/ G202（SQL 字串串接） | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/gosec.json#rule=G202 |
+| bandit | B608 | MEDIUM | verified | testdata/scan-artifacts/open-source/20260905T084457Z/bandit.json#rule=B608 |
 | AWVS / ZAP | SQL Injection | High | unverified | — |
 
 ### 壞味道
@@ -106,10 +106,10 @@ await client.query("SELECT * FROM users WHERE id = $1", [userId]);
 |---|---|---|---|---|
 | Fortify | Command Injection | Critical | unverified | — |
 | Checkmarx | Command_Injection | High | unverified | — |
-| Semgrep | `*.security.*.command-injection*` | ERROR | unverified | — |
+| Semgrep | `*.security.*.command-injection*` | ERROR | verified | testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json#rule=go.lang.security.audit.dangerous-exec-command.dangerous-exec-command |
 | SonarQube | S2076 | Blocker | unverified | — |
-| gosec | G204 | HIGH | unverified | — |
-| bandit | B602（shell=True）/ B605 | HIGH | unverified | — |
+| gosec | G204 | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/gosec.json#rule=G204 |
+| bandit | B602（shell=True）/ B605 | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/bandit.json#rule=B602 |
 | AWVS / ZAP | OS Command Injection | High | unverified | — |
 
 ### 壞味道
@@ -276,7 +276,7 @@ fs.readFile(target, cb);
 |---|---|---|---|---|
 | Fortify | Cross-Site Scripting: Reflected / Persistent / DOM | Critical | unverified | — |
 | Checkmarx | Reflected_XSS_All_Clients / Stored_XSS / Client_DOM_XSS | High | unverified | — |
-| Semgrep | `*.security.*.xss*` / `*.dangerously-set-inner-html*` / `go.lang.security.audit.xss.*` | ERROR | unverified | — |
+| Semgrep | `*.security.*.xss*` / `*.dangerously-set-inner-html*` / `go.lang.security.audit.xss.*` | ERROR | verified | testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json#rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter |
 | SonarQube | S5131（端點不應存在反射型 XSS）/ S6299（DOM XSS） | Blocker | unverified | — |
 | gosec | G203（HTML 樣板中使用未跳脫資料） | MEDIUM | unverified | — |
 | bandit | B308（`mark_safe`）/ B703（Django `mark_safe`） | MEDIUM | unverified | — |

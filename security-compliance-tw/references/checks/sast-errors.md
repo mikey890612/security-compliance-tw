@@ -128,7 +128,7 @@ app.use((err, req, res, next) => {
 | Checkmarx | —（依語言套件而異） | — | unverified | — |
 | Semgrep | —（多以語言原生 linter 覆蓋） | — | unverified | — |
 | SonarQube | S2201（忽略無副作用函式回傳值）/ S899（忽略狀態碼回傳值） | — | unverified | — |
-| gosec | G104（Audit errors not checked） | LOW | unverified | — |
+| gosec | G104（Audit errors not checked） | LOW | verified | testdata/scan-artifacts/open-source/20260905T084457Z/gosec.json#rule=G104 |
 | bandit | B110（try_except_pass）/ B112（try_except_continue） | LOW | unverified | — |
 | errcheck（Go） | 預設全部；`-blank` 另抓 `_ =` | — | unverified | — |
 | CodeQL | —（無單一對應查詢） | — | unverified | — |
