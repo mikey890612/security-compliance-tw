@@ -5,7 +5,7 @@ import pathlib
 import re
 import sys
 
-CHECK_ID_RE = re.compile(r"^(SAST|DAST)-[A-Z]+-\d{3}$")
+CHECK_ID_RE = re.compile(r"^(SAST|DAST|MAST|MDM)-[A-Z]+-\d{3}$")
 HEADING_RE = re.compile(r"^##\s+(\S+)\s+·\s+(.+?)\s*$", re.MULTILINE)
 
 REQUIRED_SECTIONS = [
@@ -119,7 +119,7 @@ def validate_checks(checks):
         where = f"{c.source} / {c.id}"
 
         if not CHECK_ID_RE.match(c.id):
-            errors.append(f"{where}: id 格式不符 {{SAST|DAST}}-主題-三位數字")
+            errors.append(f"{where}: id 格式不符 {{SAST|DAST|MAST|MDM}}-主題-三位數字")
             continue
 
         if c.id in seen:
@@ -131,11 +131,17 @@ def validate_checks(checks):
                 errors.append(f"{where}: 缺少「{section}」小節")
 
         # 註：此處檢查整則 check 的內文，未細分到「過關寫法」小節。
-        # 涵蓋三語言即通過，屬刻意放寬的近似檢查。
-        if c.id.startswith("SAST-"):
+        # 涵蓋所需語言即通過，屬刻意放寬的近似檢查。
+        # MAST → swift+kotlin；SAST → go/python/javascript；MDM/DAST → 無語言圍欄要求。
+        if c.id.startswith("MAST-"):
+            for lang in ("swift", "kotlin"):
+                if f"```{lang}" not in c.body:
+                    errors.append(f"{where}: 缺少 {lang} 範例")
+        elif c.id.startswith("SAST-"):
             for lang in REQUIRED_LANGS:
                 if f"```{lang}" not in c.body:
                     errors.append(f"{where}: 缺少 {lang} 範例")
+        # elif MDM- or DAST-: no SAST/MAST language requirements
 
         errors.extend(validate_scanner_tables(c))
 

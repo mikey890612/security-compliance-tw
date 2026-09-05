@@ -121,5 +121,68 @@ class TestScannerTables(unittest.TestCase):
 
 
 
+class TestMastMdmLanguageRules(unittest.TestCase):
+    """MAST/MDM id format and language fence rules (B1 Task 1)."""
+
+    VALID_SCANNER_TABLE = (
+        "| 工具 | 規則 | 預設等級 | 狀態 | 證據 |\n"
+        "|---|---|---|---|---|\n"
+        "| MobSF | demo | HIGH | unverified | — |\n"
+    )
+
+    def _sections(self, fences=""):
+        return (
+            "\n### 掃描器怎麼標\n\n"
+            f"{self.VALID_SCANNER_TABLE}\n\n"
+            f"### 壞味道\n{fences}\n\n"
+            f"### 過關寫法\n{fences}\n\n"
+            "### 常見誤判與處置\nx\n\n"
+            "### 判定準則\nx\n"
+        )
+
+    def _check(self, check_id, fences="", source="mobile-demo.md"):
+        return validate_kb.Check(
+            id=check_id,
+            title="demo",
+            body=self._sections(fences),
+            source=source,
+        )
+
+    def test_mast_id_format_ok(self):
+        fences = "```swift\nx\n```\n```kotlin\nx\n```\n"
+        errors = validate_kb.validate_checks([self._check("MAST-STORE-001", fences)])
+        self.assertFalse(any("id 格式" in e for e in errors), errors)
+        self.assertEqual(errors, [])
+
+    def test_mdm_id_format_ok(self):
+        errors = validate_kb.validate_checks([self._check("MDM-ENROLL-001", fences="")])
+        self.assertFalse(any("id 格式" in e for e in errors), errors)
+        self.assertEqual(errors, [])
+
+    def test_mast_missing_kotlin_errors(self):
+        fences = "```swift\nx\n```\n"
+        errors = validate_kb.validate_checks([self._check("MAST-STORE-001", fences)])
+        self.assertTrue(any("缺少 kotlin" in e for e in errors), errors)
+
+    def test_mdm_no_language_fences_ok(self):
+        # five sections + valid scanner table, no code fences
+        errors = validate_kb.validate_checks([self._check("MDM-ENROLL-001", fences="")])
+        self.assertFalse(any("缺少" in e and "範例" in e for e in errors), errors)
+        self.assertEqual(errors, [])
+
+    def test_sast_still_requires_go_python_javascript(self):
+        # only swift/kotlin — must still fail for missing go/python/javascript
+        fences = "```swift\nx\n```\n```kotlin\nx\n```\n"
+        errors = validate_kb.validate_checks(
+            [self._check("SAST-INJ-001", fences, source="sast-demo.md")]
+        )
+        for lang in ("go", "python", "javascript"):
+            self.assertTrue(
+                any(f"缺少 {lang}" in e for e in errors),
+                f"expected missing {lang}; got {errors}",
+            )
+
+
+
 if __name__ == "__main__":
     unittest.main()
