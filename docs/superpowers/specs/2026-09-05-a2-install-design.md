@@ -1,7 +1,7 @@
 # A2：本機 agent skills 一鍵安裝 — 設計規格
 
 日期：2026-09-05
-狀態：已與使用者確認 §1–§4，待使用者 review 本檔後進入 writing-plans
+狀態：§1–§4 已核准；§5.3 references 路徑改採 Fix A（已核准）；待使用者 re-review 本檔後進入 writing-plans
 專案：`security_skill_creator` / `security-compliance-tw`
 相關 GitHub：https://github.com/mikey890612/security-compliance-tw
 
@@ -61,15 +61,22 @@
 
 ```
 repo root
-├── install.sh                 # 驅動：讀 manifest、備份、複製、驗證
+├── install.sh                 # 同步 plugin 快照、寫 root、讀 manifest、備份、複製 skill、驗證
 ├── install/
 │   ├── README.md              # 維護者：如何加 target
 │   └── targets.tsv            # 無 yq 依賴的簡單 manifest
-├── security-compliance-tw/skills/{sec-audit,sec-harden,sec-deliverables}/
-└── docs/usage/install.md      # 使用者說明
+├── security-compliance-tw/    # 來源 plugin（skills + references + tools …）
+└── docs/usage/install.md
+
+~/.security-compliance-tw/
+├── root                       # 一行：plugin 絕對路徑
+├── plugin/                    # security-compliance-tw/ 的可攜快照
+└── backups/<timestamp>/…
 ```
 
-`install.sh` **不**把路徑寫死在業務邏輯中；dest 來自 manifest。Skill 來源固定為 `security-compliance-tw/skills/<name>/`。
+`install.sh` **不**把 agent dest 寫死在業務邏輯中（來自 manifest）。  
+Skill 來源：`security-compliance-tw/skills/<name>/`。  
+知識庫來源：`SECURITY_COMPLIANCE_TW_ROOT` 或 `~/.security-compliance-tw/root` 指向的 plugin 樹。
 
 ---
 
@@ -113,12 +120,36 @@ repo root
 
 技能名稱固定集合：`sec-audit`、`sec-harden`、`sec-deliverables`。
 
-### 5.3 複製範圍
+### 5.3 複製範圍與知識庫根解析（Fix A，已核准）
 
-對每個 skill 目錄：複製整個目錄樹（`SKILL.md` 及同目錄內相對資源）。若 skill 依賴 plugin 根下的 `references/` 等**目錄外**路徑，文件必須註明「全域安裝後相對路徑可能失效；執行時仍以 clone 的 repo 為準查 references」——實作計畫需檢查現有 SKILL.md 的相對引用並決定：
+現況：三支 SKILL 以 `../../references/…` 相對路徑讀知識庫。若只把 skill 夾複製到 `~/.claude/skills/<skill>/`，相對路徑會斷裂。
 
-- **A（本規格預設）**：只複製 skill 資料夾；README／install.md 寫明知識庫仍在 clone 路徑，agent 工作目錄應能讀到 repo，或使用者保持 clone 可用。
-- 若實作前發現 skill **硬依賴** repo 相對路徑且無法運作，在 plan 階段加「安裝後寫入 `SECURITY_COMPLIANCE_TW_ROOT` 小檔或改寫 SKILL 內路徑」子任務，不在本規格擅自擴大範圍。
+**採用 Fix A：**
+
+1. **`install.sh` 同步 plugin 快照**  
+   將 repo 內 `security-compliance-tw/` **整樹複製／同步**到  
+   `~/.security-compliance-tw/plugin/`  
+   （內容含 `skills/`、`references/`、`tools/` 等；重跑覆蓋，遵守 §3 備份策略時可先備份既有 `plugin/`）。
+
+2. **寫入 root 指標**  
+   檔案：`~/.security-compliance-tw/root`（單行、無尾隨空白以外的內容：plugin 目錄的絕對路徑，即上述 `…/plugin` 的 realpath）。  
+   環境變數 `SECURITY_COMPLIANCE_TW_ROOT` 若已設定，**優先於**該檔（方便 CI／開發覆寫）。
+
+3. **改 repo 內三支 SKILL 的讀取約定**（實作必做，屬 A2 範圍）  
+   - 廢止「僅靠 `../../references`」作為已安裝環境的唯一方式。  
+   - 新約定（Traditional Chinese 說明寫進各 SKILL）：  
+     1. 若存在 env `SECURITY_COMPLIANCE_TW_ROOT` → 用它  
+     2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該路徑  
+     3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（即仍在 clone／plugin 樹的 `skills/<name>/` 下開發時可用）  
+   - 知識庫路徑改表述為 `{ROOT}/references/…`（Read 工具用解析後的絕對或明確相對路徑）。  
+   - 保留「不要用 shell `cd ../..` 導航」的既有警告，改為「先解析 ROOT 再 Read」。
+
+4. **再複製 skill 夾到各 agent target**  
+   從來源 `security-compliance-tw/skills/<name>/`（或已同步的 plugin 內同路徑）`cp -R` 到 Claude／Cursor／agents-hub。  
+   拷貝**不需要**再改寫檔案內容（約定已在來源 SKILL 內）。
+
+5. **開發／未安裝**  
+   未跑 install、無 root 檔時，fallback `../..` 讓 clone 內直接用技能仍可用。
 
 ### 5.4 doc-only 政策
 
@@ -138,14 +169,18 @@ Cline／Windsurf／Copilot：**不安裝假路徑**。`install.sh` 結尾提示�
 ### 6.2 預設流程
 
 1. 解析 flags；定位 repo root（腳本所在目錄）
-2. 讀 `install/targets.tsv`
-3. 對每個 `enabled=1` 且 `mode=skill-dir` 的 target（可被 `--only` 過濾）：
+2. **同步 plugin 快照**：將 `security-compliance-tw/` 複製到 `~/.security-compliance-tw/plugin/`  
+   （若目錄已存在且未 `--no-backup`，先備份整個 `plugin/` 到 backups）  
+   `--dry-run` 時只列印。`--only` **不略過**此步（知識庫根必須存在；若未來要略過需另開 flag，本規格不做）。
+3. 寫入／覆寫 `~/.security-compliance-tw/root` 為該 plugin 的絕對路徑
+4. 讀 `install/targets.tsv`
+5. 對每個 `enabled=1` 且 `mode=skill-dir` 的 target（可被 `--only` 過濾）：
    - 對每個 skill：若 dest 已存在且未 `--no-backup`，移到  
      `~/.security-compliance-tw/backups/<UTC-timestamp>/<target>/<skill>/`
-   - `mkdir -p` parent；`cp -R` 來源 → dest（覆蓋）
-4. 對 `doc-only`：不複製；彙總提示
-5. 印出每個寫入的 `SKILL.md` 是否存在
-6. 嘗試 `python3 security-compliance-tw/tools/validate_kb.py`
+   - `mkdir -p` parent；`cp -R` 來源 skill → dest（覆蓋）
+6. 對 `doc-only`：不複製；彙總提示
+7. 印出 root 檔內容、每個寫入的 `SKILL.md` 是否存在
+8. 嘗試 `python3 security-compliance-tw/tools/validate_kb.py`（對 **repo 內** 來源樹；可另對 plugin 快照再跑一次作可選加強，非必須）
 
 ### 6.3 Flags
 
@@ -174,18 +209,19 @@ Cline／Windsurf／Copilot：**不安裝假路徑**。`install.sh` 結尾提示�
 ### 7.2 驗收清單
 
 1. `--dry-run` 可跑通且無副作用
-2. 真實安裝後三個 skill-dir target × 三 skill 皆有 `SKILL.md`
-3. `validate_kb.py` 通過
+2. 真實安裝後：`~/.security-compliance-tw/root` 存在且指向有效 plugin；三個 skill-dir target × 三 skill 皆有 `SKILL.md`
+3. 依 ROOT 可解析到 `references/profile.md`（抽樣）；`validate_kb.py` 對 repo 來源通過
 4. `--only`／`--no-backup`／`--list` 符合 §3
 5. 重跑產生 backup（除非 `--no-backup`）
 
 ### 7.3 交付物
 
-- `install.sh`
+- `install.sh`（含 plugin 同步 + root 寫入）
 - `install/targets.tsv`
 - `install/README.md`
-- `docs/usage/install.md`
+- `docs/usage/install.md`（含 ROOT 解析約定與除錯）
 - README 安裝區更新
+- 三支 `skills/*/SKILL.md`：改為 ROOT 解析約定（廢止僅依賴 `../../references` 的已安裝假設）
 
 ---
 
@@ -200,8 +236,9 @@ Cline／Windsurf／Copilot：**不安裝假路徑**。`install.sh` 結尾提示�
 
 | 風險 | 緩解 |
 |---|---|
-| Skill 內相對路徑指向 plugin `references/` | 文件說明；計畫階段檢查；必要時另開小任務 |
-| Cursor／Claude 重複三份拷貝 | 接受（明確性優先）；可用 `--only` 減量 |
+| Skill 忘記改 ROOT 約定 | A2 必改三支 SKILL；驗收抽樣 Read `references/profile.md` |
+| plugin 快照過期 | 重跑 `install.sh` 覆蓋；文件說明 |
+| Cursor／Claude 重複三份 skill 拷貝 | 接受（明確性優先）；可用 `--only` 減量 |
 | doc-only 使用者期望落空 | 文件與腳本結尾明確提示 |
 
 A2 完成後預設下一棒：**A3**（CI／CHANGELOG），除非使用者指定。
@@ -213,4 +250,6 @@ A2 完成後預設下一棒：**A3**（CI／CHANGELOG），除非使用者指定
 - §1 目標／非目標：已核准
 - §2 Manifest／路徑：已核准
 - §3 install.sh 行為：已核准
-- §4 文件／驗收：已核准（整份設計通過，待本檔 review）
+- §4 文件／驗收：已核准
+- §5.3 references 路徑：Fix A（plugin 快照 + root 指標 + SKILL 解析約定）已核准
+- 待使用者 re-review 本更新檔後進入 writing-plans
