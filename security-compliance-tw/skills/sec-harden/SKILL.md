@@ -42,6 +42,11 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 **只讀需要的段落。** 要更完整的說明（掃描器規則名稱、誤判處置、判定準則）
 再去 `{ROOT}/references/checks/`——但寫程式時通常不需要，速查就夠。
 
+撰寫 **iOS／Android 原生 App** 或 **EMM／MDM／MAM** 相關程式時，
+`quick-patterns.md` 尚無對應速查段落——改讀
+`checks/mast-storage-crypto.md`、`checks/mast-network-ipc.md`、`checks/mdm-controls.md`
+（是否載入由 `profile.md` 的「有行動 App」「有 EMM／MDM／MAM」決定；勿整份貼進規則檔）。
+
 ---
 
 ## 安裝模式
@@ -231,5 +236,5 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 | 讀 | `quick-patterns.md` | `checks/` + `mapping.md` |
 | 產出 | 專案的規則檔 | `security-audit/` 報告 |
 
-`quick-patterns.md` 是從 `checks/` 的 43 則萃取出「寫的當下能預防」的約 20 則。
+`quick-patterns.md` 是從 `checks/` 的 Web／API／LLM 則萃取出「寫的當下能預防」的約 20 則（MAST／MDM 尚未收入速查）。
 兩者內容不一致時，**以 `checks/` 為準**——那是完整版。

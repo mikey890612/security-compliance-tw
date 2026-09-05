@@ -88,7 +88,7 @@ python3 security-compliance-tw/tools/validate_kb.py
 
 ```
 references/
-├── checks/              43 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
+├── checks/              53 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
 ├── mapping.md           唯一對照表：check-id → 附表十 / OWASP / CWE
 ├── controls-appendix10.md   附表十查檢表全文與分級
 ├── quick-patterns.md    寫程式當下的速查（sec-harden 的內容來源）
@@ -106,10 +106,15 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 以上由 `tools/validate_kb.py` 自動驗證，同時檢查 `checks/` 與 `mapping.md`
 的雙向對應。
 
-### 涵蓋範圍（43 則）
+### 涵蓋範圍（53 則）
 
 注入（含 XSS）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
-錯誤與例外 · API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩
+錯誤與例外 · API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩 ·
+**MAST**（`mast-storage-crypto.md`、`mast-network-ipc.md`）·
+**MDM／EMM／MAM**（`mdm-controls.md`）
+
+B1 依 profile「有行動 App」「有 EMM／MDM／MAM」載入上述三檔（共 10 則）。
+掃描器對照多為 `unverified`／`—`，**未宣稱 Fortify／MobSF 已驗證**。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。
