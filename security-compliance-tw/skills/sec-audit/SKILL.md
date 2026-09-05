@@ -34,8 +34,8 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 2. **偵測技術棧**——讀 `go.mod` / `requirements.txt` / `pyproject.toml` / `package.json`
 3. **選定 check 集合**——依 `profile.md` 的選取規則決定載入哪些 `checks/*.md`。
    **只載入需要的檔案**，這是控制 context 的關鍵。載入前先確認檔案存在。
-   Profile 複選若勾「**有行動 App**」→ 載入 `mast-storage-crypto.md`、`mast-network-ipc.md`；
-   勾「**有 EMM／MDM／MAM**」→ 載入 `mdm-controls.md`（規則見 `profile.md`，勿複製 check 全文）
+   Profile 複選若勾「**有行動 App**」→ 載入 `mast-storage-crypto.md`、`mast-network-ipc.md`、`mast-device-privacy.md`；
+   勾「**有 EMM／MDM／MAM**」→ 載入 `mdm-controls.md`（含 LOCK／JAIL／PATCH／VPN／MTD；規則見 `profile.md`，勿複製 check 全文）
 4. **樣式比對**——用 check 檔內「壞味道」區塊的樣式在 codebase 搜尋
 5. **逐項判定**——每個命中歸為：真漏洞 / 誤判 / 不適用，各自記錄理由
 6. **修補**——**先列出待修清單與影響檔案數，取得使用者確認後才動手**。
@@ -115,7 +115,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-53 則 check，14 個檔：
+63 則 check，15 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
@@ -131,10 +131,11 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | TLS 與 Cookie | `dast-tls-cookie.md` | 對外服務 |
 | 資訊外洩 | `dast-info-leak.md` | 對外服務 |
 | MAST 儲存／密碼學／日誌 | `mast-storage-crypto.md` | **有行動 App** |
-| MAST 網路／鑑別／IPC／WebView | `mast-network-ipc.md` | **有行動 App** |
+| MAST 網路／鑑別／IPC／WebView／PIN | `mast-network-ipc.md` | **有行動 App** |
+| MAST 裝置隱私／備份／生物辨識 | `mast-device-privacy.md` | **有行動 App** |
 | MDM／EMM／MAM 控制 | `mdm-controls.md` | **有 EMM／MDM／MAM** |
 
-B1 新增 MAST／MDM 三檔（10 則）；掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
+B1＋B2 行動／MDM 共四檔（+20 則至 63）：含 `mast-device-privacy.md`（BACKUP／CLIP／SCREEN／BIO）、`MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。

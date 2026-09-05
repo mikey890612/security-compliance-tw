@@ -43,7 +43,9 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
    產查檢表類要先請使用者跑 `sec-audit`；威脅建模與 RTM 可以做，
    但要說明「未經源碼檢視，實作狀態欄位無法回填」。
    若 profile 曾勾「有行動 App」或「有 EMM／MDM／MAM」，findings 可能含
-   MAST／MDM check-id；勾稽時仍只經 `{ROOT}/references/mapping.md` 對照附表十／OWASP，
+   MAST／MDM check-id（含 `mast-device-privacy` 的 BACKUP／CLIP／SCREEN／BIO、
+   `MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD；知識庫共 63 則）；
+   勾稽時仍只經 `{ROOT}/references/mapping.md` 對照附表十／OWASP，
    勿自行發明項次
 
 RFP 不需要在專案目錄下執行，也不需要 findings。
