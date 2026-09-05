@@ -12,12 +12,14 @@
 > 依「資通安全責任等級分級辦法附表九」由機關核定。使用者不確定時請其查驗收文件；
 > 仍不確定則以「中」進行，並**在報告首頁註明此假設**。
 
-**第 2 題（複選）專案具備哪些特性**——四個選項，全不勾也是有效答案：
+**第 2 題（複選）專案具備哪些特性**——六個選項，全不勾也是有效答案：
 
 - 對外提供服務（公開網際網路可存取）
 - 有 API 端點（REST / GraphQL / gRPC）
 - 有 LLM / RAG / Agent 功能
 - 處理個人資料或金流
+- 有行動 App（iOS／Android 原生）
+- 有 EMM／MDM／MAM
 
 **第 3 題（複選）已知將面對哪些掃描器**：
 
@@ -76,6 +78,8 @@
 | 有 API 端點 | `checks/sast-api-authz.md` |
 | 有 LLM / RAG / Agent | `checks/sast-llm.md` |
 | 有個資或金流 | `checks/sast-logging.md`、`checks/sast-crypto.md` |
+| 有行動 App | `checks/mast-storage-crypto.md`、`checks/mast-network-ipc.md` |
+| 有 EMM／MDM／MAM | `checks/mdm-controls.md` |
 
 **載入前先確認檔案存在。** 知識庫仍在擴充中，規則表可能列出尚未建立的檔案。
 遇到不存在的檔案時，在報告中註明「該類別尚未涵蓋」，**不要憑印象生成內容**。

@@ -38,9 +38,9 @@ class TestMapping(unittest.TestCase):
 
     def test_extracts_mapped_ids(self):
         p = self._write_mapping(
-            "| check-id | 附表十 | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | CWE |\n"
-            "|---|---|---|---|---|---|---|---|---|---|\n"
-            "| SAST-INJ-001 | 4.5.3.1 | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | CWE-89 |\n"
+            "| check-id | 附表十 | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | Mob25 | CWE |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|\n"
+            "| SAST-INJ-001 | 4.5.3.1 | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | — | CWE-89 |\n"
         )
         rows = validate_kb.parse_mapping(p)
         self.assertEqual(list(rows.keys()), ["SAST-INJ-001"])

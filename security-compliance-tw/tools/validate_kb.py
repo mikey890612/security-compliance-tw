@@ -150,7 +150,7 @@ def validate_checks(checks):
 
 MAPPING_COLUMNS = [
     "check-id", "附表十", "普", "中", "高",
-    "Web21", "Web25", "API23", "LLM25", "CWE",
+    "Web21", "Web25", "API23", "LLM25", "Mob25", "CWE",
 ]
 
 
