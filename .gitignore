@@ -21,3 +21,10 @@ __pycache__/
 .idea/
 .vscode/
 *.swp
+
+# Scanner verification artifacts (raw JSON / commercial reports — keep dirs via .gitkeep)
+security-compliance-tw/testdata/scan-artifacts/open-source/**
+!security-compliance-tw/testdata/scan-artifacts/open-source/.gitkeep
+security-compliance-tw/testdata/scan-artifacts/commercial/**
+!security-compliance-tw/testdata/scan-artifacts/commercial/.gitkeep
+!security-compliance-tw/testdata/scan-artifacts/README.md
