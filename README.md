@@ -67,18 +67,18 @@ Top 10 for LLM Applications（2025），提供給 Claude Code、Cursor
 ```bash
 git clone https://github.com/mikey890612/security-compliance-tw.git
 cd security-compliance-tw
-ln -sfn "$PWD/security-compliance-tw/skills/sec-audit"        ~/.claude/skills/sec-audit
-ln -sfn "$PWD/security-compliance-tw/skills/sec-harden"       ~/.claude/skills/sec-harden
-ln -sfn "$PWD/security-compliance-tw/skills/sec-deliverables" ~/.claude/skills/sec-deliverables
+./install.sh
 ```
 
-驗證知識庫完整性：
+一鍵安裝會同步 plugin 快照、寫入 root 指標，並把三支 skill 複製到 Claude／Cursor／agents-hub 的全域目錄。完整 flags、路徑、備份、doc-only 代理與驗證步驟見 **[安裝說明](docs/usage/install.md)**。
+
+可選：驗證知識庫完整性（需要 Python 3，無外部相依；`install.sh` 結束時也會嘗試執行）：
 
 ```bash
-cd security-compliance-tw && python3 tools/validate_kb.py
+python3 security-compliance-tw/tools/validate_kb.py
 ```
 
-需要 Python 3，無外部相依。
+> **進階：** 僅本機開發、不跑 installer 時，仍可用手動 `ln -sfn` 把 skill 鏈到 `~/.claude/skills/`；此方式不寫 root、不同步可攜快照，細節見 [安裝說明 · 進階](docs/usage/install.md#進階手動-symlink不建議作為主路徑)。
 
 ---
 
