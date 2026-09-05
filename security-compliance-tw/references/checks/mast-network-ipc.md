@@ -601,3 +601,132 @@ OAuth／付款若可改用 Custom Tabs／ASWebAuthenticationSession，通常比�
 
 灰色地帶——**一律當真漏洞修**：把 Deep Link 參數整段當 URL 載入，
 或在 bridge 上傳入「任意要執行的 JS 字串」。
+
+---
+
+## MAST-PIN-001 · 無憑證釘選（僅 ATS／NSC 不夠）
+
+涵蓋敏感 API 只靠系統 CA 信任鏈、未做 SPKI／公鑰釘選，以及「開了 ATS／NSC 就夠」的誤區。
+ATS／NSC 擋的是明文與明顯的憑證繞過；**使用者安裝的 CA、企業代理或遭竄改的信任庫**仍可能對預設 TLS 成功中間人。
+本則只談釘選：固定比對預期公鑰／憑證雜湊，失敗就中斷——不可 fallback 成信任全部（TrustAll 屬網路傳輸檢查，不在此重寫）。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | SSL Pinning／Certificate Pinning 缺失類 | High–Warning | unverified | — |
+| mobsfscan | certificate pin／TrustKit／CertificatePinner 相關 pattern | WARNING | unverified | — |
+| Semgrep | `swift.*`／`kotlin.*` pinning／TrustKit／CertificatePinner 社群規則 | ERROR–WARNING | unverified | — |
+| Android Lint | CertificatePinner／自訂 TrustManager 相關（視專案組態） | — | unverified | — |
+| Xcode／Clang Static Analyzer | URLSession 釘選多依賴手動或 TrustKit 等自訂規則 | — | unverified | — |
+
+靜態工具很難證明「有沒有釘對」——多半只看到缺少 `CertificatePinner`／TrustKit／
+`SecTrust` 雜湊比對。過關寫法要讓**敏感主機有明確釘選點，且失敗路徑取消連線**。
+
+### 壞味道
+
+```swift
+// Info.plist 已維持 ATS 預設（無 NSAllowsArbitraryLoads）——以為就此足夠
+let session = URLSession(configuration: .default)
+// 無 URLSessionDelegate 釘選；任何系統信任的 CA 簽出的 api.example.com 都過
+
+func urlSession(
+    _ session: URLSession,
+    didReceive challenge: URLAuthenticationChallenge,
+    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+) {
+    // 「除錯方便」：釘選失敗就改信任全部——等於沒釘
+    completionHandler(.useCredential, URLCredential(trust: challenge.protectionSpace.serverTrust!))
+}
+```
+
+```kotlin
+// network_security_config：cleartextTrafficPermitted="false"——僅禁明文，無 pin-set
+val client = OkHttpClient.Builder()
+    // 未設定 CertificatePinner；系統信任鏈過了就連
+    .build()
+
+val request = Request.Builder()
+    .url("https://api.example.com/login")
+    .post(body)
+    .build()
+```
+
+### 過關寫法
+
+原則：**對登入、權杖、交易等敏感主機做 SPKI／公鑰釘選**；
+正式建置至少釘葉憑證或中繼公鑰，並準備輪替用的備援 pin。
+釘選失敗只能取消挑戰／拋錯，**不可**退回「信任系統鏈上任意憑證」。
+
+```swift
+import CryptoKit
+import Foundation
+
+// 亦可用 TrustKit：kTSKPublicKeyHashes 指向 api.example.com 的 SPKI SHA-256
+let pinnedSPKIHashes: Set<String> = [
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", // 現行
+    "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=", // 輪替備援
+]
+
+func urlSession(
+    _ session: URLSession,
+    didReceive challenge: URLAuthenticationChallenge,
+    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+) {
+    guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+          let trust = challenge.protectionSpace.serverTrust,
+          challenge.protectionSpace.host == "api.example.com" else {
+        completionHandler(.performDefaultHandling, nil)
+        return
+    }
+    guard let pin = spkiSHA256(of: trust), pinnedSPKIHashes.contains(pin) else {
+        completionHandler(.cancelAuthenticationChallenge, nil) // 失敗不 fallback
+        return
+    }
+    completionHandler(.useCredential, URLCredential(trust: trust))
+}
+```
+
+```kotlin
+val client = OkHttpClient.Builder()
+    .certificatePinner(
+        CertificatePinner.Builder()
+            .add("api.example.com", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+            .add("api.example.com", "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=")
+            .build(),
+    )
+    .build()
+
+// 可另在 res/xml/network_security_config.xml 對正式域名加 <pin-set>
+// debug-overrides 的放寬僅綁 debug 建置；release 抽樣須仍含 pin
+```
+
+ATS／NSC 仍要維持關閉明文與 TrustAll；它們是底線，**不能替代**對高風險主機的釘選。
+
+### 常見誤判與處置
+
+- **「我們全站 HTTPS + ATS／NSC，掃描還報沒 pinning」**——
+  工具在找釘選 API／設定，不是在否定 TLS。
+  處置：對敏感主機補 SPKI pin；純靜態官網／CDN 可標範圍外並附流量分類。
+
+- **只在 debug 為抓包關掉 pin，卻殘留在 release**——
+  處置：**不當誤判**。用 product flavour／編譯旗標隔離；正式 pipeline 断言有 pin。
+
+- **釘選葉憑證、憑證一換就全掛**——營運問題，不是省略理由。
+  處置：同時釘中繼或備援 SPKI，並備輪替文件；勿因此改回 TrustAll。
+
+- **第三方 SDK 自建連線未釘選**——MobSF 可能報在依賴。
+  處置：升級／換 SDK，或把敏感呼叫收回自有客戶端；無法改則記錄殘餘風險。
+
+### 判定準則
+
+真漏洞：登入、權杖交換、個資或交易 API 的主機僅依賴系統 CA 鏈，
+無 SPKI／公鑰釘選，且威脅模型含使用者 CA／企業代理中間人。
+
+真漏洞：宣稱有釘選，但失敗路徑改 `.useCredential` 信任全部或關閉驗證。
+
+誤判：非敏感靜態資源未釘選，敏感主機已釘選且失敗即中斷；
+或產品明確不處理使用者 CA 威脅並以其他控管書面接受殘餘風險。
+
+灰色地帶——**一律當真漏洞修**：pin 寫死過期雜湊後全面改走「略過驗證」後門，
+或只在註解／文件寫「應釘選」而正式二進位無實作。
