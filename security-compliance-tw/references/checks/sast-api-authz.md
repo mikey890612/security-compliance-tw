@@ -19,17 +19,17 @@ SAST 工具靜悄悄不代表安全，**這幾則要靠人工審查與程式碼�
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Access Control: Database（需在 Rules Builder 標註授權函式，否則不觸發） | High |
-| Checkmarx | Missing_Authorization / Improper_Access_Control（需自訂 query 指定 authz sink） | Medium |
-| Semgrep | —（多數工具偵測不到，需人工審查；可自寫規則比對「查詢條件是否含擁有者欄位」） | — |
-| SonarQube | —（多數工具偵測不到，需人工審查） | — |
-| CodeQL | —（無通用查詢，需自寫 dataflow query 定義 authz barrier） | — |
-| gosec | —（多數工具偵測不到，需人工審查） | — |
-| bandit | —（多數工具偵測不到，需人工審查） | — |
-| AWVS / WebInspect | —（被動掃描無法判斷資料歸屬，需以兩組帳號做橫向比對測試） | — |
-| ZAP | Access Control Testing 附加元件（須人工建立角色矩陣後才會判定） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Access Control: Database（需在 Rules Builder 標註授權函式，否則不觸發） | High | unverified | — |
+| Checkmarx | Missing_Authorization / Improper_Access_Control（需自訂 query 指定 authz sink） | Medium | unverified | — |
+| Semgrep | —（多數工具偵測不到，需人工審查；可自寫規則比對「查詢條件是否含擁有者欄位」） | — | unverified | — |
+| SonarQube | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| CodeQL | —（無通用查詢，需自寫 dataflow query 定義 authz barrier） | — | unverified | — |
+| gosec | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| bandit | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| AWVS / WebInspect | —（被動掃描無法判斷資料歸屬，需以兩組帳號做橫向比對測試） | — | unverified | — |
+| ZAP | Access Control Testing 附加元件（須人工建立角色矩陣後才會判定） | — | unverified | — |
 
 ### 壞味道
 
@@ -224,16 +224,16 @@ if (orders.length !== req.body.ids.length) {
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Mass Assignment: Insecure Binder Configuration（主要涵蓋 Java / .NET binder，Go 不觸發） | High |
-| Checkmarx | Mass_Assignment（框架相依，Go / FastAPI 覆蓋不完整） | Medium |
-| Semgrep | Rails / Django 有大量賦值規則；Go 與 Node 手寫 binder **無對應規則** | WARNING |
-| SonarQube | S4684（持久化實體不應直接作為請求繫結目標，僅 Java） | Major |
-| CodeQL | —（無通用查詢，需自寫規則比對「序列化目標是否為 ORM 實體」） | — |
-| gosec | —（多數工具偵測不到，需人工審查） | — |
-| bandit | —（多數工具偵測不到，需人工審查） | — |
-| AWVS / ZAP / WebInspect | —（過度暴露需人工比對回應欄位；大量賦值需主動猜測欄位名） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Mass Assignment: Insecure Binder Configuration（主要涵蓋 Java / .NET binder，Go 不觸發） | High | unverified | — |
+| Checkmarx | Mass_Assignment（框架相依，Go / FastAPI 覆蓋不完整） | Medium | unverified | — |
+| Semgrep | Rails / Django 有大量賦值規則；Go 與 Node 手寫 binder **無對應規則** | WARNING | unverified | — |
+| SonarQube | S4684（持久化實體不應直接作為請求繫結目標，僅 Java） | Major | unverified | — |
+| CodeQL | —（無通用查詢，需自寫規則比對「序列化目標是否為 ORM 實體」） | — | unverified | — |
+| gosec | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| bandit | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| AWVS / ZAP / WebInspect | —（過度暴露需人工比對回應欄位；大量賦值需主動猜測欄位名） | — | unverified | — |
 
 過度暴露這一半，**幾乎所有 SAST 工具都偵測不到**——
 `json.NewEncoder(w).Encode(user)` 在語法上與任何正常序列化沒有差別。
@@ -433,17 +433,17 @@ Mongoose 的 `select: false`、SQLAlchemy 的 `deferred`）。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Access Control: Missing Access Control（需自訂規則標註 authz 函式後才有意義） | High |
-| Checkmarx | Missing_Authorization / Improper_Access_Control（需自訂 query） | Medium |
-| Semgrep | —（多數工具偵測不到，需人工審查；可自寫規則比對「路由註冊是否套用 authz middleware」） | — |
-| SonarQube | S4834（權限控管屬 Security Hotspot，需人工複核；不會自動判定缺漏） | Review |
-| CodeQL | —（無通用查詢；需自寫規則列舉路由並檢查 authz barrier） | — |
-| gosec | —（多數工具偵測不到，需人工審查） | — |
-| bandit | —（多數工具偵測不到，需人工審查） | — |
-| AWVS / WebInspect | —（需以低權限帳號重放高權限請求，屬人工測試範疇） | — |
-| ZAP | Access Control Testing 附加元件（須人工設定角色矩陣） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Access Control: Missing Access Control（需自訂規則標註 authz 函式後才有意義） | High | unverified | — |
+| Checkmarx | Missing_Authorization / Improper_Access_Control（需自訂 query） | Medium | unverified | — |
+| Semgrep | —（多數工具偵測不到，需人工審查；可自寫規則比對「路由註冊是否套用 authz middleware」） | — | unverified | — |
+| SonarQube | S4834（權限控管屬 Security Hotspot，需人工複核；不會自動判定缺漏） | Review | unverified | — |
+| CodeQL | —（無通用查詢；需自寫規則列舉路由並檢查 authz barrier） | — | unverified | — |
+| gosec | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| bandit | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| AWVS / WebInspect | —（需以低權限帳號重放高權限請求，屬人工測試範疇） | — | unverified | — |
+| ZAP | Access Control Testing 附加元件（須人工設定角色矩陣） | — | unverified | — |
 
 ### 壞味道
 
@@ -641,17 +641,17 @@ Flask 用 `app.url_map`、Express 走 `app._router.stack`），
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Denial of Service（僅涵蓋部分模式，動態 limit 多半不觸發） | Medium |
-| Checkmarx | —（多數工具偵測不到，需人工審查） | — |
-| Semgrep | 部分框架有上傳大小 / 速率限制規則；動態 `limit` 參數**無通用規則** | WARNING |
-| SonarQube | S5693（請求大小上限未設定，僅涵蓋部分框架的上傳設定） | Major |
-| CodeQL | —（無通用查詢，需自寫規則追蹤 limit 參數至查詢） | — |
-| gosec | G110（解壓縮炸彈：未限制大小的 `io.Copy`） | MEDIUM |
-| bandit | —（多數工具偵測不到，需人工審查） | — |
-| AWVS / WebInspect | —（主動掃描不會刻意送極端參數，除非自訂測試案例） | — |
-| Nessus / ZAP | —（除非出現明顯逾時或錯誤，被動掃描不會報） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Denial of Service（僅涵蓋部分模式，動態 limit 多半不觸發） | Medium | unverified | — |
+| Checkmarx | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| Semgrep | 部分框架有上傳大小 / 速率限制規則；動態 `limit` 參數**無通用規則** | WARNING | unverified | — |
+| SonarQube | S5693（請求大小上限未設定，僅涵蓋部分框架的上傳設定） | Major | unverified | — |
+| CodeQL | —（無通用查詢，需自寫規則追蹤 limit 參數至查詢） | — | unverified | — |
+| gosec | G110（解壓縮炸彈：未限制大小的 `io.Copy`） | MEDIUM | unverified | — |
+| bandit | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| AWVS / WebInspect | —（主動掃描不會刻意送極端參數，除非自訂測試案例） | — | unverified | — |
+| Nessus / ZAP | —（除非出現明顯逾時或錯誤，被動掃描不會報） | — | unverified | — |
 
 ### 壞味道
 

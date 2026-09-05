@@ -11,17 +11,17 @@
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Password Management: Hardcoded Password | High |
-| Fortify | Key Management: Hardcoded Encryption Key | Critical |
-| Checkmarx | Use_Of_Hardcoded_Password / Hardcoded_Password_in_Connection_String | High |
-| Semgrep | `*.secrets.*.detected-*` / `*.security.*.hardcoded-*` | ERROR |
-| SonarQube | S2068（硬編碼憑證）/ S6418（硬編碼機密） | Blocker |
-| CodeQL | `go/hardcoded-credentials`、`py/hardcoded-credentials`、`js/hardcoded-credentials` | High |
-| gosec | G101 | HIGH |
-| bandit | B105 / B106 / B107 | LOW–MEDIUM |
-| gitleaks / trufflehog | 高熵字串與供應商金鑰樣式 | High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Password Management: Hardcoded Password | High | unverified | — |
+| Fortify | Key Management: Hardcoded Encryption Key | Critical | unverified | — |
+| Checkmarx | Use_Of_Hardcoded_Password / Hardcoded_Password_in_Connection_String | High | unverified | — |
+| Semgrep | `*.secrets.*.detected-*` / `*.security.*.hardcoded-*` | ERROR | unverified | — |
+| SonarQube | S2068（硬編碼憑證）/ S6418（硬編碼機密） | Blocker | unverified | — |
+| CodeQL | `go/hardcoded-credentials`、`py/hardcoded-credentials`、`js/hardcoded-credentials` | High | unverified | — |
+| gosec | G101 | HIGH | unverified | — |
+| bandit | B105 / B106 / B107 | LOW–MEDIUM | unverified | — |
+| gitleaks / trufflehog | 高熵字串與供應商金鑰樣式 | High | unverified | — |
 
 這是**唯一一類靜態工具偵測率接近 100% 的認證缺失**：規則靠變數名關鍵字
 （`password`、`secret`、`token`、`apikey`）加字串熵值判斷，不需要污點分析，
@@ -168,17 +168,17 @@ API 金鑰、簽章金鑰、私鑰、連線字串中的 `user:pass@`。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Session Fixation | High |
-| Checkmarx | Session_Fixation | Medium–High |
-| SonarQube | S5876（驗證時應建立新的工作階段） | Blocker |
-| Semgrep | —（無通用規則，多需自訂 rule 比對登入 handler） | — |
-| CodeQL | `java/session-fixation`（Go / Python / JS 無對應通用查詢） | High |
-| gosec | — | — |
-| bandit | — | — |
-| AWVS | Session fixation | Medium |
-| ZAP | Session Fixation | Medium |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Session Fixation | High | unverified | — |
+| Checkmarx | Session_Fixation | Medium–High | unverified | — |
+| SonarQube | S5876（驗證時應建立新的工作階段） | Blocker | unverified | — |
+| Semgrep | —（無通用規則，多需自訂 rule 比對登入 handler） | — | unverified | — |
+| CodeQL | `java/session-fixation`（Go / Python / JS 無對應通用查詢） | High | unverified | — |
+| gosec | — | — | unverified | — |
+| bandit | — | — | unverified | — |
+| AWVS | Session fixation | Medium | unverified | — |
+| ZAP | Session Fixation | Medium | unverified | — |
 
 靜態端只有 Fortify、Checkmarx、SonarQube 有專屬規則，且判斷方式相同：
 **在被辨識為登入的 handler 中，找不到「作廢舊工作階段」或「換發新識別碼」的呼叫**。
@@ -346,17 +346,17 @@ app.post("/login", (req, res) => {
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | J2EE Misconfiguration: Excessive Session Timeout（其他語言多無對應規則） | Low |
-| Checkmarx | —（無通用規則，多靠組態檢查與人工複核） | — |
-| SonarQube | —（無逾時規則；相鄰的 S2092 Secure、S3330 HttpOnly 會標 Cookie 屬性） | — |
-| Semgrep | —（可自訂 rule 檢查 session 設定的 maxAge / lifetime） | — |
-| CodeQL | — | — |
-| gosec | — | — |
-| bandit | — | — |
-| WebInspect | Insufficient Session Expiration | Medium |
-| AWVS / ZAP | —（工作階段逾時多為手動測試項目，自動掃描不穩定） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | J2EE Misconfiguration: Excessive Session Timeout（其他語言多無對應規則） | Low | unverified | — |
+| Checkmarx | —（無通用規則，多靠組態檢查與人工複核） | — | unverified | — |
+| SonarQube | —（無逾時規則；相鄰的 S2092 Secure、S3330 HttpOnly 會標 Cookie 屬性） | — | unverified | — |
+| Semgrep | —（可自訂 rule 檢查 session 設定的 maxAge / lifetime） | — | unverified | — |
+| CodeQL | — | — | unverified | — |
+| gosec | — | — | unverified | — |
+| bandit | — | — | unverified | — |
+| WebInspect | Insufficient Session Expiration | Medium | unverified | — |
+| AWVS / ZAP | —（工作階段逾時多為手動測試項目，自動掃描不穩定） | — | unverified | — |
 
 **這是靜態工具的盲區**：逾時值通常在設定檔或框架初始化，不在資料流上，
 污點分析追不到。實務上這一項幾乎都是靠**人工複核與組態檢查**發現的，
@@ -553,17 +553,17 @@ app.post("/logout", (req, res) => {
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | —（無通用的「缺少帳號鎖定」規則） | — |
-| Checkmarx | —（無通用規則，多靠人工複核） | — |
-| Semgrep | —（可自訂 rule 檢查登入路由是否掛上限流中介層） | — |
-| SonarQube | —（無密碼政策規則） | — |
-| CodeQL | `js/missing-rate-limiting`（登入等驗證路由缺少限流） | Medium–High |
-| gosec | — | — |
-| bandit | — | — |
-| AWVS | Login page password-guessing attack | Medium |
-| ZAP / WebInspect | —（暴力破解多為手動或需設定的測試項目） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | —（無通用的「缺少帳號鎖定」規則） | — | unverified | — |
+| Checkmarx | —（無通用規則，多靠人工複核） | — | unverified | — |
+| Semgrep | —（可自訂 rule 檢查登入路由是否掛上限流中介層） | — | unverified | — |
+| SonarQube | —（無密碼政策規則） | — | unverified | — |
+| CodeQL | `js/missing-rate-limiting`（登入等驗證路由缺少限流） | Medium–High | unverified | — |
+| gosec | — | — | unverified | — |
+| bandit | — | — | unverified | — |
+| AWVS | Login page password-guessing attack | Medium | unverified | — |
+| ZAP / WebInspect | —（暴力破解多為手動或需設定的測試項目） | — | unverified | — |
 
 **靜態工具幾乎完全抓不到這一類**——「缺少某個東西」不在資料流上，
 沒有 sink 可以標。唯一穩定會報的是 CodeQL 的限流規則，且僅限它認得的

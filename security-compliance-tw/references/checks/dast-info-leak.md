@@ -11,14 +11,14 @@ DAST 掃描器看不到源碼，只看執行期的回應內容、狀態碼與可
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Application error message | Medium |
-| AWVS | Possible server path disclosure | Low |
-| ZAP | Application Error Disclosure | Medium |
-| ZAP | Information Disclosure - Debug Error Messages | Low |
-| WebInspect | Web Server Misconfiguration: Server Error Message | Medium |
-| Nessus | —（一般 Web 掃描少涵蓋，主要靠 AWVS / ZAP 觸發） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Application error message | Medium | unverified | — |
+| AWVS | Possible server path disclosure | Low | unverified | — |
+| ZAP | Application Error Disclosure | Medium | unverified | — |
+| ZAP | Information Disclosure - Debug Error Messages | Low | unverified | — |
+| WebInspect | Web Server Misconfiguration: Server Error Message | Medium | unverified | — |
+| Nessus | —（一般 Web 掃描少涵蓋，主要靠 AWVS / ZAP 觸發） | — | unverified | — |
 
 掃描器的觸發方式是**主動送壞資料**：型別錯誤的參數、超長字串、單引號、
 不存在的路由、畸形 JSON。只要有一條路徑回應含堆疊或框架除錯頁就成立。
@@ -164,12 +164,12 @@ Django 黃色錯誤頁、Rails 錯誤頁）——這類介面本身即可被利�
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Directory listing | Low |
-| ZAP | Directory Browsing | Medium |
-| Nessus | Browsable Web Directories | Medium |
-| WebInspect | Directory Listing | Medium |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Directory listing | Low | unverified | — |
+| ZAP | Directory Browsing | Medium | unverified | — |
+| Nessus | Browsable Web Directories | Medium | unverified | — |
+| WebInspect | Directory Listing | Medium | unverified | — |
 
 ### 壞味道
 
@@ -287,13 +287,13 @@ Apache `Options -Indexes`。應用層與伺服器層兩邊都要確認，
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Version disclosure | Informational |
-| ZAP | Server Leaks Version Information via 'Server' HTTP Response Header Field | Low |
-| ZAP | Server Leaks Information via 'X-Powered-By' HTTP Response Header Field(s) | Low |
-| Nessus | HTTP Server Type and Version | Info |
-| WebInspect | — | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Version disclosure | Informational | unverified | — |
+| ZAP | Server Leaks Version Information via 'Server' HTTP Response Header Field | Low | unverified | — |
+| ZAP | Server Leaks Information via 'X-Powered-By' HTTP Response Header Field(s) | Low | unverified | — |
+| Nessus | HTTP Server Type and Version | Info | unverified | — |
+| WebInspect | — | — | unverified | — |
 
 這一類本身等級低，真正的麻煩在於**Nessus 會拿橫幅版本去比對已知漏洞資料庫**，
 把一個 Info 等級的指紋放大成一串 High / Critical 的版本漏洞告警。
@@ -391,16 +391,16 @@ Apache `ServerTokens Prod` + `ServerSignature Off`。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Possible sensitive files / Possible sensitive directories | Medium |
-| AWVS | Possible backup file | Medium–High |
-| ZAP | `.env` Information Leak | High |
-| ZAP | Hidden File Finder | Medium |
-| ZAP | Backup File Disclosure | Medium–High |
-| ZAP | Source Code Disclosure | High |
-| Nessus | Backup Files Disclosure | Medium |
-| WebInspect | — | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Possible sensitive files / Possible sensitive directories | Medium | unverified | — |
+| AWVS | Possible backup file | Medium–High | unverified | — |
+| ZAP | `.env` Information Leak | High | unverified | — |
+| ZAP | Hidden File Finder | Medium | unverified | — |
+| ZAP | Backup File Disclosure | Medium–High | unverified | — |
+| ZAP | Source Code Disclosure | High | unverified | — |
+| Nessus | Backup Files Disclosure | Medium | unverified | — |
+| WebInspect | — | — | unverified | — |
 
 Swagger / OpenAPI 文件未授權公開通常沒有專屬規則，
 而是被檔案與路徑列舉規則（Hidden File Finder、Possible sensitive files）

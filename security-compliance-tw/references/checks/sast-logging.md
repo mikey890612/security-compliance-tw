@@ -9,15 +9,15 @@ DAST 工具（AWVS / Nessus / ZAP / WebInspect）在這幾項不會有對應告�
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Log Forging / Log Forging (debug) | High（debug 變體多為 Low） |
-| Checkmarx | Log_Forging | Medium |
-| SonarQube | S5145 | Blocker |
-| CodeQL | `go/log-injection` / `py/log-injection` / `js/log-injection` | High |
-| Semgrep | —（社群規則庫覆蓋不完整，多數專案需自訂規則） | — |
-| gosec | —（無專屬規則） | — |
-| bandit | —（無專屬規則） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Log Forging / Log Forging (debug) | High（debug 變體多為 Low） | unverified | — |
+| Checkmarx | Log_Forging | Medium | unverified | — |
+| SonarQube | S5145 | Blocker | unverified | — |
+| CodeQL | `go/log-injection` / `py/log-injection` / `js/log-injection` | High | unverified | — |
+| Semgrep | —（社群規則庫覆蓋不完整，多數專案需自訂規則） | — | unverified | — |
+| gosec | —（無專屬規則） | — | unverified | — |
+| bandit | —（無專屬規則） | — | unverified | — |
 
 ### 壞味道
 
@@ -135,15 +135,15 @@ logger.info({
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Privacy Violation | High（密碼、金鑰類常判為 Critical） |
-| Checkmarx | Privacy_Violation | Medium–High |
-| SonarQube | S5757 | Security Hotspot |
-| CodeQL | `go/clear-text-logging` / `py/clear-text-logging-sensitive-data` / `js/clear-text-logging` | High |
-| Semgrep | —（需自訂 pattern，比對 password / token / secret / id_no 等欄位名） | — |
-| gosec | —（G101 只看硬編憑證，不看日誌 sink） | — |
-| bandit | —（無專屬規則） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Privacy Violation | High（密碼、金鑰類常判為 Critical） | unverified | — |
+| Checkmarx | Privacy_Violation | Medium–High | unverified | — |
+| SonarQube | S5757 | Security Hotspot | unverified | — |
+| CodeQL | `go/clear-text-logging` / `py/clear-text-logging-sensitive-data` / `js/clear-text-logging` | High | unverified | — |
+| Semgrep | —（需自訂 pattern，比對 password / token / secret / id_no 等欄位名） | — | unverified | — |
+| gosec | —（G101 只看硬編憑證，不看日誌 sink） | — | unverified | — |
+| bandit | —（無專屬規則） | — | unverified | — |
 
 Fortify 的 Privacy Violation 主要靠**變數與欄位名稱**觸發：
 `password`、`passwd`、`pwd`、`token`、`secret`、`ssn`、`creditCard` 等。
@@ -273,15 +273,15 @@ logger.info({ event: "DATA_CHANGE", userId: actor.internalId, resource: "PUT /me
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | —（無現成規則；可用 Custom Rules 的 Structural Rule 檢查特定分支是否呼叫稽核 API） | — |
-| Checkmarx | —（需自訂 query） | — |
-| Semgrep | —（可自訂：比對錯誤回應分支中缺少稽核呼叫） | — |
-| SonarQube | — | — |
-| CodeQL | — | — |
-| gosec | — | — |
-| bandit | — | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | —（無現成規則；可用 Custom Rules 的 Structural Rule 檢查特定分支是否呼叫稽核 API） | — | unverified | — |
+| Checkmarx | —（需自訂 query） | — | unverified | — |
+| Semgrep | —（可自訂：比對錯誤回應分支中缺少稽核呼叫） | — | unverified | — |
+| SonarQube | — | — | unverified | — |
+| CodeQL | — | — | unverified | — |
+| gosec | — | — | unverified | — |
+| bandit | — | — | unverified | — |
 
 這一項**沒有現成的污點分析規則會報**，屬於覆蓋率缺口。
 它出現的場合是人工複核與稽核抽查，而不是掃描報告。
@@ -449,15 +449,15 @@ audit({
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| gosec | G302（Chmod 權限過寬）/ G306（WriteFile 權限過寬） | MEDIUM |
-| bandit | B103（set_bad_file_permissions） | HIGH／MEDIUM（依權限位元） |
-| SonarQube | S2612 | Security Hotspot |
-| Fortify | File Permission Manipulation（權限值或路徑來自外部輸入時） | High |
-| Checkmarx | — | — |
-| Semgrep | —（可自訂：比對建檔 mode 位元） | — |
-| CodeQL | — | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| gosec | G302（Chmod 權限過寬）/ G306（WriteFile 權限過寬） | MEDIUM | unverified | — |
+| bandit | B103（set_bad_file_permissions） | HIGH／MEDIUM（依權限位元） | unverified | — |
+| SonarQube | S2612 | Security Hotspot | unverified | — |
+| Fortify | File Permission Manipulation（權限值或路徑來自外部輸入時） | High | unverified | — |
+| Checkmarx | — | — | unverified | — |
+| Semgrep | —（可自訂：比對建檔 mode 位元） | — | unverified | — |
+| CodeQL | — | — | unverified | — |
 
 ### 壞味道
 

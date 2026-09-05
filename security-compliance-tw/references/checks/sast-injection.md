@@ -6,15 +6,15 @@
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | SQL Injection | Critical |
-| Checkmarx | SQL_Injection | High |
-| Semgrep | `*.security.*.string-formatted-query` / `*.sql-injection*` | ERROR |
-| SonarQube | S3649 | Blocker |
-| gosec | G201（SQL 字串格式化）/ G202（SQL 字串串接） | HIGH |
-| bandit | B608 | MEDIUM |
-| AWVS / ZAP | SQL Injection | High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | SQL Injection | Critical | unverified | — |
+| Checkmarx | SQL_Injection | High | unverified | — |
+| Semgrep | `*.security.*.string-formatted-query` / `*.sql-injection*` | ERROR | unverified | — |
+| SonarQube | S3649 | Blocker | unverified | — |
+| gosec | G201（SQL 字串格式化）/ G202（SQL 字串串接） | HIGH | unverified | — |
+| bandit | B608 | MEDIUM | unverified | — |
+| AWVS / ZAP | SQL Injection | High | unverified | — |
 
 ### 壞味道
 
@@ -102,15 +102,15 @@ await client.query("SELECT * FROM users WHERE id = $1", [userId]);
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Command Injection | Critical |
-| Checkmarx | Command_Injection | High |
-| Semgrep | `*.security.*.command-injection*` | ERROR |
-| SonarQube | S2076 | Blocker |
-| gosec | G204 | HIGH |
-| bandit | B602（shell=True）/ B605 | HIGH |
-| AWVS / ZAP | OS Command Injection | High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Command Injection | Critical | unverified | — |
+| Checkmarx | Command_Injection | High | unverified | — |
+| Semgrep | `*.security.*.command-injection*` | ERROR | unverified | — |
+| SonarQube | S2076 | Blocker | unverified | — |
+| gosec | G204 | HIGH | unverified | — |
+| bandit | B602（shell=True）/ B605 | HIGH | unverified | — |
+| AWVS / ZAP | OS Command Injection | High | unverified | — |
 
 ### 壞味道
 
@@ -179,15 +179,15 @@ execFile("convert", [userFile, "out.png"], (err, stdout) => { /* ... */ });
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Path Manipulation | Critical |
-| Checkmarx | Path_Traversal | High |
-| Semgrep | `*.security.*.path-traversal*` | ERROR |
-| SonarQube | S2083 | Blocker |
-| gosec | G304（以變數開檔） | MEDIUM |
-| bandit | —（無專屬規則，靠 Semgrep / CodeQL 補） | — |
-| AWVS / ZAP | Directory Traversal | High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Path Manipulation | Critical | unverified | — |
+| Checkmarx | Path_Traversal | High | unverified | — |
+| Semgrep | `*.security.*.path-traversal*` | ERROR | unverified | — |
+| SonarQube | S2083 | Blocker | unverified | — |
+| gosec | G304（以變數開檔） | MEDIUM | unverified | — |
+| bandit | —（無專屬規則，靠 Semgrep / CodeQL 補） | — | unverified | — |
+| AWVS / ZAP | Directory Traversal | High | unverified | — |
 
 ### 壞味道
 
@@ -272,15 +272,15 @@ fs.readFile(target, cb);
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Cross-Site Scripting: Reflected / Persistent / DOM | Critical |
-| Checkmarx | Reflected_XSS_All_Clients / Stored_XSS / Client_DOM_XSS | High |
-| Semgrep | `*.security.*.xss*` / `*.dangerously-set-inner-html*` / `go.lang.security.audit.xss.*` | ERROR |
-| SonarQube | S5131（端點不應存在反射型 XSS）/ S6299（DOM XSS） | Blocker |
-| gosec | G203（HTML 樣板中使用未跳脫資料） | MEDIUM |
-| bandit | B308（`mark_safe`）/ B703（Django `mark_safe`） | MEDIUM |
-| AWVS / ZAP | Cross Site Scripting (Reflected / Persistent / DOM Based) | High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Cross-Site Scripting: Reflected / Persistent / DOM | Critical | unverified | — |
+| Checkmarx | Reflected_XSS_All_Clients / Stored_XSS / Client_DOM_XSS | High | unverified | — |
+| Semgrep | `*.security.*.xss*` / `*.dangerously-set-inner-html*` / `go.lang.security.audit.xss.*` | ERROR | unverified | — |
+| SonarQube | S5131（端點不應存在反射型 XSS）/ S6299（DOM XSS） | Blocker | unverified | — |
+| gosec | G203（HTML 樣板中使用未跳脫資料） | MEDIUM | unverified | — |
+| bandit | B308（`mark_safe`）/ B703（Django `mark_safe`） | MEDIUM | unverified | — |
+| AWVS / ZAP | Cross Site Scripting (Reflected / Persistent / DOM Based) | High | unverified | — |
 
 ### 壞味道
 

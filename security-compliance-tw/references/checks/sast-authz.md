@@ -15,16 +15,16 @@
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Access Control: Database | Critical |
-| Fortify | Often Misused: Authentication（僅認證未授權時） | Medium |
-| Checkmarx | —（需自訂查詢，內建無通用「缺少授權」查詢） | — |
-| Semgrep | —（無通用規則；框架專屬如 `*.spring.security.*` 才有） | — |
-| SonarQube | S4834（Controlling permissions is security-sensitive，Security Hotspot） | — |
-| SonarQube | S5808（Authorizations should be based on strong decisions） | Blocker |
-| CodeQL | —（無通用查詢） | — |
-| gosec / bandit | —（不涵蓋授權語意） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Access Control: Database | Critical | unverified | — |
+| Fortify | Often Misused: Authentication（僅認證未授權時） | Medium | unverified | — |
+| Checkmarx | —（需自訂查詢，內建無通用「缺少授權」查詢） | — | unverified | — |
+| Semgrep | —（無通用規則；框架專屬如 `*.spring.security.*` 才有） | — | unverified | — |
+| SonarQube | S4834（Controlling permissions is security-sensitive，Security Hotspot） | — | unverified | — |
+| SonarQube | S5808（Authorizations should be based on strong decisions） | Blocker | unverified | — |
+| CodeQL | —（無通用查詢） | — | unverified | — |
+| gosec / bandit | —（不涵蓋授權語意） | — | unverified | — |
 
 Fortify 的 `Access Control: Database` 是本類別**最常真的被觸發**的規則：
 它的判準是「資料庫查詢的鍵值來自使用者輸入，而查詢條件中找不到任何
@@ -197,16 +197,16 @@ payload 取出 `role` 就拿來判斷），而非來自伺服器端 session 或�
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Access Control: Database | Critical |
-| Checkmarx | —（需自訂查詢；部分版本以 `Improper_Access_Control` 呈現） | — |
-| Semgrep | —（無通用規則） | — |
-| SonarQube | S5808 | Blocker |
-| CodeQL | —（無通用查詢） | — |
-| gosec / bandit | —（不涵蓋授權語意） | — |
-| AWVS | —（需設定多組登入情境才可偵測） | — |
-| ZAP | Access Control Testing（附加元件，需設定使用者情境） | Medium–High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Access Control: Database | Critical | unverified | — |
+| Checkmarx | —（需自訂查詢；部分版本以 `Improper_Access_Control` 呈現） | — | unverified | — |
+| Semgrep | —（無通用規則） | — | unverified | — |
+| SonarQube | S5808 | Blocker | unverified | — |
+| CodeQL | —（無通用查詢） | — | unverified | — |
+| gosec / bandit | —（不涵蓋授權語意） | — | unverified | — |
+| AWVS | —（需設定多組登入情境才可偵測） | — | unverified | — |
+| ZAP | Access Control Testing（附加元件，需設定使用者情境） | Medium–High | unverified | — |
 
 DAST 工具在未設定「兩組不同權限的登入帳號」時，**完全掃不出水平越權**。
 掃描報告沒有這一項不代表沒問題。
@@ -355,16 +355,16 @@ handler 層看不到條件，工具會回到「查詢無身分值」的判定而
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Access Control: Database | Critical |
-| Fortify | Mass Assignment: Insecure Binder Configuration | High |
-| Checkmarx | —（需自訂查詢） | — |
-| Semgrep | —（無通用規則；部分框架有 mass assignment 專屬規則） | — |
-| SonarQube | S4834（Security Hotspot） | — |
-| SonarQube | S5808 | Blocker |
-| CodeQL | —（無通用查詢） | — |
-| ZAP | Access Control Testing（附加元件，需設定多角色情境） | Medium–High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Access Control: Database | Critical | unverified | — |
+| Fortify | Mass Assignment: Insecure Binder Configuration | High | unverified | — |
+| Checkmarx | —（需自訂查詢） | — | unverified | — |
+| Semgrep | —（無通用規則；部分框架有 mass assignment 專屬規則） | — | unverified | — |
+| SonarQube | S4834（Security Hotspot） | — | unverified | — |
+| SonarQube | S5808 | Blocker | unverified | — |
+| CodeQL | —（無通用查詢） | — | unverified | — |
+| ZAP | Access Control Testing（附加元件，需設定多角色情境） | Medium–High | unverified | — |
 
 **沒有任何工具能看出「前端藏了按鈕、後端沒檢查」**——前端與後端在
 不同的掃描範圍內，資料流不相連。此類問題主要靠人工複核路由清單，
@@ -540,17 +540,17 @@ body 中的 role／is_admin、未驗簽的 token payload）。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Often Misused: Privilege Management | High |
-| Fortify | Insecure Deployment: Overly Permissive Configuration | Medium |
-| Checkmarx | —（需自訂查詢） | — |
-| Semgrep | `dockerfile.security.missing-user.missing-user` | ERROR |
-| SonarQube | S4834（Controlling permissions is security-sensitive，Security Hotspot） | — |
-| gosec | G301（目錄權限過寬）/ G302（Chmod 權限過寬）/ G306（WriteFile 權限過寬） | MEDIUM |
-| bandit | B103（set_bad_file_permissions） | HIGH |
-| CodeQL | —（依語言而異，無跨語言通用查詢） | — |
-| Nessus | 主機層權限與服務帳號相關檢查（依 plugin 而異） | Medium–High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Often Misused: Privilege Management | High | unverified | — |
+| Fortify | Insecure Deployment: Overly Permissive Configuration | Medium | unverified | — |
+| Checkmarx | —（需自訂查詢） | — | unverified | — |
+| Semgrep | `dockerfile.security.missing-user.missing-user` | ERROR | unverified | — |
+| SonarQube | S4834（Controlling permissions is security-sensitive，Security Hotspot） | — | unverified | — |
+| gosec | G301（目錄權限過寬）/ G302（Chmod 權限過寬）/ G306（WriteFile 權限過寬） | MEDIUM | unverified | — |
+| bandit | B103（set_bad_file_permissions） | HIGH | unverified | — |
+| CodeQL | —（依語言而異，無跨語言通用查詢） | — | unverified | — |
+| Nessus | 主機層權限與服務帳號相關檢查（依 plugin 而異） | Medium–High | unverified | — |
 
 ### 壞味道
 

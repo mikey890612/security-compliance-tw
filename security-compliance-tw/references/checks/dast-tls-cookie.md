@@ -11,12 +11,12 @@ TLS 區塊——據以預判掃描器會看到什麼。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Session Cookie without Secure flag set | Medium |
-| ZAP | Cookie Without Secure Flag（pscan 10011） | Low |
-| Nessus | Web Application Cookies Are Not Marked Secure | Medium |
-| WebInspect | Cookie Security: Cookie Not Sent Over SSL | Medium |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Session Cookie without Secure flag set | Medium | unverified | — |
+| ZAP | Cookie Without Secure Flag（pscan 10011） | Low | unverified | — |
+| Nessus | Web Application Cookies Are Not Marked Secure | Medium | unverified | — |
+| WebInspect | Cookie Security: Cookie Not Sent Over SSL | Medium | unverified | — |
 
 ### 壞味道
 
@@ -131,12 +131,12 @@ app.use(session({
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Session Cookie without HttpOnly flag set | Medium |
-| ZAP | Cookie No HttpOnly Flag（pscan 10010） | Low |
-| Nessus | Web Application Cookies Are Not Marked HttpOnly | Medium |
-| WebInspect | Cookie Security: HTTPOnly not Set | Medium |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Session Cookie without HttpOnly flag set | Medium | unverified | — |
+| ZAP | Cookie No HttpOnly Flag（pscan 10010） | Low | unverified | — |
+| Nessus | Web Application Cookies Are Not Marked HttpOnly | Medium | unverified | — |
+| WebInspect | Cookie Security: HTTPOnly not Set | Medium | unverified | — |
 
 ### 壞味道
 
@@ -230,12 +230,12 @@ Cookie 保持 `HttpOnly`，前端拿到的是資料而非憑證。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| ZAP | Cookie without SameSite Attribute（pscan 10054） | Low |
-| AWVS | —（隨版本併入 Cookie 屬性檢查） | — |
-| Nessus | — | — |
-| WebInspect | — | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| ZAP | Cookie without SameSite Attribute（pscan 10054） | Low | unverified | — |
+| AWVS | —（隨版本併入 Cookie 屬性檢查） | — | unverified | — |
+| Nessus | — | — | unverified | — |
+| WebInspect | — | — | unverified | — |
 
 這條的工具覆蓋率比 Secure / HttpOnly 低，但 ZAP 幾乎必報，
 且 `SameSite=None` 沒配 `Secure` 時瀏覽器會直接丟棄該 Cookie，
@@ -373,18 +373,18 @@ Cookie，否則選 `Lax`。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Nessus | SSL Version 2 and 3 Protocol Detection | High |
-| Nessus | TLS Version 1.0 Protocol Detection | Medium |
-| Nessus | TLS Version 1.1 Protocol Deprecated | Medium |
-| Nessus | SSL RC4 Cipher Suites Supported (Bar Mitzvah) | Medium |
-| Nessus | SSL Medium Strength Cipher Suites Supported (SWEET32) | Medium–High |
-| Nessus | SSL NULL Cipher Suites Supported | High |
-| WebInspect | Insecure Transport: Weak SSL Protocol | Medium–High |
-| WebInspect | Insecure Transport: Weak SSL Cipher | Medium–High |
-| AWVS | TLS 1.0 enabled | Medium |
-| ZAP | —（無原生 TLS 套件檢測，靠 testssl.sh / sslyze 補） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Nessus | SSL Version 2 and 3 Protocol Detection | High | unverified | — |
+| Nessus | TLS Version 1.0 Protocol Detection | Medium | unverified | — |
+| Nessus | TLS Version 1.1 Protocol Deprecated | Medium | unverified | — |
+| Nessus | SSL RC4 Cipher Suites Supported (Bar Mitzvah) | Medium | unverified | — |
+| Nessus | SSL Medium Strength Cipher Suites Supported (SWEET32) | Medium–High | unverified | — |
+| Nessus | SSL NULL Cipher Suites Supported | High | unverified | — |
+| WebInspect | Insecure Transport: Weak SSL Protocol | Medium–High | unverified | — |
+| WebInspect | Insecure Transport: Weak SSL Cipher | Medium–High | unverified | — |
+| AWVS | TLS 1.0 enabled | Medium | unverified | — |
+| ZAP | —（無原生 TLS 套件檢測，靠 testssl.sh / sslyze 補） | — | unverified | — |
 
 TLS 這一類的主力是 Nessus，不是應用層掃描器。AWVS 與 ZAP 的覆蓋零散，
 但 Nessus 的網路掃描一定會打到，且**任何一個對外開放的 TLS 埠都算數**——

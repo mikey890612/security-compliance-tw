@@ -14,15 +14,15 @@
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Weak Cryptographic Hash / Weak Encryption / Weak Encryption: Insecure Mode of Operation | Critical–High |
-| Checkmarx | Use_of_Broken_or_Risky_Cryptographic_Algorithm | High |
-| Semgrep | `*.security.*.use-of-md5*` / `*.security.*.use-of-weak-crypto*` / `*.security.*.insecure-cipher-mode*` | ERROR–WARNING |
-| SonarQube | S4790（弱雜湊）/ S5547（弱加密演算法）/ S5542（不安全模式與填充） | Critical–Major |
-| gosec | G401（MD5/SHA1）/ G405（DES/RC4）/ G406（MD4/RIPEMD160）/ G501 / G502 / G503 / G505 / G506 / G507（封鎖匯入） | HIGH–MEDIUM |
-| bandit | B303（不安全雜湊，舊版）/ B324（hashlib 弱雜湊）/ B304（弱加密）/ B305（ECB 模式） | HIGH–MEDIUM |
-| CodeQL | Use of a broken or weak cryptographic algorithm | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Weak Cryptographic Hash / Weak Encryption / Weak Encryption: Insecure Mode of Operation | Critical–High | unverified | — |
+| Checkmarx | Use_of_Broken_or_Risky_Cryptographic_Algorithm | High | unverified | — |
+| Semgrep | `*.security.*.use-of-md5*` / `*.security.*.use-of-weak-crypto*` / `*.security.*.insecure-cipher-mode*` | ERROR–WARNING | unverified | — |
+| SonarQube | S4790（弱雜湊）/ S5547（弱加密演算法）/ S5542（不安全模式與填充） | Critical–Major | unverified | — |
+| gosec | G401（MD5/SHA1）/ G405（DES/RC4）/ G406（MD4/RIPEMD160）/ G501 / G502 / G503 / G505 / G506 / G507（封鎖匯入） | HIGH–MEDIUM | unverified | — |
+| bandit | B303（不安全雜湊，舊版）/ B324（hashlib 弱雜湊）/ B304（弱加密）/ B305（ECB 模式） | HIGH–MEDIUM | unverified | — |
+| CodeQL | Use of a broken or weak cryptographic algorithm | — | unverified | — |
 
 gosec 的 G5xx 是**匯入層**規則：只要 `import "crypto/md5"` 出現在檔案裡就報，
 即使那行 import 已經沒有任何呼叫。清理未使用的 import 是零成本的修法。
@@ -171,15 +171,15 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Weak Cryptographic Hash: Insecure PBKDF2 Iteration Count / Weak Cryptographic Hash: Hardcoded Salt | Critical–High |
-| Checkmarx | Reversible_One_Way_Hash / Use_of_Hard_coded_Cryptographic_Key | High |
-| Semgrep | `*.security.*.md5-used-as-password*` / `*.security.*.insecure-hash-function*` | ERROR |
-| SonarQube | S5344（以快速雜湊儲存密碼）/ S2053（雜湊未使用不可預測的 salt） | Blocker–Critical |
-| gosec | —（無專屬規則；只會由 G401 / G501 間接命中） | — |
-| bandit | —（無專屬規則；靠 Semgrep / CodeQL 補） | — |
-| CodeQL | Use of a broken or weak cryptographic hashing algorithm on sensitive data | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Weak Cryptographic Hash: Insecure PBKDF2 Iteration Count / Weak Cryptographic Hash: Hardcoded Salt | Critical–High | unverified | — |
+| Checkmarx | Reversible_One_Way_Hash / Use_of_Hard_coded_Cryptographic_Key | High | unverified | — |
+| Semgrep | `*.security.*.md5-used-as-password*` / `*.security.*.insecure-hash-function*` | ERROR | unverified | — |
+| SonarQube | S5344（以快速雜湊儲存密碼）/ S2053（雜湊未使用不可預測的 salt） | Blocker–Critical | unverified | — |
+| gosec | —（無專屬規則；只會由 G401 / G501 間接命中） | — | unverified | — |
+| bandit | —（無專屬規則；靠 Semgrep / CodeQL 補） | — | unverified | — |
+| CodeQL | Use of a broken or weak cryptographic hashing algorithm on sensitive data | — | unverified | — |
 
 這一類是掃描器**覆蓋率最差**的項目：gosec 與 bandit 都沒有專屬規則，
 但 Fortify / Checkmarx / SonarQube 會標 Blocker。不要因為本地跑 gosec 沒紅字
@@ -323,15 +323,15 @@ Python `hmac.compare_digest`、JavaScript `crypto.timingSafeEqual`。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Insecure Randomness | Critical–High |
-| Checkmarx | Use_of_Cryptographically_Weak_PRNG | High |
-| Semgrep | `*.security.*.math-random-used*` / `*.security.*.insecure-random*` | ERROR–WARNING |
-| SonarQube | S2245 | Critical |
-| gosec | G404 | HIGH |
-| bandit | B311 | LOW |
-| CodeQL | Insecure randomness | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Insecure Randomness | Critical–High | unverified | — |
+| Checkmarx | Use_of_Cryptographically_Weak_PRNG | High | unverified | — |
+| Semgrep | `*.security.*.math-random-used*` / `*.security.*.insecure-random*` | ERROR–WARNING | unverified | — |
+| SonarQube | S2245 | Critical | unverified | — |
+| gosec | G404 | HIGH | unverified | — |
+| bandit | B311 | LOW | unverified | — |
+| CodeQL | Insecure randomness | — | unverified | — |
 
 bandit 把 B311 標為 LOW，Fortify 標 Critical——**以嚴格的那一邊為準**。
 稽核報告通常採用 Fortify 的等級。
@@ -451,16 +451,16 @@ OTP、邀請碼、檔案上傳名稱、加密的 key / IV / nonce / salt，
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Insecure SSL: Server Identity Verification Disabled | Critical |
-| Checkmarx | Improper_Certificate_Validation / SSL_Verification_Bypass | High |
-| Semgrep | `*.security.*.disabled-cert-validation*` / `*.security.*.request-with-verify-false*` / `*.security.*.insecure-skip-verify*` | ERROR |
-| SonarQube | S4830（伺服器憑證應被驗證）/ S4423（弱 TLS 協定版本） | Blocker |
-| gosec | G402（含 `InsecureSkipVerify: true`、`MinVersion` 過低） | HIGH |
-| bandit | B501（`verify=False`）/ B502 / B503（不安全的 SSL 版本與預設值） | HIGH |
-| CodeQL | Disabled TLS certificate check / Request without certificate validation | — |
-| Nessus / AWVS | SSL Certificate Cannot Be Trusted / SSL Self-Signed Certificate | Medium–High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Insecure SSL: Server Identity Verification Disabled | Critical | unverified | — |
+| Checkmarx | Improper_Certificate_Validation / SSL_Verification_Bypass | High | unverified | — |
+| Semgrep | `*.security.*.disabled-cert-validation*` / `*.security.*.request-with-verify-false*` / `*.security.*.insecure-skip-verify*` | ERROR | unverified | — |
+| SonarQube | S4830（伺服器憑證應被驗證）/ S4423（弱 TLS 協定版本） | Blocker | unverified | — |
+| gosec | G402（含 `InsecureSkipVerify: true`、`MinVersion` 過低） | HIGH | unverified | — |
+| bandit | B501（`verify=False`）/ B502 / B503（不安全的 SSL 版本與預設值） | HIGH | unverified | — |
+| CodeQL | Disabled TLS certificate check / Request without certificate validation | — | unverified | — |
+| Nessus / AWVS | SSL Certificate Cannot Be Trusted / SSL Self-Signed Certificate | Medium–High | unverified | — |
 
 DAST 端會從另一側看到同一個問題：伺服器若使用自簽或過期憑證，
 Nessus 與 AWVS 會直接標記。源碼端關掉驗證，通常代表伺服器端也有憑證問題，

@@ -9,13 +9,13 @@ DAST 掃描器看不到源碼，只看回應標頭。因此本檔的偵測對象
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Content Security Policy not implemented | Medium |
-| ZAP | Content Security Policy (CSP) Header Not Set | Medium |
-| WebInspect | Missing Content-Security-Policy Header | Medium |
-| Nessus | Missing or Permissive CSP | Medium |
-| SecurityHeaders.com | 評分扣分（無 CSP 難以達 A） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Content Security Policy not implemented | Medium | unverified | — |
+| ZAP | Content Security Policy (CSP) Header Not Set | Medium | unverified | — |
+| WebInspect | Missing Content-Security-Policy Header | Medium | unverified | — |
+| Nessus | Missing or Permissive CSP | Medium | unverified | — |
+| SecurityHeaders.com | 評分扣分（無 CSP 難以達 A） | — | unverified | — |
 
 ### 壞味道
 
@@ -115,12 +115,12 @@ app.use(helmet.contentSecurityPolicy({
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | HSTS not enabled | Medium |
-| ZAP | Strict-Transport-Security Header Not Set | Low–Medium |
-| WebInspect | Missing HSTS Header | Medium |
-| Nessus | Missing HSTS | Medium |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | HSTS not enabled | Medium | unverified | — |
+| ZAP | Strict-Transport-Security Header Not Set | Low–Medium | unverified | — |
+| WebInspect | Missing HSTS Header | Medium | unverified | — |
+| Nessus | Missing HSTS | Medium | unverified | — |
 
 ### 壞味道
 
@@ -181,12 +181,12 @@ app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| AWVS | Clickjacking: X-Frame-Options header missing | Medium |
-| ZAP | Missing Anti-clickjacking Header | Medium |
-| WebInspect | Missing X-Frame-Options Header | Medium |
-| Nessus | Web Application Potentially Vulnerable to Clickjacking | Medium |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| AWVS | Clickjacking: X-Frame-Options header missing | Medium | unverified | — |
+| ZAP | Missing Anti-clickjacking Header | Medium | unverified | — |
+| WebInspect | Missing X-Frame-Options Header | Medium | unverified | — |
+| Nessus | Web Application Potentially Vulnerable to Clickjacking | Medium | unverified | — |
 
 ### 壞味道
 

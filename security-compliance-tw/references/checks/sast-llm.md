@@ -14,15 +14,15 @@
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | —（多數工具偵測不到，需人工審查） | — |
-| Checkmarx | —（多數工具偵測不到，需人工審查） | — |
-| Semgrep | —（多數工具偵測不到，需人工審查；社群規則集有零星 prompt 拼接偵測，覆蓋率低） | — |
-| SonarQube | —（多數工具偵測不到，需人工審查） | — |
-| gosec | —（多數工具偵測不到，需人工審查） | — |
-| bandit | —（多數工具偵測不到，需人工審查） | — |
-| AWVS / ZAP | —（多數工具偵測不到，需人工審查） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| Checkmarx | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| Semgrep | —（多數工具偵測不到，需人工審查；社群規則集有零星 prompt 拼接偵測，覆蓋率低） | — | unverified | — |
+| SonarQube | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| gosec | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| bandit | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| AWVS / ZAP | —（多數工具偵測不到，需人工審查） | — | unverified | — |
 
 工具不報不代表沒有。這項必須靠程式碼審查與下方樣式比對。
 
@@ -200,15 +200,15 @@ const res = await fetch("https://api.anthropic.com/v1/messages", {
 這是本檔唯一會被傳統工具抓到的一類——因為 sink 本身就是既有規則涵蓋的範圍。
 工具不知道來源是模型，但它看得到 `db.Query(llmOutput)` 這個動作。
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | SQL Injection / Command Injection / Dynamic Code Evaluation / Cross-Site Scripting: DOM | Critical |
-| Checkmarx | SQL_Injection / Command_Injection / Client_DOM_Code_Injection / Client_DOM_XSS | High |
-| Semgrep | `*.security.*.sql-injection*` / `*.command-injection*` / `*.dangerous-eval*` / `*.dom-xss*` | ERROR |
-| SonarQube | S3649（SQL）/ S2076（命令）/ S1523（動態執行）/ S6299（DOM XSS） | Blocker |
-| gosec | G201 / G202（SQL）/ G204（命令）/ G304（開檔） | HIGH |
-| bandit | B608（SQL）/ B602、B605（shell）/ B307（eval）/ B102（exec） | HIGH |
-| AWVS / ZAP | SQL Injection / OS Command Injection / DOM-based XSS | High |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | SQL Injection / Command Injection / Dynamic Code Evaluation / Cross-Site Scripting: DOM | Critical | unverified | — |
+| Checkmarx | SQL_Injection / Command_Injection / Client_DOM_Code_Injection / Client_DOM_XSS | High | unverified | — |
+| Semgrep | `*.security.*.sql-injection*` / `*.command-injection*` / `*.dangerous-eval*` / `*.dom-xss*` | ERROR | unverified | — |
+| SonarQube | S3649（SQL）/ S2076（命令）/ S1523（動態執行）/ S6299（DOM XSS） | Blocker | unverified | — |
+| gosec | G201 / G202（SQL）/ G204（命令）/ G304（開檔） | HIGH | unverified | — |
+| bandit | B608（SQL）/ B602、B605（shell）/ B307（eval）/ B102（exec） | HIGH | unverified | — |
+| AWVS / ZAP | SQL Injection / OS Command Injection / DOM-based XSS | High | unverified | — |
 
 工具**追不到污點來源**時可能靜默（例如模型回應經過多層 struct 傳遞）。
 不要因為報告乾淨就假設安全，要人工確認每一條模型輸出的去向。
@@ -383,15 +383,15 @@ await db.query(sql, [intent.user_id]);
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | —（多數工具偵測不到，需人工審查；若工具實作中含 `exec` 會以 Command Injection 報出） | — |
-| Checkmarx | —（多數工具偵測不到，需人工審查） | — |
-| Semgrep | —（多數工具偵測不到，需人工審查；`*.dangerous-exec*` 只在工具實作用到 shell / eval 時觸發） | — |
-| SonarQube | —（多數工具偵測不到，需人工審查） | — |
-| gosec | —（多數工具偵測不到；僅工具實作含 `exec.Command` 時報 G204） | — |
-| bandit | —（多數工具偵測不到；僅工具實作含 `exec` / `eval` 時報 B102 / B307） | — |
-| AWVS / ZAP | —（多數工具偵測不到，需人工審查） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | —（多數工具偵測不到，需人工審查；若工具實作中含 `exec` 會以 Command Injection 報出） | — | unverified | — |
+| Checkmarx | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| Semgrep | —（多數工具偵測不到，需人工審查；`*.dangerous-exec*` 只在工具實作用到 shell / eval 時觸發） | — | unverified | — |
+| SonarQube | —（多數工具偵測不到，需人工審查） | — | unverified | — |
+| gosec | —（多數工具偵測不到；僅工具實作含 `exec.Command` 時報 G204） | — | unverified | — |
+| bandit | —（多數工具偵測不到；僅工具實作含 `exec` / `eval` 時報 B102 / B307） | — | unverified | — |
+| AWVS / ZAP | —（多數工具偵測不到，需人工審查） | — | unverified | — |
 
 工具看到的是「有一個函式會執行命令」，看不到「這個函式的呼叫者是模型」。
 權限範圍是設計問題，必須人工審查工具定義與其實作。
@@ -589,16 +589,16 @@ session / token。
 金鑰寫死的部分**會被抓到**——祕密掃描工具不管它在不在 prompt 字串裡。
 授權規則寫在 prompt 中則偵測不到。
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Password Management: Hardcoded Password / Key Management: Hardcoded Encryption Key | Critical |
-| Checkmarx | Use_Of_Hardcoded_Password / Hardcoded_Credentials | High |
-| Semgrep | `*.security.*.hardcoded-*` / generic secrets 規則集 | ERROR |
-| SonarQube | S2068（寫死密碼）/ S6418（寫死祕密） | Blocker |
-| gosec | G101（寫死憑證） | HIGH |
-| bandit | B105 / B106（寫死密碼字串與參數） | LOW–MEDIUM |
-| gitleaks / trufflehog | 依 rule id 命名（如 `generic-api-key`、`aws-access-token`） | High |
-| —（授權規則部分） | —（多數工具偵測不到，需人工審查） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Password Management: Hardcoded Password / Key Management: Hardcoded Encryption Key | Critical | unverified | — |
+| Checkmarx | Use_Of_Hardcoded_Password / Hardcoded_Credentials | High | unverified | — |
+| Semgrep | `*.security.*.hardcoded-*` / generic secrets 規則集 | ERROR | unverified | — |
+| SonarQube | S2068（寫死密碼）/ S6418（寫死祕密） | Blocker | unverified | — |
+| gosec | G101（寫死憑證） | HIGH | unverified | — |
+| bandit | B105 / B106（寫死密碼字串與參數） | LOW–MEDIUM | unverified | — |
+| gitleaks / trufflehog | 依 rule id 命名（如 `generic-api-key`、`aws-access-token`） | High | unverified | — |
+| —（授權規則部分） | —（多數工具偵測不到，需人工審查） | — | unverified | — |
 
 ### 壞味道
 

@@ -10,16 +10,16 @@
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | System Information Leak / System Information Leak: External | High |
-| Checkmarx | Information_Exposure_Through_an_Error_Message | Medium |
-| Semgrep | `*.security.*.stack-trace-exposure*` / `python.flask.security.audit.debug-enabled` | ERROR |
-| SonarQube | S4507（上線仍啟用除錯功能）/ S1989（例外由 servlet 方法逸出） | Security Hotspot / — |
-| gosec | —（無專屬規則） | — |
-| bandit | B201（flask_debug_true） | HIGH |
-| CodeQL | `js/stack-trace-exposure` / `py/stack-trace-exposure` | error |
-| AWVS / ZAP | Application error message / Information Disclosure - Debug Error Messages | Medium / Low |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | System Information Leak / System Information Leak: External | High | unverified | — |
+| Checkmarx | Information_Exposure_Through_an_Error_Message | Medium | unverified | — |
+| Semgrep | `*.security.*.stack-trace-exposure*` / `python.flask.security.audit.debug-enabled` | ERROR | unverified | — |
+| SonarQube | S4507（上線仍啟用除錯功能）/ S1989（例外由 servlet 方法逸出） | Security Hotspot / — | unverified | — |
+| gosec | —（無專屬規則） | — | unverified | — |
+| bandit | B201（flask_debug_true） | HIGH | unverified | — |
+| CodeQL | `js/stack-trace-exposure` / `py/stack-trace-exposure` | error | unverified | — |
+| AWVS / ZAP | Application error message / Information Disclosure - Debug Error Messages | Medium / Low | unverified | — |
 
 ### 壞味道
 
@@ -122,16 +122,16 @@ app.use((err, req, res, next) => {
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Poor Error Handling: Return Value Ignored | Low |
-| Checkmarx | —（依語言套件而異） | — |
-| Semgrep | —（多以語言原生 linter 覆蓋） | — |
-| SonarQube | S2201（忽略無副作用函式回傳值）/ S899（忽略狀態碼回傳值） | — |
-| gosec | G104（Audit errors not checked） | LOW |
-| bandit | B110（try_except_pass）/ B112（try_except_continue） | LOW |
-| errcheck（Go） | 預設全部；`-blank` 另抓 `_ =` | — |
-| CodeQL | —（無單一對應查詢） | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Poor Error Handling: Return Value Ignored | Low | unverified | — |
+| Checkmarx | —（依語言套件而異） | — | unverified | — |
+| Semgrep | —（多以語言原生 linter 覆蓋） | — | unverified | — |
+| SonarQube | S2201（忽略無副作用函式回傳值）/ S899（忽略狀態碼回傳值） | — | unverified | — |
+| gosec | G104（Audit errors not checked） | LOW | unverified | — |
+| bandit | B110（try_except_pass）/ B112（try_except_continue） | LOW | unverified | — |
+| errcheck（Go） | 預設全部；`-blank` 另抓 `_ =` | — | unverified | — |
+| CodeQL | —（無單一對應查詢） | — | unverified | — |
 
 ### 壞味道
 
@@ -259,15 +259,15 @@ saveAudit(entry).catch((err) => logger.error({ err }, "audit write failed"));
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Unreleased Resource: Streams / Database / Files | High |
-| Checkmarx | Unclosed_Objects | Medium |
-| Semgrep | —（無穩定通用規則） | — |
-| SonarQube | S2095（資源應被關閉） | Blocker |
-| gosec | G307（defer 的 Close 回傳 error；較新版本已移除此規則）/ G104 | MEDIUM / LOW |
-| bandit | —（無專屬規則） | — |
-| CodeQL | `java/database-resource-leak` / `py/should-use-with` | — |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Unreleased Resource: Streams / Database / Files | High | unverified | — |
+| Checkmarx | Unclosed_Objects | Medium | unverified | — |
+| Semgrep | —（無穩定通用規則） | — | unverified | — |
+| SonarQube | S2095（資源應被關閉） | Blocker | unverified | — |
+| gosec | G307（defer 的 Close 回傳 error；較新版本已移除此規則）/ G104 | MEDIUM / LOW | unverified | — |
+| bandit | —（無專屬規則） | — | unverified | — |
+| CodeQL | `java/database-resource-leak` / `py/should-use-with` | — | unverified | — |
 
 ### 壞味道
 
@@ -388,16 +388,16 @@ error 分支、panic 與例外路徑。
 
 ### 掃描器怎麼標
 
-| 工具 | 規則 | 預設等級 |
-|---|---|---|
-| Fortify | Poor Error Handling: Overly Broad Catch / Overly Broad Throws | Low |
-| Checkmarx | —（無穩定對應查詢） | — |
-| Semgrep | —（多以語言原生 linter 覆蓋） | — |
-| SonarQube | S1181（捕捉 Throwable/Error）/ S2221（捕捉 Exception）/ S108（空區塊） | —（依品質配置） |
-| gosec | —（Go 無例外機制；對應的是 `recover()` 全吞） | — |
-| bandit | B110（try_except_pass）/ B112（try_except_continue） | LOW |
-| pylint | W0702（bare-except）/ W0718（broad-exception-caught） | Warning |
-| ESLint | `no-empty`（`allowEmptyCatch: false`） | 依設定 |
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Poor Error Handling: Overly Broad Catch / Overly Broad Throws | Low | unverified | — |
+| Checkmarx | —（無穩定對應查詢） | — | unverified | — |
+| Semgrep | —（多以語言原生 linter 覆蓋） | — | unverified | — |
+| SonarQube | S1181（捕捉 Throwable/Error）/ S2221（捕捉 Exception）/ S108（空區塊） | —（依品質配置） | unverified | — |
+| gosec | —（Go 無例外機制；對應的是 `recover()` 全吞） | — | unverified | — |
+| bandit | B110（try_except_pass）/ B112（try_except_continue） | LOW | unverified | — |
+| pylint | W0702（bare-except）/ W0718（broad-exception-caught） | Warning | unverified | — |
+| ESLint | `no-empty`（`allowEmptyCatch: false`） | 依設定 | unverified | — |
 
 ### 壞味道
 
