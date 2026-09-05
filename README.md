@@ -155,9 +155,12 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 
 誠實列出，請據此判斷可信度：
 
-1. **商用 SAST 的規則名稱未經真實報告驗證**——Fortify、Checkmarx
-   的規則名稱來自模型知識，未與實際掃描報告比對。開源工具
-   （gosec、bandit、SonarQube、Semgrep、CodeQL）的規則編號已人工核對。
+1. **掃描器對照的驗證狀態不一**——開源工具（gosec、bandit、Semgrep 等）
+   可透過 fixture 實跑做到**部分** `verified`；商用掃描器（Fortify、Checkmarx、
+   AWVS、WebInspect、Nessus 等）對照在提供紅acted 報告前一律維持 `unverified`
+   （宣稱對照、尚未校準）。不得捏造商用規則 ID。
+   詳見 [開源驗證操作](security-compliance-tw/tools/verify_scanners.md) 與
+   [商用驗證流程](docs/usage/scanner-verification.md)。
 2. **僅對測試 fixture 驗證過**，尚未在真實專案上跑過。
 3. **OWASP Top 10:2025 的定稿狀態**需自行至 owasp.org/Top10 核對。
    `mapping.md` 的 Web25 欄依 2025 版排序。

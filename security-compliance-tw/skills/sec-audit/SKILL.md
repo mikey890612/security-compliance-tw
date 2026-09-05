@@ -45,7 +45,8 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 1. 讀取使用者提供的報告檔（csv / txt 優先支援；html / pdf 盡力解析）
 2. 取出每項發現的規則名稱、等級、檔案位置
 3. 以各 check 的「掃描器怎麼標」表格反查 check-id。
-   找不到對應的 check 時，明確標示「本知識庫尚未涵蓋」，**不要猜測**
+   找不到對應的 check 時，明確標示「本知識庫尚未涵蓋」，**不要猜測**。
+   若命中列的「狀態」為 `unverified`，在 findings 註明「規則名待真實報告確認」
 4. 依該 check 的「判定準則」逐項判定
 5. 真漏洞依「過關寫法」修補；誤判產出佐證。
    誤判的標記方式（`#nosec`、Not an Issue 等）查 `../../references/scanners.md`
@@ -85,6 +86,21 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 用 Read 工具讀 `../../references/…` 會正確解析。
 **不要用 shell 的 `cd ../..` 導航**——`cd` 是邏輯解析，在 symlink 底下會跑錯地方。
+
+
+## 掃描器對照狀態（必讀）
+
+各 check「掃描器怎麼標」表有「狀態」與「證據」欄。引用掃描器涵蓋時必須遵守：
+
+1. **優先引用 `verified`**（必要時含 `partial`）列——這些才有 fixture／報告證據可追
+2. **`unverified` = 宣稱對照、尚未校準**——可當提示用，不可當成已實測的規則 ID
+3. **禁止捏造** Fortify、Checkmarx、AWVS、WebInspect、Nessus 等商用規則 ID；表上沒有就寫「知識庫尚無已驗證對照」
+4. 模式 2 命中 `unverified` 列時，findings 必須註明「**規則名待真實報告確認**」
+
+操作與回填流程：
+
+- 開源 fixture 實跑：`../../tools/verify_scanners.md`
+- 商用紅acted 報告路徑：`../../../docs/usage/scanner-verification.md`
 
 ## 目前涵蓋範圍
 
