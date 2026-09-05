@@ -18,6 +18,70 @@ REQUIRED_SECTIONS = [
 
 REQUIRED_LANGS = ["go", "python", "javascript"]
 
+ALLOWED_STATUSES = frozenset({"verified", "unverified", "partial"})
+COMMERCIAL_TOOLS = frozenset(
+    {"Fortify", "Checkmarx", "AWVS", "WebInspect", "Nessus"}
+)
+SCANNER_TABLE_COLUMNS = ["工具", "規則", "預設等級", "狀態", "證據"]
+
+
+def _is_commercial_tool_cell(tool_cell: str) -> bool:
+    return any(name in tool_cell for name in COMMERCIAL_TOOLS)
+
+
+def parse_scanner_tables(body: str):
+    tables = []
+    lines = body.splitlines()
+    i = 0
+    while i < len(lines):
+        if lines[i].strip() == "### 掃描器怎麼標":
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("|"):
+                i += 1
+            if i < len(lines) and lines[i].strip().startswith("|"):
+                headers = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                i += 1
+                if i < len(lines) and set(lines[i].replace("|", "").strip()) <= set("- :"):
+                    i += 1
+                rows = []
+                while i < len(lines) and lines[i].strip().startswith("|"):
+                    cells = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                    if len(cells) == len(headers):
+                        rows.append(dict(zip(headers, cells)))
+                    i += 1
+                tables.append({"headers": headers, "rows": rows})
+            continue
+        i += 1
+    return tables
+
+
+def validate_scanner_tables(check):
+    errors = []
+    where = f"{check.source} / {check.id}"
+    tables = parse_scanner_tables(check.body)
+    if not tables:
+        errors.append(f"{where}: 找不到可解析的掃描器表")
+        return errors
+    for t_index, table in enumerate(tables):
+        if table["headers"] != SCANNER_TABLE_COLUMNS:
+            errors.append(
+                f"{where}: 掃描器表#{t_index+1} 欄位必須為 "
+                + " | ".join(SCANNER_TABLE_COLUMNS)
+            )
+            continue
+        for r_index, row in enumerate(table["rows"]):
+            status = row.get("狀態", "").strip()
+            evidence = row.get("證據", "").strip()
+            tool = row.get("工具", "").strip()
+            loc = f"{where} 列{r_index+1} ({tool})"
+            if status not in ALLOWED_STATUSES:
+                errors.append(f"{loc}: 狀態必須為 verified|unverified|partial")
+                continue
+            if status == "verified" and evidence in ("", "—", "-"):
+                prefix = "商用列 " if _is_commercial_tool_cell(tool) else ""
+                errors.append(f"{loc}: {prefix}verified 必須填證據")
+    return errors
+
 
 @dataclasses.dataclass
 class Check:
@@ -72,6 +136,8 @@ def validate_checks(checks):
             for lang in REQUIRED_LANGS:
                 if f"```{lang}" not in c.body:
                     errors.append(f"{where}: 缺少 {lang} 範例")
+
+        errors.extend(validate_scanner_tables(c))
 
     return errors
 
