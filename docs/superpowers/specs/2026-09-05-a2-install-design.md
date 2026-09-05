@@ -252,4 +252,4 @@ A2 完成後預設下一棒：**A3**（CI／CHANGELOG），除非使用者指定
 - §3 install.sh 行為：已核准
 - §4 文件／驗收：已核准
 - §5.3 references 路徑：Fix A（plugin 快照 + root 指標 + SKILL 解析約定）已核准
-- 待使用者 re-review 本更新檔後進入 writing-plans
+- 已核准；實作計畫見 docs/superpowers/plans/2026-09-05-a2-install.md
