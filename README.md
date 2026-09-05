@@ -157,7 +157,7 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 
 1. **掃描器對照的驗證狀態不一**——開源工具（gosec、bandit、Semgrep 等）
    可透過 fixture 實跑做到**部分** `verified`；商用掃描器（Fortify、Checkmarx、
-   AWVS、WebInspect、Nessus 等）對照在提供紅acted 報告前一律維持 `unverified`
+   AWVS、WebInspect、Nessus 等）對照在提供redacted 報告前一律維持 `unverified`
    （宣稱對照、尚未校準）。不得捏造商用規則 ID。
    詳見 [開源驗證操作](security-compliance-tw/tools/verify_scanners.md) 與
    [商用驗證流程](docs/usage/scanner-verification.md)。

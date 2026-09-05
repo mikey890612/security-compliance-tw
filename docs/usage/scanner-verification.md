@@ -9,7 +9,7 @@
 
 ## 1. 報告必備欄位
 
-送入驗證流程的報告（或紅acted 摘要）至少要能還原下列欄位：
+送入驗證流程的報告（或redacted 摘要）至少要能還原下列欄位：
 
 | 欄位 | 說明 |
 |------|------|
@@ -39,16 +39,16 @@
 internal-verified:2026-09-05
 ```
 
-原始紅acted 檔僅留在本機 `commercial/` 或內部安全存放區。
+原始redacted 檔僅留在本機 `commercial/` 或內部安全存放區。
 
 ---
 
 ## 3. 操作者 checklist
 
-1. 將紅acted 報告放到 `security-compliance-tw/testdata/scan-artifacts/commercial/`（本機即可）
+1. 將redacted 報告放到 `security-compliance-tw/testdata/scan-artifacts/commercial/`（本機即可）
 2. 以報告中的規則 ID／CWE／檔案模式，對照 `references/checks/*.md` 各則 `### 掃描器怎麼標` 表列
 3. 對得上且證據充分：該列 `狀態` → `verified`；僅部分吻合 → `partial`
-4. `證據` 填公開可 commit 的字串（如 `internal-verified:YYYY-MM-DD`），**不要**填會洩漏客戶內容的路徑細節進公開 repo（若路徑必須出現，僅用已紅acted 相對名）
+4. `證據` 填公開可 commit 的字串（如 `internal-verified:YYYY-MM-DD`），**不要**填會洩漏客戶內容的路徑細節進公開 repo（若路徑必須出現，僅用已redacted 相對名）
 5. 執行 `python3 security-compliance-tw/tools/validate_kb.py`，確認商用 `verified` 列皆有非 `—` 證據
 6. 在 `security-compliance-tw/references/scanner-verification-log.md` 追加一列（工具、版本、對應 checks、摘要）
 
