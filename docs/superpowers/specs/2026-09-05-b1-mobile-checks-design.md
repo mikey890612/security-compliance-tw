@@ -1,7 +1,7 @@
 # B1：行動裝置 checks 第一批 — 設計規格
 
 日期：2026-09-05
-狀態：已與使用者確認 §1–§4，待使用者 review 本檔後進入 writing-plans
+狀態：已與使用者確認 §1–§4，已核准；實作計畫見 docs/superpowers/plans/2026-09-05-b1-mobile-checks.md
 專案：`security_skill_creator` / `security-compliance-tw`
 來源指引：《行動裝置資安防護資安參考指引 V2.0》（PDF 不進 git；本地目錄 `行動裝置資安防護資安參考指引V2.0_1121231/`）
 相關 GitHub：https://github.com/mikey890612/security-compliance-tw
