@@ -26,10 +26,10 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
 
 | 要什麼 | 讀哪個模板 | 需要 findings.md 嗎 |
 |---|---|---|
-| 附表十查檢表 / 源碼查檢表 / 測試報告 | `../../references/templates/checklist.md` | **是** |
-| 威脅建模 | `../../references/templates/threat-model.md` | 否，但有更好 |
-| 需求追溯矩陣 RTM | `../../references/templates/rtm.md` | 否，但有更好 |
-| 委外 RFP 資安需求 | `../../references/templates/rfp.md` | **否**，與程式碼無關 |
+| 附表十查檢表 / 源碼查檢表 / 測試報告 | `{ROOT}/references/templates/checklist.md` | **是** |
+| 威脅建模 | `{ROOT}/references/templates/threat-model.md` | 否，但有更好 |
+| 需求追溯矩陣 RTM | `{ROOT}/references/templates/rtm.md` | 否，但有更好 |
+| 委外 RFP 資安需求 | `{ROOT}/references/templates/rfp.md` | **否**，與程式碼無關 |
 
 模板本身寫明了各自的產出步驟與格式，照著做。
 
@@ -38,7 +38,7 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
 除了 RFP 之外，都要先確認：
 
 1. **專案分級**（普/中/高）——決定要涵蓋哪些項目。問法見
-   `../../references/profile.md`，同樣一次問完不逐題往返
+   `{ROOT}/references/profile.md`，同樣一次問完不逐題往返
 2. **有無 `security-audit/findings.md`**——沒有的話，
    產查檢表類要先請使用者跑 `sec-audit`；威脅建模與 RTM 可以做，
    但要說明「未經源碼檢視，實作狀態欄位無法回填」
@@ -61,7 +61,21 @@ security-deliverables/
 
 與 `sec-audit` 的 `security-audit/` 分開——一個是技術產出，一個是交付文件。
 
+## 知識庫根目錄（ROOT）
+
+讀知識庫前，先解析 **ROOT**（plugin 根目錄，其下有 `references/`）：
+
+1. 若環境變數 `SECURITY_COMPLIANCE_TW_ROOT` 已設定 → 用它
+2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
+3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
+
+知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
+
+**不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
+
 ## 知識庫
+
+知識庫位於 `{ROOT}/references/`：
 
 | 檔案 | 何時讀 |
 |---|---|
@@ -71,9 +85,6 @@ security-deliverables/
 | `profile.md` | 問分級時 |
 
 **一次只讀要用的那一份模板。** 不要四份全載入。
-
-用 Read 工具讀 `../../references/…` 會正確解析。
-**不要用 shell 的 `cd ../..` 導航**——`cd` 是邏輯解析，在 symlink 底下會跑錯地方。
 
 ## 產出後一定要做的事
 

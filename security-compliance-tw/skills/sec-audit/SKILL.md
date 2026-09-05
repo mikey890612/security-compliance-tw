@@ -28,7 +28,7 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 
 ## 模式 1：送掃之前
 
-1. **建立 profile**——讀 `../../references/profile.md`，照其問答腳本**一次問完**。
+1. **建立 profile**——讀 `{ROOT}/references/profile.md`，照其問答腳本**一次問完**。
    腳本用 multiSelect 把六個資料點壓成三題，**剛好在 AskUserQuestion 的四題上限內**。
    不要拆成兩輪問，拆輪等於逐題往返
 2. **偵測技術棧**——讀 `go.mod` / `requirements.txt` / `pyproject.toml` / `package.json`
@@ -49,7 +49,7 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
    若命中列的「狀態」為 `unverified`，在 findings 註明「規則名待真實報告確認」
 4. 依該 check 的「判定準則」逐項判定
 5. 真漏洞依「過關寫法」修補；誤判產出佐證。
-   誤判的標記方式（`#nosec`、Not an Issue 等）查 `../../references/scanners.md`
+   誤判的標記方式（`#nosec`、Not an Issue 等）查 `{ROOT}/references/scanners.md`
 6. **產出**——見下方
 
 ## DAST 家族的處理方式
@@ -69,9 +69,21 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 安全測試報告、威脅建模、RTM 或委外 RFP 時，改用 `sec-deliverables`
 ——它會讀本 skill 產出的 `findings.md` 作為輸入。
 
+## 知識庫根目錄（ROOT）
+
+讀知識庫前，先解析 **ROOT**（plugin 根目錄，其下有 `references/`）：
+
+1. 若環境變數 `SECURITY_COMPLIANCE_TW_ROOT` 已設定 → 用它
+2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
+3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
+
+知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
+
+**不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
+
 ## 知識庫
 
-全部位於 `../../references/`：
+全部位於 `{ROOT}/references/`：
 
 | 檔案 | 何時讀 |
 |---|---|
@@ -83,9 +95,6 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 `controls-appendix10.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
 
 **不要一次載入所有 check 檔。**
-
-用 Read 工具讀 `../../references/…` 會正確解析。
-**不要用 shell 的 `cd ../..` 導航**——`cd` 是邏輯解析，在 symlink 底下會跑錯地方。
 
 
 ## 掃描器對照狀態（必讀）
@@ -99,7 +108,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 操作與回填流程：
 
-- 開源 fixture 實跑：`../../tools/verify_scanners.md`
+- 開源 fixture 實跑：`{ROOT}/tools/verify_scanners.md`
 - 商用紅acted 報告路徑：`../../../docs/usage/scanner-verification.md`
 
 ## 目前涵蓋範圍

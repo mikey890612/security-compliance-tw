@@ -16,32 +16,31 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 
 ---
 
-## 知識庫路徑（先讀這段）
+## 知識庫根目錄（ROOT）（先讀這段）
 
-內容來源在 `../../references/`，相對於本 SKILL.md 所在目錄。
+讀知識庫前，先解析 **ROOT**（plugin 根目錄，其下有 `references/`）：
 
-**用 Read 工具讀這個相對路徑會正確解析。**
-本 skill 通常以 symlink 掛在 `~/.claude/skills/` 底下，
-syscall 會先解 symlink、`..` 才套用到真實父目錄，所以路徑會落在 plugin 根目錄。
+1. 若環境變數 `SECURITY_COMPLIANCE_TW_ROOT` 已設定 → 用它
+2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
+3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
 
-⚠ **絕對不要用 shell 的 `cd ../..` 去找知識庫。**
-`cd` 用的是邏輯解析，會落在 `~/.claude/`，那裡沒有 `references/`，
-你會誤以為知識庫不存在。已經有人踩過這個坑。
+知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
 
-要在 shell 操作時，先用 Read 或 `python3 -c "import os; print(os.path.realpath(...))"`
-取得真實路徑，再用絕對路徑操作。
+**不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
+
+要在 shell 操作時，先解析 ROOT 取得絕對路徑，再用絕對路徑操作。
 
 ---
 
 ## 直接使用模式
 
-讀 `../../references/quick-patterns.md`，依當下情境套用對應段落。
+讀 `{ROOT}/references/quick-patterns.md`，依當下情境套用對應段落。
 
 段落依情境分：寫資料庫查詢 / 寫 HTTP handler / 處理檔案路徑 / 執行外部命令 /
 處理密碼與金鑰 / 寫日誌 / 錯誤處理 / 設定伺服器 / 呼叫 LLM。
 
 **只讀需要的段落。** 要更完整的說明（掃描器規則名稱、誤判處置、判定準則）
-再去 `../../references/checks/`——但寫程式時通常不需要，速查就夠。
+再去 `{ROOT}/references/checks/`——但寫程式時通常不需要，速查就夠。
 
 ---
 
@@ -160,7 +159,7 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 拿到它們的人不會有這個 plugin。因此：
 
 1. **不得出現任何絕對路徑。**
-   不要寫 `/Users/…` 或 `../../references/…`——對方的 repo 沒有那些檔案。
+   不要寫 `/Users/…` 或 `{ROOT}/references/…`——對方的 repo 沒有那些檔案。
    需要指向完整說明時，寫「詳見 security-compliance-tw plugin 的 `references/checks/`」，
    不要寫成可點擊的本機路徑。
 
