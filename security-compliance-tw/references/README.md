@@ -62,7 +62,7 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 
 ## 目前涵蓋範圍
 
-共 66 則 check：伺服器與 Web 46 則、行動端 12 則、MDM 8 則。
+共 71 則 check：伺服器與 Web 46 則、行動端 17 則、MDM 8 則。
 
 ### 行動端與 MDM
 
@@ -73,9 +73,15 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 | `mast-network.md` | 2 | 明文與 ATS／NSC / 憑證釘選 |
 | `mast-auth.md` | 2 | 用戶端鑑別閘道 / 生物辨識可略過 |
 | `mast-platform.md` | 4 | IPC 與深層連結 / WebView / 剪貼簿 / 螢幕擷取 |
+| `mast-resilience.md` | 5 | Root／越獄 / 偵錯模式 / 模擬器與動態分析 / 安裝包完整性 / 混淆與加殼 |
 | `mdm-controls.md` | 8 | 註冊 / 受管 App / 遠端抹除 / 鎖定 / 越獄偵測 / 修補 / VPN / MTD |
 
 `MAST-*` 對照《行動應用 App 基本資安檢測基準》的條號（`mapping.md` 的 `MAS` 欄）。
+
+⚠ **`mast-resilience.md` 全部屬 F 類加測或參考項目，非必要檢測項目。**
+只在 profile 勾選「將送 F 類加測」時載入——未加測卻報告會產生大量不適用雜訊。
+該檔的 `MAST-RESILIENCE-005`（混淆）**iOS 側刻意留白**：
+Swift 無官方混淆方案，本知識庫不提供廠商建議。
 `MDM-*` 的 `MAS` 與附表十兩欄皆為 `—`——檢測基準規範的是行動應用程式本身，
 MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對應的應用程式層項目。
 

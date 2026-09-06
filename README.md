@@ -88,7 +88,7 @@ python3 security-compliance-tw/tools/validate_kb.py
 
 ```
 references/
-├── checks/              66 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
+├── checks/              71 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
 ├── mapping.md           唯一對照表：check-id → 附表十 / OWASP / CWE
 ├── controls-appendix10.md   附表十查檢表全文與分級
 ├── quick-patterns.md    寫程式當下的速查（sec-harden 的內容來源）
@@ -106,15 +106,15 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 以上由 `tools/validate_kb.py` 自動驗證，同時檢查 `checks/` 與 `mapping.md`
 的雙向對應。
 
-### 涵蓋範圍（66 則）
+### 涵蓋範圍（71 則）
 
 注入（含 XSS）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
 錯誤與例外 · **請求濫用**（`sast-request-abuse.md`：CSRF／SSRF／UPLOAD）·
 API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩 ·
-**行動端 MAST**（`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`）·
+**行動端 MAST**（`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`、`mast-resilience.md`）·
 **MDM／EMM／MAM**（`mdm-controls.md`）
 
-**伺服器與 Web 46 則**（含請求濫用 3 則）·**行動端 12 則**（五檔，依 MASVS 類別命名）·
+**伺服器與 Web 46 則**（含請求濫用 3 則）·**行動端 17 則**（六檔，依 MASVS 類別命名）·
 **MDM 8 則**（規格外的延伸，見下）。依 profile 勾選「有行動 App」「有 EMM／MDM／MAM」載入。
 
 行動端對照《行動應用 App 基本資安檢測基準》的條號與 L1／L2／L3 分級、

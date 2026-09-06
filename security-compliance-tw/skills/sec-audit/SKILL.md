@@ -116,7 +116,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-66 則 check，18 個檔：
+71 則 check，19 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
@@ -137,9 +137,11 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | MAST 網路與憑證釘選 | `mast-network.md` | **有行動 App** |
 | MAST 身分鑑別與生物辨識 | `mast-auth.md` | **有行動 App** |
 | MAST 平台介面（IPC／WebView／剪貼簿／螢幕） | `mast-platform.md` | **有行動 App** |
+| MAST 抗逆向與竄改（F 類） | `mast-resilience.md` | **有行動 App 且勾選 F 類加測** |
 | MDM／EMM／MAM 控制 | `mdm-controls.md` | **有 EMM／MDM／MAM** |
 
-行動端 12 則分於五個依 MASVS 類別命名的檔案；MDM 8 則獨立一檔（規格外的延伸）。W1 新增 `sast-request-abuse.md`（`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`，一律；+3 則至 66）。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
+行動端 17 則分於六個依 MASVS 類別命名的檔案；MDM 8 則獨立一檔（規格外的延伸）。
+`mast-resilience.md` 全部屬 F 類加測或參考項目，**未勾選 F 類時不要載入**。W1 新增 `sast-request-abuse.md`（`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`，一律；+3 則至 66）。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。

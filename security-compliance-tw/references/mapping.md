@@ -181,6 +181,11 @@
 | MAST-PLATFORM-002 | MAS 4.2.2.1.2 | ◎ | ◎ | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-PLATFORM-2 | M8 | CWE-749 |
 | MAST-PLATFORM-003 | MAS 4.1.2.3.13 |   | ◎ | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-PLATFORM-3 | M6 | — |
 | MAST-PLATFORM-004 | MAS 4.1.2.3.9 |   |   | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-PLATFORM-3 | M6 | — |
+| MAST-RESILIENCE-001 | MAS 4.1.5.5.1 |   |   |   | ◎ |   | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-1 | M7 | CWE-693 |
+| MAST-RESILIENCE-002 | MAS 4.1.5.5.9 / MAS 4.1.5.5.8 |   |   |   | ◎ |   | 設定檔 | —（查檢表外） | MASVS-RESILIENCE-4 | M8 | CWE-489 |
+| MAST-RESILIENCE-003 | MAS 4.1.5.5.7 / MAS 4.1.5.5.3 |   |   |   | ◎ | ◎ | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-4 | M7 | CWE-693 |
+| MAST-RESILIENCE-004 | MAS 4.1.5.2.1 |   |   |   |   | ◎ | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-2 | M7 | CWE-354 |
+| MAST-RESILIENCE-005 | MAS 4.1.5.5.6 / MAS 4.1.5.5.5 |   |   |   | ◎ | ◎ | 設定檔 | —（查檢表外） | MASVS-RESILIENCE-3 | M7 | — |
 
 ---
 
