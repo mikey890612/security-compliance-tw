@@ -13,6 +13,7 @@
 | 行動應用 App 基本資安檢測基準的條號與標題（65 條） | `controls-mas-v4.md` | sec-deliverables |
 | 掃描器對照的驗證紀錄（工具版本、fixture、findings） | `scanner-verification-log.md` | sec-audit |
 | 各類交付文件的產出規則與格式 | `templates/*.md` | sec-deliverables |
+| 檢測基準勾稽表的產出規則 | `templates/checklist-mas.md` | sec-deliverables |
 
 ## 路徑注意事項
 
