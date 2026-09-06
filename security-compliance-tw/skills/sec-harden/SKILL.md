@@ -42,6 +42,10 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 **只讀需要的段落。** 要更完整的說明（掃描器規則名稱、誤判處置、判定準則）
 再去 `{ROOT}/references/checks/`——但寫程式時通常不需要，速查就夠。
 
+撰寫 **狀態變更表單／伺服端代發 URL／檔案上傳** 時，
+`quick-patterns.md` 尚無 CSRF／SSRF／UPLOAD 速查——改讀
+`checks/sast-request-abuse.md`（一律；`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`；勿整份貼進規則檔）。
+
 撰寫 **iOS／Android 原生 App** 或 **EMM／MDM／MAM** 相關程式時，
 `quick-patterns.md` 尚無對應速查段落——改讀
 `checks/mast-storage-crypto.md`、`checks/mast-network-ipc.md`（含 PIN）、
@@ -238,5 +242,5 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 | 讀 | `quick-patterns.md` | `checks/` + `mapping.md` |
 | 產出 | 專案的規則檔 | `security-audit/` 報告 |
 
-`quick-patterns.md` 是從 `checks/` 的 Web／API／LLM 則萃取出「寫的當下能預防」的約 20 則（MAST／MDM／裝置隱私／PIN／LOCK 等尚未收入速查）。
+`quick-patterns.md` 是從 `checks/` 的 Web／API／LLM 則萃取出「寫的當下能預防」的約 20 則（MAST／MDM／裝置隱私／PIN／LOCK／請求濫用 等尚未收入速查）。
 兩者內容不一致時，**以 `checks/` 為準**——那是完整版。

@@ -115,7 +115,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-63 則 check，15 個檔：
+66 則 check，16 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
@@ -125,6 +125,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流 |
 | 日誌與稽核 | `sast-logging.md` | 有個資或金流 |
 | 錯誤與例外 | `sast-errors.md` | 一律 |
+| 請求濫用（CSRF／SSRF／上傳） | `sast-request-abuse.md` | 一律 |
 | API 授權 | `sast-api-authz.md` | 有 API 端點 |
 | LLM / Agent | `sast-llm.md` | 有 LLM／RAG／Agent |
 | HTTP 安全標頭 | `dast-headers.md` | 對外服務 |
@@ -135,7 +136,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | MAST 裝置隱私／備份／生物辨識 | `mast-device-privacy.md` | **有行動 App** |
 | MDM／EMM／MAM 控制 | `mdm-controls.md` | **有 EMM／MDM／MAM** |
 
-B1＋B2 行動／MDM 共四檔（+20 則至 63）：含 `mast-device-privacy.md`（BACKUP／CLIP／SCREEN／BIO）、`MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
+B1＋B2 行動／MDM 共四檔（+20）：含 `mast-device-privacy.md`（BACKUP／CLIP／SCREEN／BIO）、`MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD。W1 新增 `sast-request-abuse.md`（`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`，一律；+3 則至 66）。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。
