@@ -91,6 +91,7 @@ security-deliverables/
 | `templates/*.md` | 依要產的文件選一份 |
 | `controls-appendix10.md` | 附表十查檢表、RTM、RFP 都要讀 |
 | `controls-mas-v4.md` | 產檢測基準勾稽表時讀（65 條的條號、標題、分類） |
+| `evidence-mas-process.md` | 同上。26 條流程類項目的證據指引，填入「佐證」欄 |
 | `mapping.md` | 把 check-id 換成附表十項次時 |
 | `profile.md` | 問分級時 |
 

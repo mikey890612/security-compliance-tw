@@ -14,6 +14,7 @@
 | 掃描器對照的驗證紀錄（工具版本、fixture、findings） | `scanner-verification-log.md` | sec-audit |
 | 各類交付文件的產出規則與格式 | `templates/*.md` | sec-deliverables |
 | 檢測基準勾稽表的產出規則 | `templates/checklist-mas.md` | sec-deliverables |
+| 流程類項目該問誰、該備什麼證據 | `evidence-mas-process.md` | sec-deliverables |
 
 ## 路徑注意事項
 
