@@ -92,9 +92,10 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | `profile.md` | 步驟 1 與 3，一定要讀 |
 | `checks/*.md` | 依 profile 選取，只讀需要的 |
 | `scanners.md` | 判讀報告或處理誤判時 |
-| `mapping.md` | 需要在報告中標註附表十或 OWASP 編號時才讀 |
+| `mapping.md` | 需要在報告中標註附表十、檢測基準（`MAS` 欄）或 OWASP 編號時才讀 |
+| `scanner-verification-log.md` | 需要說明某條掃描器對照的驗證依據時 |
 
-`controls-appendix10.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
+`controls-appendix10.md`、`controls-mas-v4.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
 
 **不要一次載入所有 check 檔。**
 
@@ -111,7 +112,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 操作與回填流程：
 
 - 開源 fixture 實跑：`{ROOT}/tools/verify_scanners.md`
-- 商用紅acted 報告路徑：`../../../docs/usage/scanner-verification.md`
+- 商用遮蔽（redacted）報告路徑：`../../../docs/usage/scanner-verification.md`
 
 ## 目前涵蓋範圍
 

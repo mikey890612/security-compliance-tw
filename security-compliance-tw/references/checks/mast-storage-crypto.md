@@ -338,7 +338,7 @@ Timber.d("member=%s", member) // 若未裝 redact tree，正式版照印
 
 正式建置：**拿掉或編譯期剔除**含敏感欄位的日誌；
 必須保留的稽核事件只記內部使用者代碼與事件類型，並對字串做遮罩。
-iOS 用 `privacy: .private`／紅acted；Android 用正式版無操作的 logger 或 ProGuard／R8 移除。
+iOS 用 `privacy: .private`／`redacted`；Android 用正式版無操作的 logger 或 ProGuard／R8 移除。
 
 ```swift
 import os
