@@ -72,6 +72,7 @@
 |---|---|
 | 一律 | `checks/sast-injection.md` |
 | 一律 | `checks/sast-errors.md` |
+| 一律 | `checks/sast-request-abuse.md` |
 | 對外服務 = 是 | `checks/dast-headers.md`、`checks/dast-tls-cookie.md`、`checks/dast-info-leak.md` |
 | 分級 ≥ 中 | `checks/sast-authz.md`、`checks/sast-crypto.md` |
 | 有登入功能 | `checks/sast-session-auth.md` |
