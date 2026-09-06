@@ -68,9 +68,11 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 
 | check 檔 | 則數 | 涵蓋 |
 |---|---|---|
-| `mast-storage-crypto.md` | 3 | 本機儲存 / 密碼學 / 日誌 |
-| `mast-network-ipc.md` | 5 | 明文與 ATS / 身分鑑別 / IPC 與深層連結 / WebView / 憑證釘選 |
-| `mast-device-privacy.md` | 4 | 系統備份 / 剪貼簿 / 螢幕擷取 / 生物辨識 |
+| `mast-storage.md` | 3 | 明文本機儲存 / 敏感資料入日誌 / 系統備份外洩 |
+| `mast-crypto.md` | 1 | 弱演算法與加密模式 |
+| `mast-network.md` | 2 | 明文與 ATS／NSC / 憑證釘選 |
+| `mast-auth.md` | 2 | 用戶端鑑別閘道 / 生物辨識可略過 |
+| `mast-platform.md` | 4 | IPC 與深層連結 / WebView / 剪貼簿 / 螢幕擷取 |
 | `mdm-controls.md` | 8 | 註冊 / 受管 App / 遠端抹除 / 鎖定 / 越獄偵測 / 修補 / VPN / MTD |
 
 `MAST-*` 對照《行動應用 App 基本資安檢測基準》的條號（`mapping.md` 的 `MAS` 欄）。

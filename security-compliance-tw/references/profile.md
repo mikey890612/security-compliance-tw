@@ -79,7 +79,7 @@
 | 有 API 端點 | `checks/sast-api-authz.md` |
 | 有 LLM / RAG / Agent | `checks/sast-llm.md` |
 | 有個資或金流 | `checks/sast-logging.md`、`checks/sast-crypto.md` |
-| 有行動 App | `checks/mast-storage-crypto.md`、`checks/mast-network-ipc.md`、`checks/mast-device-privacy.md` |
+| 有行動 App | `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md` |
 | 有 EMM／MDM／MAM | `checks/mdm-controls.md` |
 
 **載入前先確認檔案存在。** 知識庫仍在擴充中，規則表可能列出尚未建立的檔案。

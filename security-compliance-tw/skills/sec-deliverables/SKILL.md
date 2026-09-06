@@ -44,7 +44,7 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
    但要說明「未經源碼檢視，實作狀態欄位無法回填」。
    若 profile 曾勾「有行動 App」或「有 EMM／MDM／MAM」，findings 可能含
    MAST／MDM check-id（含 `mast-device-privacy` 的 BACKUP／CLIP／SCREEN／BIO、
-   `MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD）；
+   `MAST-NETWORK-002`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD）；
    一律亦含請求濫用 `SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`（知識庫共 66 則）；
    勾稽時仍只經 `{ROOT}/references/mapping.md` 對照附表十／OWASP，
    勿自行發明項次

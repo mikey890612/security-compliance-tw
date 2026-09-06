@@ -111,13 +111,20 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 注入（含 XSS）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
 錯誤與例外 · **請求濫用**（`sast-request-abuse.md`：CSRF／SSRF／UPLOAD）·
 API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩 ·
-**MAST**（`mast-storage-crypto.md`、`mast-network-ipc.md`、`mast-device-privacy.md`）·
+**行動端 MAST**（`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`）·
 **MDM／EMM／MAM**（`mdm-controls.md`）
 
-Web 46 則（含 W1 請求濫用 +3）。B1＋B2 P0（+20）依 profile「有行動 App」「有 EMM／MDM／MAM」載入上述四檔：
-含 `mast-device-privacy.md`（BACKUP／CLIP／SCREEN／BIO）、`MAST-PIN-001`，
-以及 MDM LOCK／JAIL／PATCH／VPN／MTD。掃描器對照多為 `unverified`／`—`，
+**伺服器與 Web 46 則**（含請求濫用 3 則）·**行動端 12 則**（五檔，依 MASVS 類別命名）·
+**MDM 8 則**（規格外的延伸，見下）。依 profile 勾選「有行動 App」「有 EMM／MDM／MAM」載入。
+
+行動端對照《行動應用 App 基本資安檢測基準》的條號與 L1／L2／L3 分級、
+OWASP MASVS 控制項編號與 Mobile Top 10。掃描器對照多為 `unverified`，
 **未宣稱 Fortify／MobSF 已驗證**。
+
+⚠ **`MDM-*` 8 則不在本專案原始規格的範圍內**——原始規格限定「行動應用程式本身的
+用戶端程式碼與設定檔」，MDM 是機關端的裝置管理政策，其佐證來自主控台報表
+而非掃描器規則命中。保留是因為對實際稽核有用，但在 `mapping.md` 中**獨立一張表**，
+且不計入行動端則數。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。

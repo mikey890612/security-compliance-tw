@@ -38,9 +38,9 @@ class TestMapping(unittest.TestCase):
 
     def test_extracts_mapped_ids(self):
         p = self._write_mapping(
-            "| check-id | 附表十 | MAS | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | Mob24 | CWE |\n"
-            "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
-            "| SAST-INJ-001 | 4.5.3.1 | — | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | — | CWE-89 |\n"
+            "| check-id | 附表十 | MAS | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | CWE |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|\n"
+            "| SAST-INJ-001 | 4.5.3.1 | — | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | CWE-89 |\n"
         )
         rows = validate_kb.parse_mapping(p)
         self.assertEqual(list(rows.keys()), ["SAST-INJ-001"])
@@ -150,7 +150,7 @@ class TestMastMdmLanguageRules(unittest.TestCase):
 
     def test_mast_id_format_ok(self):
         fences = "```swift\nx\n```\n```kotlin\nx\n```\n"
-        errors = validate_kb.validate_checks([self._check("MAST-STORE-001", fences)])
+        errors = validate_kb.validate_checks([self._check("MAST-STORAGE-001", fences)])
         self.assertFalse(any("id 格式" in e for e in errors), errors)
         self.assertEqual(errors, [])
 
@@ -160,9 +160,22 @@ class TestMastMdmLanguageRules(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_mast_missing_kotlin_errors(self):
+        """平台為「雙平台」時才要求 kotlin——語言需求來自 mapping，不是硬編碼。"""
         fences = "```swift\nx\n```\n"
-        errors = validate_kb.validate_checks([self._check("MAST-STORE-001", fences)])
+        rows = {"MAST-STORAGE-001": {"平台": "雙平台", "_schema": "mobile"}}
+        errors = validate_kb.validate_checks(
+            [self._check("MAST-STORAGE-001", fences)], rows
+        )
         self.assertTrue(any("缺少 kotlin" in e for e in errors), errors)
+
+    def test_mast_config_only_does_not_require_kotlin(self):
+        """設定檔類的 MAST 只要有 xml 就夠，不該被逼著寫 kotlin 湊數。"""
+        fences = '```xml\n<application android:allowBackup="false" />\n```\n'
+        rows = {"MAST-STORAGE-003": {"平台": "設定檔", "_schema": "mobile"}}
+        errors = validate_kb.validate_checks(
+            [self._check("MAST-STORAGE-003", fences)], rows
+        )
+        self.assertEqual(errors, [])
 
     def test_mdm_no_language_fences_ok(self):
         # five sections + valid scanner table, no code fences
@@ -197,7 +210,7 @@ class TestConfigFences(unittest.TestCase):
         "| MobSF | demo | HIGH | unverified | — |\n"
     )
 
-    def _check(self, fences, check_id="MAST-BACKUP-001"):
+    def _check(self, fences, check_id="MAST-STORAGE-003"):
         body = (
             "\n### 掃描器怎麼標\n\n"
             f"{self.VALID_SCANNER_TABLE}\n\n"
@@ -259,7 +272,7 @@ class TestConfigFences(unittest.TestCase):
             "### 判定準則\nx\n"
         )
         check = validate_kb.Check(
-            id="MAST-BACKUP-001", title="demo", body=body, source="mast-demo.md"
+            id="MAST-STORAGE-003", title="demo", body=body, source="mast-demo.md"
         )
         self.assertEqual(validate_kb.validate_checks([check]), [])
 
@@ -271,28 +284,134 @@ class TestDuplicateMappingRow(unittest.TestCase):
         return d / "mapping.md"
 
     HEADER = (
-        "| check-id | 附表十 | MAS | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | Mob24 | CWE |\n"
-        "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+        "| check-id | 附表十 | MAS | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | CWE |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|\n"
     )
 
     def test_detects_duplicate_mapping_row(self):
         p = self._write_mapping(
             self.HEADER
-            + "| SAST-INJ-001 | 4.5.3.1 | — | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | — | CWE-89 |\n"
-            + "| SAST-INJ-001 | 4.1 | — | ◎ | ◎ | ◎ | A01 | A01 | — | — | — | CWE-22 |\n"
+            + "| SAST-INJ-001 | 4.5.3.1 | — | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | CWE-89 |\n"
+            + "| SAST-INJ-001 | 4.1 | — | ◎ | ◎ | ◎ | A01 | A01 | — | — | CWE-22 |\n"
         )
         rows = validate_kb.parse_mapping(p)
         errors = validate_kb.cross_validate(["SAST-INJ-001"], rows)
         self.assertTrue(any("重複" in e for e in errors), errors)
 
-    def test_mas_column_is_parsed(self):
+    def test_mas_and_masvs_columns_parsed_from_mobile_table(self):
         p = self._write_mapping(
-            self.HEADER
-            + "| MAST-STORE-001 | —（查檢表外） | MAS 4.1.2.3.7 | ◎ | ◎ | ◎ | — | — | — | — | M9 | CWE-922 |\n"
+            "| check-id | MAS | L1 | L2 | L3 | F | 參 | 平台 | 附表十 | MASVS | MTop10 | CWE |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+            "| MAST-STORAGE-001 | MAS 4.1.2.3.7 | ◎ | ◎ | ◎ |  |  | 雙平台 | —（查檢表外） | MASVS-STORAGE-1 | M9 | CWE-922 |\n"
         )
         rows = validate_kb.parse_mapping(p)
-        self.assertEqual(rows["MAST-STORE-001"]["MAS"], "MAS 4.1.2.3.7")
-        self.assertEqual(rows["MAST-STORE-001"]["Mob24"], "M9")
+        self.assertEqual(rows["MAST-STORAGE-001"]["MAS"], "MAS 4.1.2.3.7")
+        self.assertEqual(rows["MAST-STORAGE-001"]["MASVS"], "MASVS-STORAGE-1")
+        self.assertEqual(rows["MAST-STORAGE-001"]["MTop10"], "M9")
+
+
+class TestPlatformLangRules(unittest.TestCase):
+    """MAST 的必要語言由 mapping 的「平台」欄決定，不是一律 kotlin+swift。
+
+    一律要求兩種語言會逼出變形內容：純設定檔議題（manifest 屬性）
+    只能把設定檔內容當註解塞進 kotlin 區塊來湊數。
+    """
+
+    def test_sast_requires_three_web_languages(self):
+        self.assertEqual(
+            validate_kb.required_langs("SAST-INJ-001", None),
+            ["go", "python", "javascript"],
+        )
+
+    def test_dast_and_mdm_require_no_language(self):
+        self.assertEqual(validate_kb.required_langs("DAST-HDR-001", None), [])
+        self.assertEqual(validate_kb.required_langs("MDM-ENROLL-001", None), [])
+
+    def test_mast_android_requires_kotlin_only(self):
+        self.assertEqual(
+            validate_kb.required_langs("MAST-PLATFORM-001", "Android"), ["kotlin"]
+        )
+
+    def test_mast_ios_requires_swift_only(self):
+        self.assertEqual(
+            validate_kb.required_langs("MAST-STORAGE-004", "iOS"), ["swift"]
+        )
+
+    def test_mast_both_requires_kotlin_and_swift(self):
+        self.assertEqual(
+            validate_kb.required_langs("MAST-STORAGE-001", "雙平台"),
+            ["kotlin", "swift"],
+        )
+
+    def test_mast_config_only_requires_no_program_language(self):
+        self.assertEqual(validate_kb.required_langs("MAST-NETWORK-001", "設定檔"), [])
+
+    def test_unknown_platform_raises(self):
+        with self.assertRaises(ValueError):
+            validate_kb.required_langs("MAST-STORAGE-001", "Symbian")
+
+
+class TestThreeSchemas(unittest.TestCase):
+    def _write_mapping(self, text):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "mapping.md").write_text(text, encoding="utf-8")
+        return d / "mapping.md"
+
+    WEB = (
+        "| check-id | 附表十 | MAS | 普 | 中 | 高 | Web21 | Web25 | API23 | LLM25 | CWE |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|\n"
+        "| SAST-INJ-001 | 4.5.3.1 | — | ◎ | ◎ | ◎ | A03 | A05 | — | LLM05 | CWE-89 |\n"
+    )
+    MOBILE = (
+        "| check-id | MAS | L1 | L2 | L3 | F | 參 | 平台 | 附表十 | MASVS | MTop10 | CWE |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+        "| MAST-STORAGE-001 | MAS 4.1.2.3.7 | ◎ | ◎ | ◎ |  |  | 雙平台 | —（查檢表外） | MASVS-STORAGE-1 | M9 | CWE-922 |\n"
+    )
+    MDM = (
+        "| check-id | 附表十 | 普 | 中 | 高 | CWE |\n"
+        "|---|---|---|---|---|---|\n"
+        "| MDM-ENROLL-001 | —（查檢表外） | ◎ | ◎ | ◎ | — |\n"
+    )
+
+    def test_parses_all_three_tables(self):
+        p = self._write_mapping(self.WEB + "\n說明文字\n\n" + self.MOBILE + "\n更多說明\n\n" + self.MDM)
+        rows = validate_kb.parse_mapping(p)
+        self.assertEqual(
+            sorted(rows), ["MAST-STORAGE-001", "MDM-ENROLL-001", "SAST-INJ-001"]
+        )
+        self.assertEqual(rows["SAST-INJ-001"]["_schema"], "web")
+        self.assertEqual(rows["MAST-STORAGE-001"]["_schema"], "mobile")
+        self.assertEqual(rows["MDM-ENROLL-001"]["_schema"], "mdm")
+        self.assertEqual(rows["MAST-STORAGE-001"]["平台"], "雙平台")
+
+    def test_reference_only_item_counts_as_a_level(self):
+        rows = {
+            "MAST-CRYPTO-004": {
+                "check-id": "MAST-CRYPTO-004", "_schema": "mobile",
+                "L1": "", "L2": "", "L3": "", "F": "", "參": "◎", "平台": "雙平台",
+            }
+        }
+        self.assertEqual(validate_kb.cross_validate(["MAST-CRYPTO-004"], rows), [])
+
+    def test_mobile_row_needs_some_level(self):
+        rows = {
+            "MAST-STORAGE-001": {
+                "check-id": "MAST-STORAGE-001", "_schema": "mobile",
+                "L1": "", "L2": "", "L3": "", "F": "", "參": "", "平台": "雙平台",
+            }
+        }
+        errors = validate_kb.cross_validate(["MAST-STORAGE-001"], rows)
+        self.assertTrue(any("至少一個分級" in e for e in errors), errors)
+
+    def test_invalid_platform_reported(self):
+        rows = {
+            "MAST-STORAGE-001": {
+                "check-id": "MAST-STORAGE-001", "_schema": "mobile",
+                "L1": "◎", "L2": "", "L3": "", "F": "", "參": "", "平台": "Symbian",
+            }
+        }
+        errors = validate_kb.cross_validate(["MAST-STORAGE-001"], rows)
+        self.assertTrue(any("平台" in e for e in errors), errors)
 
 
 if __name__ == "__main__":

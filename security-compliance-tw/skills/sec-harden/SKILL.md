@@ -48,8 +48,7 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 
 撰寫 **iOS／Android 原生 App** 或 **EMM／MDM／MAM** 相關程式時，
 `quick-patterns.md` 尚無對應速查段落——改讀
-`checks/mast-storage-crypto.md`、`checks/mast-network-ipc.md`（含 PIN）、
-`checks/mast-device-privacy.md`、`checks/mdm-controls.md`
+`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`、`mdm-controls.md`
 （MDM 含 LOCK／JAIL／PATCH／VPN／MTD；是否載入由 `profile.md` 的
 「有行動 App」「有 EMM／MDM／MAM」決定；勿整份貼進規則檔）。
 
