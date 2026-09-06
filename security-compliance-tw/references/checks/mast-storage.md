@@ -1,14 +1,18 @@
-# MAST：本機儲存、密碼學與日誌
+# MAST：本機儲存、日誌與系統備份
 
-行動 App 的敏感資料常落在本機偏好設定、檔案、Keychain／Keystore、以及除錯日誌。
-靜態規則多半只做 API 與字串比對——看到 `UserDefaults`、`SharedPreferences`、
-硬編碼金鑰、`NSLog`／`Log.d` 就報，不保證能判斷「值是否真的敏感」。
-因此過關寫法要以**平台安全儲存 API** 與**明確的遮罩／移除日誌**為主，
-比事後寫誤判說明省事。
+行動 App 的敏感資料常落在本機偏好設定、檔案、Keychain／Keystore、除錯日誌，
+以及**離開裝置的系統備份**。靜態規則多半只做 API 與字串比對——看到
+`UserDefaults`、`SharedPreferences`、`NSLog`／`Log.d`、`android:allowBackup`
+就報，不保證能判斷「值是否真的敏感」。
+因此過關寫法要以**平台安全儲存 API**、**明確的遮罩／移除日誌**、
+**明列排除清單的備份規則**為主，比事後寫誤判說明省事。
 
 本檔不含法規或 OWASP 編號。對照關係一律查 `../mapping.md`。
 
-## MAST-STORE-001 · 不安全本機儲存
+**「掃描器怎麼標」只收可查證的工具**：MobSF／mobsfscan、Android Lint、
+detekt、SwiftLint、Semgrep——規則 id 逐一與官方原始碼或規則清單核對過。
+
+## MAST-STORAGE-001 · 不安全本機儲存
 
 涵蓋把權杖、密碼、個資或金鑰寫進明文偏好設定、未加密檔案、
 可被其他 App／備份讀取的外部儲存，以及未啟用資料保護的本機資料庫。
@@ -149,149 +153,7 @@ Android 避免 `getExternalStorage*`／媒體公開目錄放憑證；
 
 ---
 
-## MAST-CRYPTO-001 · 弱密碼學／硬編碼密鑰
-
-涵蓋 MD5／SHA-1、DES／3DES／RC4、AES-ECB、固定 IV／nonce，
-以及把對稱金鑰、HMAC 密鑰、憑證私鑰寫死在原始碼或資源檔。
-
-### 掃描器怎麼標
-
-| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
-|---|---|---|---|---|
-| MobSF | Weak Cryptography／Hardcoded Secrets／Insecure Random 類 | High–Warning | unverified | — |
-| mobsfscan | `ios_sha1_collision`／`ios_hardcoded_secret`／Android 弱雜湊與硬編碼 pattern | WARNING | partial | https://github.com/MobSF/mobsfscan |
-| Semgrep | `*.security.*.use-of-md5*`／`*.security.audit.hardcoded-*`／mobile crypto 社群規則 | ERROR–WARNING | unverified | — |
-| Android Lint | 密碼學相關自訂／Error Prone 規則（視專案組態） | — | unverified | — |
-| Xcode／CryptoKit 診斷 | 過時 CommonCrypto API 與硬編碼字串的手動／自訂檢查 | — | unverified | — |
-
-硬編碼金鑰規則幾乎全靠**字面字串＋變數名**（`key`、`secret`、`password`）。
-把金鑰藏進 Base64 或拆成兩段常數**躲不過**字串掃描，也不要當成修法。
-
-### 壞味道
-
-```swift
-import CommonCrypto
-import CryptoKit
-
-// 硬編碼對稱金鑰
-let aesKey = "0123456789abcdef0123456789abcdef"
-
-// MD5／SHA-1 當完整性或「加密」
-var digest = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
-_ = data.withUnsafeBytes { CC_MD5($0.baseAddress, CC_LONG(data.count), &digest) }
-
-// AES-ECB 或固定 IV
-let iv = Data(repeating: 0, count: 16)
-// ... CCCrypt(... kCCOptionECBMode ...)
-```
-
-```kotlin
-import javax.crypto.Cipher
-import javax.crypto.spec.SecretKeySpec
-import java.security.MessageDigest
-
-const val AES_KEY = "0123456789abcdef" // 硬編碼
-
-val md = MessageDigest.getInstance("MD5")
-val digest = md.digest(payload)
-
-val key = SecretKeySpec(AES_KEY.toByteArray(), "AES")
-val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
-cipher.init(Cipher.ENCRYPT_MODE, key)
-
-// 固定 IV
-val iv = ByteArray(16) // 全 0
-```
-
-### 過關寫法
-
-兩件事一起做：**演算法換成平台推薦的 AEAD／雜湊**，
-**金鑰由 Keychain／Android Keystore 產生或包裹**，不要出現在原始碼。
-
-```swift
-import CryptoKit
-import Security
-
-// 雜湊：SHA-256 以上；密碼用場景另走 KDF（見後端對應檢查）
-let digest = SHA256.hash(data: data)
-
-// 對稱加密：AES-GCM，nonce 每次隨機
-let key = SymmetricKey(size: .bits256) // 實務上應由 Keychain 載入，勿每次新建後丟棄
-let sealed = try AES.GCM.seal(plaintext, using: key)
-
-// 金鑰材料進 Keychain，應用只持有 key tag
-func loadOrCreateKey(tag: String) throws -> SecKey {
-    // SecKeyCreateRandomKey + kSecAttrTokenIDSecureEnclave（可行時）
-    // 或 SecItemCopyMatching 取出既有金鑰參照
-    fatalError("wire to Keychain helper")
-}
-```
-
-```kotlin
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
-import java.security.KeyStore
-import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
-
-fun getOrCreateAesKey(alias: String): SecretKey {
-    val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-    ks.getKey(alias, null)?.let { return it as SecretKey }
-
-    val kg = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-    kg.init(
-        KeyGenParameterSpec.Builder(
-            alias,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-        )
-            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-            .setKeySize(256)
-            .build(),
-    )
-    return kg.generateKey()
-}
-
-val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-cipher.init(Cipher.ENCRYPT_MODE, getOrCreateAesKey("app.aes"))
-val iv = cipher.iv // 由系統產生，與密文一併保存
-```
-
-傳輸層 TLS、憑證釘選不在本則範圍；本則只看**應用自己做的密碼學與金鑰材料**。
-
-### 常見誤判與處置
-
-- **MD5／SHA-1 用於非安全快取鍵**——規則仍報。
-  處置：換成 SHA-256 截短或平台非加密雜湊；比寫誤判快。
-
-- **測試用假金鑰寫在 `androidTest`／單元測試**——字串掃描照樣命中正式規則集。
-  處置：測試金鑰改由測試專用 Keystore／環境注入；或把測試原始碼排除掃描路徑。
-
-- **金鑰來自遠端設定，但程式裡留了「預設值」字面常數**——這是真漏洞入口。
-  處置：拿掉預設字面值；啟動時若無金鑰就失敗，不要靜默退回硬編碼。
-
-- **第三方 SDK 內嵌金鑰**——MobSF 會報在依賴裡。
-  處置：升級或更換 SDK；無法改則記錄風險接受並限縮該 SDK 權限與資料範圍。
-
-### 判定準則
-
-真漏洞：MD5／SHA-1／DES／3DES／RC4／AES-ECB（或等價弱模式）
-用於保護仍需保密或防篡改的資料。
-
-真漏洞：對稱金鑰、HMAC 密鑰、私鑰材料以字面字串、資源檔或可逆編碼
-出現在 App 套件內。
-
-真漏洞：IV／nonce 固定、可預測，或與金鑰一樣寫死在原始碼。
-
-誤判：弱雜湊僅用於非安全快取且輸出不參與存取控制，
-且能提出替代實作計畫或已排程替換。
-
-灰色地帶——**一律當真漏洞修**：自製「混淆」當加密、或自寫密碼學協定。
-
----
-
-## MAST-LOG-001 · 敏感日誌外洩
+## MAST-STORAGE-002 · 敏感日誌外洩
 
 涵蓋把權杖、密碼、個資、完整請求／回應本體寫進 `print`／`NSLog`／`os_log`、
 `Log.*`、`System.out`，以及第三方崩潰／分析 SDK 的麵包屑日誌。
@@ -338,7 +200,7 @@ Timber.d("member=%s", member) // 若未裝 redact tree，正式版照印
 
 正式建置：**拿掉或編譯期剔除**含敏感欄位的日誌；
 必須保留的稽核事件只記內部使用者代碼與事件類型，並對字串做遮罩。
-iOS 用 `privacy: .private`／紅acted；Android 用正式版無操作的 logger 或 ProGuard／R8 移除。
+iOS 用 `privacy: .private`／`redacted`；Android 用正式版無操作的 logger 或 ProGuard／R8 移除。
 
 ```swift
 import os
@@ -407,3 +269,173 @@ Swift 的 `-O`／無 `-D DEBUG`，避免「只有本機正式包才關日誌」�
 
 灰色地帶——**一律當真漏洞修**：`User-Agent`、推播 device token、
 精確定位座標是否該記——預設不記，需要時再做最小化與遮罩。
+
+## MAST-STORAGE-003 · 不安全備份／雲端同步外洩
+
+涵蓋 Android `allowBackup`／Auto Backup 未排除憑證容器、iOS 未把敏感檔標為排除備份，
+以及把權杖、金鑰材料無差別同步進 iCloud／雲端硬碟的寫法。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | Backup／`allowBackup`／Insecure Data Storage 類 | High–Warning | unverified | — |
+| mobsfscan | Android backup／iOS 備份與 Keychain 可同步 pattern | WARNING | unverified | — |
+| Semgrep | `android.*allowBackup*`／iOS backup／CloudKit 社群規則 | ERROR–WARNING | unverified | — |
+| Android Lint | Manifest／backup 相關自訂規則（視專案組態） | Warning | unverified | — |
+| Xcode | 備份排除與 Keychain accessible 屬性多依賴程式碼審查 | — | unverified | — |
+
+多數工具只看到 Manifest 旗標或 API 名稱，不會讀 `fullBackupContent`／
+`dataExtractionRules` 的實際排除清單。過關要讓敏感容器**明確不進備份**，
+而不是只把 `allowBackup` 關掉卻仍用可同步的 Keychain／Documents。
+
+### 壞味道
+
+```swift
+// Documents 明文檔，預設會進 iCloud／裝置備份
+let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("session.json")
+try tokenData.write(to: url) // 未設 isExcludedFromBackup、亦無完整資料保護
+
+// Keychain 可被同步／備份的 accessible（跨裝置外洩面）
+let query: [String: Any] = [
+    kSecClass as String: kSecClassGenericPassword,
+    kSecAttrAccount as String: "refresh",
+    kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock, // 可進備份／同步路徑
+    kSecValueData as String: refreshToken,
+]
+SecItemAdd(query as CFDictionary, nil)
+
+// 敏感設定直接丟進 NSUbiquitousKeyValueStore
+NSUbiquitousKeyValueStore.default.set(accessToken, forKey: "access_token")
+```
+
+```xml
+<!-- AndroidManifest.xml：允許整包 Auto Backup（含 shared_prefs／內部檔） -->
+<application
+    android:allowBackup="true"
+    android:fullBackupContent="true">
+    <!-- 未提供 dataExtractionRules 排除清單，權杖與憑證一併上雲 -->
+</application>
+```
+
+```kotlin
+val prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
+prefs.edit().putString("access_token", token).apply() // 會進雲端備份
+
+// 未提供 fullBackupContent／dataExtractionRules 排除清單
+// 或把權杖寫進可被備份的檔案
+val file = File(context.filesDir, "creds.json")
+file.writeText("{\"token\":\"$token\"}")
+
+// 自行接到雲端硬碟／Drive API 上傳含憑證的匯出檔
+drive.upload("backup.zip", zipWithSecrets)
+```
+
+### 過關寫法
+
+原則：**憑證與金鑰只進不可備份／本機限定的容器**；一般設定才允許進系統備份。
+Android 關掉不必要的 `allowBackup`，或用排除規則明確剔除 auth 檔；
+iOS 對敏感檔設 `isExcludedFromBackup`，Keychain 用 `ThisDeviceOnly` 系屬性。
+
+```swift
+import Security
+
+func saveRefreshToken(_ token: Data) throws {
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrAccount as String: "refresh",
+        // 本機限定，不進 iCloud Keychain／裝置備份同步
+        kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        kSecValueData as String: token,
+    ]
+    SecItemDelete(query as CFDictionary)
+    let status = SecItemAdd(query as CFDictionary, nil)
+    guard status == errSecSuccess else { throw KeychainError.unhandled(status) }
+}
+
+func writeLocalOnlySecret(_ data: Data, name: String) throws {
+    let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent(name)
+    try data.write(to: url, options: [.completeFileProtectionUntilFirstUserAuthentication])
+    var resourceValues = URLResourceValues()
+    resourceValues.isExcludedFromBackup = true
+    var mutableURL = url
+    try mutableURL.setResourceValues(resourceValues)
+}
+```
+
+```xml
+<!-- AndroidManifest.xml：預設關閉備份 -->
+<application
+    android:allowBackup="false"
+    android:dataExtractionRules="@xml/data_extraction_rules">
+</application>
+```
+
+```xml
+<!-- res/xml/data_extraction_rules.xml（Android 12+）
+     必須開備份時，明確排除憑證與權杖 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="auth_enc.xml" />
+        <exclude domain="file" path="creds.json" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="auth_enc.xml" />
+        <exclude domain="file" path="creds.json" />
+    </device-transfer>
+</data-extraction-rules>
+```
+
+Android 11 以下另需 `android:fullBackupContent="@xml/backup_rules"`，
+`backup_rules.xml` 用 `<exclude>` 列出同一組路徑——兩者要同時維護，
+只設其中一個會在另一個 API 級別失效。
+
+```kotlin
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+
+val masterKey = MasterKey.Builder(context)
+    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+    .build()
+val prefs = EncryptedSharedPreferences.create(
+    context,
+    "auth_enc", // 並在 backup_rules 中 exclude
+    masterKey,
+    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+)
+prefs.edit().putString("access_token", token).apply()
+
+// 不要把權杖打包進使用者可觸發的「雲端備份／匯出」流程
+```
+
+另確認第三方 SDK 的本地快取是否標了可備份路徑；能關本地持久化就關。
+
+### 常見誤判與處置
+
+- **`allowBackup=true` 但已用 EncryptedSharedPreferences**——加密降低風險，備份檔仍可能被同一使用者／取證環境還原。
+  處置：敏感容器仍應列入排除；或關閉整包備份。
+
+- **「只備份非敏感 UI 狀態」卻與 token 同檔**——規則仍報整檔。
+  處置：敏感與非敏感**分檔**；排除清單寫明確路徑。
+
+- **Debug／內部建置才開備份**——掃描器不區分 variant。
+  處置：正式 Manifest 合併結果必須可證明關閉或已排除；不要靠口頭「內部才開」。
+
+- **iCloud Drive 使用者手動上傳**——非 App 自動同步。
+  處置：若 App 未提供匯出含密檔的按鈕，可標誤判；有「一鍵備份到雲端」就要修。
+
+### 判定準則
+
+真漏洞：存取權杖、重新整理權杖、密碼、金鑰材料會進入裝置 Auto Backup、
+iTunes／Finder 備份、iCloud Keychain 同步，或 App 自動上傳的雲端備份包。
+
+真漏洞：`allowBackup=true`（或等價）且未排除含憑證的 preferences／檔案容器。
+
+誤判：備份範圍可證明僅含非機密 UI 狀態，且與憑證容器分檔並已排除。
+
+灰色地帶——**一律當真漏洞修**：欄位名像 `token`／`secret` 卻聲稱「可進雲端」——先排除與改儲存，再談誤判。
+
+---

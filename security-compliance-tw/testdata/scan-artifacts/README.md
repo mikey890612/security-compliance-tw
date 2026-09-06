@@ -7,7 +7,7 @@
 | 子目錄 | 用途 | 是否 commit |
 |--------|------|-------------|
 | `open-source/` | 對 `testdata/sample-go`、`sample-multi` 等 fixture 執行 gosec / bandit / semgrep 後的原始 JSON | 否（僅 `.gitkeep`） |
-| `commercial/` | 預留給日後經紅acted 的商用掃描報告（Fortify / Checkmarx / AWVS 等） | 否（僅 `.gitkeep`） |
+| `commercial/` | 預留給日後經遮蔽（redacted）的商用掃描報告（Fortify / Checkmarx / AWVS 等） | 否（僅 `.gitkeep`） |
 
 ## 追蹤規則
 

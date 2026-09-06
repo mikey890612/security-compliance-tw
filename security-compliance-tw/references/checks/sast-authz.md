@@ -548,7 +548,7 @@ body 中的 role／is_admin、未驗簽的 token payload）。
 | Semgrep | `dockerfile.security.missing-user.missing-user` | ERROR | unverified | — |
 | SonarQube | S4834（Controlling permissions is security-sensitive，Security Hotspot） | — | unverified | — |
 | gosec | G301（目錄權限過寬）/ G302（Chmod 權限過寬）/ G306（WriteFile 權限過寬） | MEDIUM | unverified | — |
-| bandit | B103（set_bad_file_permissions） | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/bandit.json#rule=B103 |
+| bandit | B103（set_bad_file_permissions） | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/bandit.json#rule=B103（見 `references/scanner-verification-log.md`） |
 | CodeQL | —（依語言而異，無跨語言通用查詢） | — | unverified | — |
 | Nessus | 主機層權限與服務帳號相關檢查（依 plugin 而異） | Medium–High | unverified | — |
 

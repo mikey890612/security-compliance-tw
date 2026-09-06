@@ -48,8 +48,7 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 
 撰寫 **iOS／Android 原生 App** 或 **EMM／MDM／MAM** 相關程式時，
 `quick-patterns.md` 尚無對應速查段落——改讀
-`checks/mast-storage-crypto.md`、`checks/mast-network-ipc.md`（含 PIN）、
-`checks/mast-device-privacy.md`、`checks/mdm-controls.md`
+`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`、`mdm-controls.md`
 （MDM 含 LOCK／JAIL／PATCH／VPN／MTD；是否載入由 `profile.md` 的
 「有行動 App」「有 EMM／MDM／MAM」決定；勿整份貼進規則檔）。
 
@@ -68,6 +67,8 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 | `requirements.txt` / `pyproject.toml` / `Pipfile` | Python | `sec-harden-python.mdc` |
 | `package.json` | JavaScript / TypeScript | `sec-harden-web.mdc` |
 | `*.html` 或 `*.css` 存在**且**無 `package.json` | 純前端 | `sec-harden-web.mdc` |
+| `build.gradle` / `build.gradle.kts` / `settings.gradle` | Kotlin / Java（Android） | `sec-harden-android.mdc` |
+| `Podfile` / `Package.swift` / `*.xcodeproj` / `*.xcworkspace` | Swift（iOS） | `sec-harden-ios.mdc` |
 
 最後一列處理純靜態網站——它沒有 `package.json`，但 `sec-harden-web.mdc`
 的 globs 涵蓋 `.html`，若不列這條，純前端專案會落到「偵測不到」而漏裝。
@@ -155,6 +156,12 @@ alwaysApply: false
 | Go | `**/*.go` |
 | Python | `**/*.py` |
 | JS / TS / HTML | `**/*.{js,jsx,ts,tsx,html}` |
+| Android | `**/*.{kt,java}` 以及 `**/AndroidManifest.xml`、`**/*.gradle`、`**/*.gradle.kts` |
+| iOS | `**/*.{swift,m}` 以及 `**/Info.plist` |
+
+行動端的 globs **必須涵蓋設定檔**。`android:allowBackup`、`NSAllowsArbitraryLoads`
+這類屬性正是掃描器比對的目標，而它們不在 `.kt` / `.swift` 裡——
+globs 只寫程式碼副檔名，等於規則在最需要的時候不會載入。
 
 Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔案即可。
 
@@ -244,3 +251,25 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 
 `quick-patterns.md` 是從 `checks/` 的 Web／API／LLM 則萃取出「寫的當下能預防」的約 20 則（MAST／MDM／裝置隱私／PIN／LOCK／請求濫用 等尚未收入速查）。
 兩者內容不一致時，**以 `checks/` 為準**——那是完整版。
+
+## 行動專案的產出邊界
+
+偵測到 Android 或 iOS 時，內容來源同樣是 `quick-patterns.md`——
+取「在行動端儲存資料時 / 在行動端連線時 / 處理行動端平台介面時 /
+做行動端身分鑑別時」四個段落。
+
+**Android 與 iOS 同時偵測到時，常駐檔（`AGENTS.md` 等）的 100 行上限很容易破。**
+處理方式與多語言專案相同：常駐檔只保留兩平台**共通的判斷準則**，
+API 名稱各列一個；完整的雙平台範例留在 Cursor `.mdc`（上限 180 行，
+由 globs 決定何時載入）。**不要為了塞進去而把設定檔片段壓成單行**——
+`AndroidManifest.xml` 的屬性抄過去要能直接用。
+
+### 不產出工具設定檔
+
+detekt（`detekt.yml`）、SwiftLint（`.swiftlint.yml`）、Android Lint（`lint.xml`）
+的規則設定**不在本 skill 的產出範圍**。
+
+理由：這些檔案要寫出具體的規則 id，而 id 寫錯時工具會**靜默忽略整份設定**——
+工程師以為裝好了，實際上一條都沒生效。這比規則名稱不準嚴重得多。
+在本知識庫於真實 Android／iOS 專案驗證過之前，不產出這類檔案。
+

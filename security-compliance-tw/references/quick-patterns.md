@@ -167,3 +167,65 @@ Jinja2 開啟 autoescape、React 直接放進 JSX
 **✅** 系統提示只放行為指示
 **❌** 在系統提示裡放金鑰、內部網址、授權規則
 **理由** 系統提示會洩漏；授權判斷必須在模型外部做
+
+## 在行動端儲存資料時
+
+**✅** 敏感資料用 `EncryptedSharedPreferences` / Keychain，
+金鑰交給 Android Keystore 或 Secure Enclave 產生
+**❌** `SharedPreferences.putString("token", …)`、`UserDefaults.set`、
+寫入 `getExternalFilesDir()` 或 `NSTemporaryDirectory()`
+**理由** MobSF 比對的是 API 名稱與儲存路徑，換成受保護的 API 規則直接不命中
+
+**✅** `AndroidManifest.xml` 設 `android:allowBackup="false"`；
+必須開備份時用 `dataExtractionRules` 明列排除；
+iOS 對敏感檔設 `isExcludedFromBackup`，Keychain 用 `ThisDeviceOnly` 系屬性
+**❌** 沿用預設值
+**理由** `allowBackup` 預設為 true，設定檔比對無誤判空間，改一個屬性就過
+
+**✅** 日誌只記內部 ID；正式版用無操作的 logger 或由 R8 移除
+**❌** `Log.d(TAG, "token=$token")`、`print(token)`
+**理由** mobsfscan 的 `android_kotlin_logging` / `ios_log` 依樣式比對，不看值是否真的敏感
+
+## 在行動端連線時
+
+**✅** `network_security_config.xml` 明確設 `cleartextTrafficPermitted="false"`；
+iOS 不加 `NSAllowsArbitraryLoads`
+**❌** `android:usesCleartextTraffic="true"`、ATS 全域例外
+**理由** 這兩個旗標是設定檔比對，最單純也最不可能誤判的一類
+
+**✅** 憑證驗證交給系統預設；需要內部 CA 就加進信任鏈
+**❌** 空的 `checkServerTrusted`、URLSession delegate 無條件 `.useCredential`
+**理由** 空實作是規則的直接比對目標，包一層也躲不掉
+
+**✅** 高風險主機加釘選，且**備援 pin 與到期日一起設**
+**❌** 只放一枚 pin
+**理由** 憑證輪替當天全體使用者會連不上；`<pin-set>` 的 `expiration` 到期後
+會自動退回一般驗證，到期日必須進維運行事曆
+
+## 處理行動端平台介面時
+
+**✅** 元件預設 `android:exported="false"`，需要匯出時配 `android:permission`
+或走 App Links（`autoVerify="true"` ＋ 網域端 `assetlinks.json`）
+**❌** `android:exported="true"` 而無權限保護
+**理由** 匯出元件是 MobSF 的第一頁紅字，且屬設定檔比對，無誤判空間
+
+**✅** WebView 關閉 `setAllowFileAccess`、不用 `addJavascriptInterface`
+**❌** `addJavascriptInterface(obj, "bridge")` 搭配載入外部網址
+**理由** `addJavascriptInterface` 是規則名稱直接命中的 sink
+
+**✅** 顯示敏感畫面時設 `FLAG_SECURE`；iOS 進入背景時遮蔽畫面；
+輸入敏感資料的欄位關閉鍵盤快取
+**❌** 不處理多工快照與剪貼簿殘留
+**理由** 自動化工具看 `FLAG_SECURE` 是否出現，人工審查一定會實際操作看快照
+
+## 做行動端身分鑑別時
+
+**✅** 生物辨識綁定金鑰：`setUserAuthenticationRequired(true)` /
+`SecAccessControlCreateWithFlags(.biometryCurrentSet)`
+**❌** 只看 `BiometricPrompt` callback 的布林結果就放行
+**理由** callback 可被 hook；綁定金鑰後解密本身依賴驗證，繞過即無法解密
+
+**✅** 授權判斷一律在伺服器端做
+**❌** 用本機旗標或回應欄位決定顯示哪些功能就當作授權
+**理由** 用戶端的任何判斷都可被竄改，這是人工審查的必查項
+

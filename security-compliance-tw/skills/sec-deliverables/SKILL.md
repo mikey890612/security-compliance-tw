@@ -1,6 +1,6 @@
 ---
 name: sec-deliverables
-description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件——附表十安全查檢表、源碼安全查檢表、安全測試報告、威脅建模（DFD/STRIDE/DREAD）、需求追溯矩陣 RTM、委外 RFP 資安需求。Use when the user asks for 查檢表, 勾稽表, 驗收文件, 交付文件, 威脅建模, threat model, STRIDE, DREAD, 需求追溯矩陣, RTM, RFP 資安需求, 委外需求規格, 安全測試報告, or needs documents for 資安稽核 or 系統驗收.
+description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件——附表十安全查檢表、源碼安全查檢表、行動應用 App 基本資安檢測基準勾稽表、安全測試報告、威脅建模（DFD/STRIDE/DREAD）、需求追溯矩陣 RTM、委外 RFP 資安需求。Use when the user asks for 查檢表, 勾稽表, 驗收文件, 交付文件, 威脅建模, threat model, STRIDE, DREAD, 需求追溯矩陣, RTM, RFP 資安需求, 委外需求規格, 安全測試報告, 檢測基準, MAS 標章, App 送檢, or needs documents for 資安稽核 or 系統驗收.
 ---
 
 # sec-deliverables
@@ -20,13 +20,14 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
 2. **推導不出來的欄位填 `（待填）`**，不要填看似合理的內容
 3. **自動判斷的地方要標示信心度**，低信心的寫明依據什麼假設
 
-## 四種文件，各自獨立
+## 五種文件，各自獨立
 
 先問使用者要產哪一份，不要一次全產。
 
 | 要什麼 | 讀哪個模板 | 需要 findings.md 嗎 |
 |---|---|---|
 | 附表十查檢表 / 源碼查檢表 / 測試報告 | `{ROOT}/references/templates/checklist.md` | **是** |
+| 檢測基準勾稽表（行動 App） | `{ROOT}/references/templates/checklist-mas.md` | **是** |
 | 威脅建模 | `{ROOT}/references/templates/threat-model.md` | 否，但有更好 |
 | 需求追溯矩陣 RTM | `{ROOT}/references/templates/rtm.md` | 否，但有更好 |
 | 委外 RFP 資安需求 | `{ROOT}/references/templates/rfp.md` | **否**，與程式碼無關 |
@@ -42,12 +43,13 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
 2. **有無 `security-audit/findings.md`**——沒有的話，
    產查檢表類要先請使用者跑 `sec-audit`；威脅建模與 RTM 可以做，
    但要說明「未經源碼檢視，實作狀態欄位無法回填」。
-   若 profile 曾勾「有行動 App」或「有 EMM／MDM／MAM」，findings 可能含
-   MAST／MDM check-id（含 `mast-device-privacy` 的 BACKUP／CLIP／SCREEN／BIO、
-   `MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD）；
-   一律亦含請求濫用 `SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`（知識庫共 66 則）；
-   勾稽時仍只經 `{ROOT}/references/mapping.md` 對照附表十／OWASP，
-   勿自行發明項次
+   若 profile 曾勾「有行動 App」，findings 會含 `MAST-*`；勾「有 EMM／MDM／MAM」
+   會含 `MDM-*`；勾「將送 F 類加測」才會含 `MAST-RESILIENCE-*`。
+   知識庫共 71 則。勾稽時只經 `{ROOT}/references/mapping.md` 對照，
+   **勿自行發明項次**
+3. **行動 App 專案另需判定檢測基準的 App 類別**（L1 / L2 / L3，是否加測 F）。
+   推導規則見 `{ROOT}/references/profile.md`——L1/L2/L3 由既有資料點推導不必問，
+   F 必須問（程式碼裡沒有線索）
 
 RFP 不需要在專案目錄下執行，也不需要 findings。
 
@@ -59,6 +61,7 @@ RFP 不需要在專案目錄下執行，也不需要 findings。
 security-deliverables/
 ├── checklist-appendix10.md          附表十安全查檢表
 ├── checklist-source.md              源碼安全查檢表
+├── checklist-mas.md                 檢測基準勾稽表（行動 App）
 ├── security-test-report.md          安全測試報告
 ├── threat-model.md                  威脅建模
 ├── rtm.md                           需求追溯矩陣
@@ -86,7 +89,8 @@ security-deliverables/
 | 檔案 | 何時讀 |
 |---|---|
 | `templates/*.md` | 依要產的文件選一份 |
-| `controls-appendix10.md` | 查檢表、RTM、RFP 都要讀 |
+| `controls-appendix10.md` | 附表十查檢表、RTM、RFP 都要讀 |
+| `controls-mas-v4.md` | 產檢測基準勾稽表時讀（65 條的條號、標題、分類） |
 | `mapping.md` | 把 check-id 換成附表十項次時 |
 | `profile.md` | 問分級時 |
 
@@ -100,6 +104,9 @@ security-deliverables/
   算術錯誤稽核時很容易被抓到
 - **查檢表的項目數**——要與該分級在 `controls-appendix10.md` 的項目數一致，
   少一項就是漏列
+- **檢測基準勾稽表的涵蓋率說明**——65 條中目前只有 19 條掛得上 check，
+  未涵蓋的 46 條裡有 17 條是 L1/L2/L3 全部必須符合的。
+  **這個事實必須寫進首頁與第四段**，否則使用者會誤以為未標「不符合」就是通過
 
 最後在文件末尾列出「待人工確認事項」彙整，把所有 `（待填）`
 與「非程式碼可判定」的項目集中呈現。**這一節不可省略**——

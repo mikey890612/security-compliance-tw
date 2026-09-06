@@ -1,0 +1,596 @@
+# MAST：平台介面（IPC、WebView、剪貼簿、螢幕擷取）
+
+這一類的共同點是**資料透過作業系統的共享機制離開 App 邊界**：
+匯出元件與 Deep Link、WebView 的橋接與檔案存取、剪貼簿、系統快照。
+靜態規則比對的是 `exported="true"`、`addJavascriptInterface`、
+`UIPasteboard`、`FLAG_SECURE` 這些字面樣式，
+不保證能判斷「傳出去的是不是敏感資料」。
+
+本檔不含法規或 OWASP 編號。對照關係一律查 `../mapping.md`。
+
+**「掃描器怎麼標」只收可查證的工具**：MobSF／mobsfscan、Android Lint、
+detekt、SwiftLint、Semgrep——規則 id 逐一與官方原始碼或規則清單核對過。
+
+## MAST-PLATFORM-001 · 過度匯出元件／危險 Deep Link
+
+涵蓋 Android `exported=true` 的 Activity／Service／Receiver／Provider
+未加權限、ContentProvider 可被外部讀寫、以及 iOS／Android Deep Link／
+URL Scheme／Intent 攜帶權杖或直接觸發敏感動作卻未驗證來源與參數。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | Exported Components／Deep Link／Content Provider 類 | High–Warning | unverified | — |
+| mobsfscan | Android exported／deeplink／iOS URL scheme pattern | WARNING–ERROR | unverified | — |
+| Semgrep | Manifest／Intent filter／URL handler 社群規則 | ERROR–WARNING | unverified | — |
+| Android Lint | `ExportedService`／`ExportedReceiver`／`ExposedContentProvider` 等 | Error–Warning | unverified | — |
+| Xcode | URL scheme／Universal Link 處理多依賴手動與自訂規則 | — | unverified | — |
+
+Manifest 掃描幾乎是「看得到 `exported="true"` 或隱含匯出就報」。
+把不需要跨 App 的元件改成不匯出、需要的加自訂 permission，
+並在 Deep Link 入口做參數白名單，比爭論「誰會呼叫」快。
+
+### 壞味道
+
+```swift
+// Info.plist 註冊 myapp:// 後，AppDelegate／SceneDelegate 直接信任 URL
+func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    // myapp://login?token=...
+    if url.host == "login", let token = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+        .queryItems?.first(where: { $0.name == "token" })?.value {
+        Session.shared.token = token // 任意 App 都可喚起並注入
+        return true
+    }
+    return false
+}
+```
+
+```xml
+<!-- AndroidManifest.xml：任何 App 都能送 Intent 進來，且 Provider 開放授權 -->
+<activity android:name=".TransferActivity" android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="myapp" android:host="transfer" />
+    </intent-filter>
+</activity>
+
+<provider
+    android:name=".FileProvider"
+    android:authorities="com.example.files"
+    android:exported="true"
+    android:grantUriPermissions="true" />
+```
+
+```kotlin
+class TransferActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val amount = intent.getIntExtra("amount", 0)
+        val to = intent.data?.getQueryParameter("to")
+        api.transfer(to, amount) // 外部 Intent 直接觸發
+    }
+}
+```
+
+### 過關寫法
+
+原則：**預設不匯出**；跨 App 入口最小化並加權限或 App Links／Universal Links 驗證；
+Deep Link **只當導航**，敏感動作要進 App 內再認證，參數當不可信輸入。
+
+```swift
+func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+          components.scheme == "myapp" else { return false }
+
+    // 不接受 token／password 之類查詢參數
+    switch components.host {
+    case "orders":
+        let id = components.queryItems?.first(where: { $0.name == "id" })?.value
+        guard let id, id.allSatisfy(\.isNumber) else { return false }
+        Router.openOrder(id: id) // 進畫面後用既有 session；缺 session 就導登入
+        return true
+    default:
+        return false
+    }
+}
+
+// 優先改 Universal Links（https 網域＋apple-app-site-association），減少自訂 scheme 搶註
+```
+
+```xml
+<!-- AndroidManifest.xml：無跨 App 需求就關掉；必須開放時用 App Links + 自訂權限 -->
+<activity android:name=".InternalActivity" android:exported="false" />
+
+<activity android:name=".OrderDeepLinkActivity" android:exported="true">
+    <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="https" android:host="app.example.com" />
+    </intent-filter>
+</activity>
+
+<provider
+    android:name=".FileProvider"
+    android:authorities="com.example.files"
+    android:exported="false"
+    android:grantUriPermissions="true" />
+```
+
+`autoVerify="true"` 的 App Links 需要網域端的 `assetlinks.json` 才會生效——
+少了它會靜默退化成一般 scheme，任何 App 都能搶註。
+
+```kotlin
+class OrderDeepLinkActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val uri = intent.data ?: return finish()
+        if (uri.scheme != "https" || uri.host != "app.example.com") return finish()
+        val id = uri.pathSegments.getOrNull(1) ?: return finish()
+        if (!id.all { it.isDigit() }) return finish()
+        // 只導航；轉帳等動作另頁並要求生物辨識／伺服器授權
+        startActivity(OrderActivity.intent(this, id))
+        finish()
+    }
+}
+
+// ContentProvider：exported=false，或 android:permission="com.example.APP_READ"
+// 並以 UriMatcher 白名單路徑；勿把內部資料庫路徑直接對外
+```
+
+Android 12+ 明確寫 `android:exported`；審查時對每個 `true` 列出來源與權限。
+iOS 自訂 scheme 無法防止搶註——敏感流程改 Universal Links 或 App 內路由。
+
+### 常見誤判與處置
+
+- **匯出僅為了同開發者 App 共用，已設 signature 級 permission**——
+  工具可能仍報 exported。
+  處置：標記誤判並附 permission 名稱與 `protectionLevel`；確認無其它未加權限的 filter。
+
+- **推播／分享套件要求匯出 receiver**——常見於 Firebase 等。
+  處置：維持官方建議的 exported＋權限；誤判說明附 SDK 版與元件名。
+
+- **Deep Link 只開「關於我們」靜態頁**——仍應驗證 path。
+  處置：白名單 path；參數當不可信；可標誤判但先做驗證較省事。
+
+- **「內部員工才裝得了呼叫端 App」**——不是控管。
+  處置：**不當誤判**。裝置上任意 App 都可能發 Intent／搶 scheme。
+
+### 判定準則
+
+真漏洞：匯出元件可在無許可下讀寫敏感資料，或觸發轉帳／改密／注入工作階段。
+
+真漏洞：Deep Link／URL Scheme／Intent 接受權杖或直接執行高風險動作，且未驗證來源與參數。
+
+誤判：元件匯出但具 signature／自訂 permission，且可證明無敏感資料與危險 action；
+Deep Link 僅導航且參數已白名單。
+
+灰色地帶——**一律當真漏洞修**：`intent://`／過時的 `file://` 轉發、
+或把整段外部 URL 丟進 WebView（併見 MAST-PLATFORM-002）。
+
+---
+
+## MAST-PLATFORM-002 · 不安全 WebView
+
+涵蓋 JavaScript 與原生橋接（`addJavascriptInterface`／`WKScriptMessageHandler`）
+未驗證來源、允許 `file://` 或通用檔案存取、混合內容、以及把使用者可控 URL
+直接 `loadUrl`／`loadRequest` 導致的釣魚或任意程式碼執行。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | WebView／JavaScript Interface／File Access／Mixed Content 類 | High–Warning | unverified | — |
+| mobsfscan | `android_kotlin_webview`／`ios_webview`／JS bridge pattern | WARNING–ERROR | unverified | — |
+| Semgrep | WebView 設定與 bridge 社群規則 | ERROR–WARNING | unverified | — |
+| Android Lint | `SetJavaScriptEnabled`／`AddJavascriptInterface` 等 | Warning–Error | unverified | — |
+| Xcode | WKWebView 設定多依賴手動與自訂規則 | — | unverified | — |
+
+規則常因「開了 JavaScript」就報，不論是否載入可信內容。
+過關關鍵是**縮小 bridge 面、關掉檔案／混合內容、URL 白名單**，
+而不是爭論「我們沒有敏感頁」。
+
+### 壞味道
+
+```swift
+let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+// 任意 https／http 字串直接載入
+if let url = URL(string: userSupplied) {
+    webView.load(URLRequest(url: url))
+}
+
+let config = WKWebViewConfiguration()
+config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+config.userContentController.add(self, name: "nativeBridge")
+// 橋接直接執行：token、付款，未檢查 message 來源頁
+
+func userContentController(
+    _ userContentController: WKUserContentController,
+    didReceive message: WKScriptMessage
+) {
+    if message.name == "nativeBridge", let token = message.body as? String {
+        Session.shared.token = token
+    }
+}
+```
+
+```kotlin
+val webView = WebView(context)
+webView.settings.javaScriptEnabled = true
+webView.settings.allowFileAccess = true
+webView.settings.allowFileAccessFromFileURLs = true
+webView.settings.allowUniversalAccessFromFileURLs = true
+webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+
+webView.addJavascriptInterface(object {
+    @JavascriptInterface
+    fun postToken(token: String) {
+        Session.token = token // 任意 JS 可呼叫
+    }
+}, "AndroidBridge")
+
+webView.loadUrl(userSuppliedUrl) // 含 http:// 或 file://
+```
+
+### 過關寫法
+
+原則：**能不用 WebView 就用系統瀏覽器或原生畫面**；必須用時只載入自有 HTTPS 來源、
+關閉不必要的檔案存取與混合內容、bridge 方法最小化並驗證來源。
+
+```swift
+let config = WKWebViewConfiguration()
+// 不開啟 allowFileAccessFromFileURLs；不載入 file://
+let controller = WKUserContentController()
+controller.add(self, name: "nativeBridge")
+config.userContentController = controller
+
+let webView = WKWebView(frame: .zero, configuration: config)
+webView.navigationDelegate = self
+
+func loadTrusted() {
+    webView.load(URLRequest(url: URL(string: "https://app.example.com/help")!))
+}
+
+func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    guard let host = navigationAction.request.url?.host,
+          host == "app.example.com" || host.hasSuffix(".example.com") else {
+        decisionHandler(.cancel)
+        return
+    }
+    decisionHandler(.allow)
+}
+
+func userContentController(_ userContentController: WKUserContentController,
+                           didReceive message: WKScriptMessage) {
+    guard message.name == "nativeBridge",
+          let host = message.webView?.url?.host,
+          host == "app.example.com" else { return }
+    // 只處理白名單動作；不要接收權杖字串當「登入」
+}
+```
+
+```kotlin
+val webView = WebView(context)
+webView.settings.javaScriptEnabled = true // 僅當頁面需要；能關就關
+webView.settings.allowFileAccess = false
+webView.settings.allowContentAccess = false
+webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+// 不呼叫 allowFileAccessFromFileURLs／allowUniversalAccessFromFileURLs
+
+// 若需 JS bridge：API 24+ 仍要注意；方法面最小化，參數驗證
+webView.addJavascriptInterface(SafeBridge(), "AndroidBridge")
+
+webView.webViewClient = object : WebViewClient() {
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        val host = request.url.host ?: return true
+        if (host != "app.example.com" && !host.endsWith(".example.com")) {
+            return true // 攔截；或改丟 Custom Tabs
+        }
+        return false
+    }
+}
+
+webView.loadUrl("https://app.example.com/help")
+```
+
+本機 HTML 優先用 `WebViewAssetLoader`（https 虛擬來源）而非 `file://`。
+OAuth／付款若可改用 Custom Tabs／ASWebAuthenticationSession，通常比自管 WebView 安全。
+
+### 常見誤判與處置
+
+- **規則只因 `javaScriptEnabled=true` 就報，頁面為自有靜態說明**——
+  處置：保留白名單與無危險 bridge；標記誤判並附 URL 與設定清單。
+
+- **舊版 Android 為了相容開了 file access**——掃描仍報。
+  處置：升 minSdk 或改 AssetLoader；**不當長期誤判**。
+
+- **第三方客服／聊天 SDK 內嵌 WebView**——MobSF 常報在依賴。
+  處置：升級 SDK、關不必要 file／mixed；否則誤判說明附版本與殘餘風險。
+
+- **「內容是我們 CDN，所以 URL 來自後端就可以」**——中間人改後端回應仍危險。
+  處置：客戶端仍做 host 白名單；TLS 見 MAST-NETWORK-001。
+
+### 判定準則
+
+真漏洞：使用者或外部可控輸入流入 `loadUrl`／`loadRequest`，可載入任意來源。
+
+真漏洞：JS bridge 可讀寫權杖、觸發付款／匯出資料，且未驗證來源頁。
+
+真漏洞：啟用 `file://` 通用存取或混合內容，使本機檔或明文腳本可進 WebView 原始碼。
+
+誤判：WebView 僅載入固定自有 HTTPS、JS 面最小、無危險 bridge／檔案存取，
+且導覽已白名單。
+
+灰色地帶——**一律當真漏洞修**：把 Deep Link 參數整段當 URL 載入，
+或在 bridge 上傳入「任意要執行的 JS 字串」。
+
+---
+
+## MAST-PLATFORM-003 · 剪貼簿外洩敏感資料
+
+涵蓋把權杖、密碼、OTP、完整卡片號或身分證字號寫進系統剪貼簿，
+以及未設短命／本機限定就讓其他 App 或鍵盤讀取。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | Clipboard／Sensitive Information 類 | Warning–Info | unverified | — |
+| mobsfscan | `UIPasteboard`／`ClipboardManager` 相關 pattern | WARNING–INFO | unverified | — |
+| Semgrep | 剪貼簿 sink 與敏感欄位名合流的社群／自訂規則 | ERROR–WARNING | unverified | — |
+| Android Lint | Clipboard 自訂規則（視專案組態） | — | unverified | — |
+| Xcode | `UIPasteboard` 無預設安全規則；多依賴審查與自訂 | — | unverified | — |
+
+規則幾乎只認 API 呼叫，分不清「複製邀請碼」與「複製 session token」。
+預設：**敏感值不要進剪貼簿**；非敏感才允許，並設過期與本機限定。
+
+### 壞味道
+
+```swift
+import UIKit
+
+// 權杖／OTP 丟進一般剪貼簿，其他 App 可讀
+UIPasteboard.general.string = accessToken
+UIPasteboard.general.string = otpCode
+
+// 密碼顯示頁「一鍵複製」且無過期
+UIPasteboard.general.string = password
+
+// 自訂 pasteboard 名稱但未設 localOnly／expirationDate
+let board = UIPasteboard(name: UIPasteboard.Name("app.secrets"), create: true)!
+board.string = refreshToken
+```
+
+```kotlin
+import android.content.ClipData
+import android.content.ClipboardManager
+
+val clipboard = context.getSystemService(ClipboardManager::class.java)
+
+// 權杖寫入主剪貼簿
+clipboard.setPrimaryClip(ClipData.newPlainText("token", accessToken))
+
+// OTP／密碼同樣長駐
+clipboard.setPrimaryClip(ClipData.newPlainText("otp", otp))
+clipboard.setPrimaryClip(ClipData.newPlainText("password", password))
+
+// 複製後未清除，背景 App 輪詢仍讀得到
+```
+
+### 過關寫法
+
+原則：**權杖、密碼、長期密鑰絕不進剪貼簿**；使用者明確要求複製的短碼才寫入，
+並用本機限定、過期時間，離開畫面時清除。
+
+```swift
+import UIKit
+
+func copyShortLivedInviteCode(_ code: String) {
+    // 非憑證；仍縮短暴露窗
+    let board = UIPasteboard.general
+    board.setItems(
+        [[UIPasteboard.typeAutomatic: code]],
+        options: [
+            .localOnly: true,
+            .expirationDate: Date().addingTimeInterval(60),
+        ],
+    )
+}
+
+func clearPasteboardIfNeeded() {
+    UIPasteboard.general.items = []
+}
+
+// 權杖／密碼：提供「顯示」與「手動輸入」，不要提供複製到系統剪貼簿
+```
+
+```kotlin
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.os.Build
+import android.os.PersistableBundle
+
+fun copyShortLivedInviteCode(context: Context, code: String) {
+    val clipboard = context.getSystemService(ClipboardManager::class.java)
+    val clip = ClipData.newPlainText("invite", code)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        clip.description.extras = PersistableBundle().apply {
+            putBoolean("android.content.extra.IS_SENSITIVE", true)
+        }
+    }
+    clipboard.setPrimaryClip(clip)
+    // 短暫後清除；權杖路徑根本不要呼叫這裡
+    handler.postDelayed({ clipboard.clearPrimaryClip() }, 60_000)
+}
+
+fun neverCopySecrets() {
+    // accessToken／password／refresh：UI 不提供「複製」動作
+}
+```
+
+### 常見誤判與處置
+
+- **複製公開邀請碼／訂單編號**——工具仍可能因 `setPrimaryClip` 報。
+  處置：標記誤判並列出字串語意；必要時改用 App 內分享 Sheet，避免系統剪貼簿。
+
+- **「使用者自己按複製」**——若複製的是 session token，仍是真問題。
+  處置：**不當誤判**。改短時授權碼或深連結，不要讓長期權杖進剪貼簿。
+
+- **第三方 SDK（客服、鍵盤）讀剪貼簿**——不在你的寫入 sink。
+  處置：確認未寫入敏感值；文件化 SDK 行為與最小權限。
+
+- **僅 Debug 複製權杖方便測試**——正式掃描仍命中。
+  處置：測試工具走專用 debug 選單且正式建置剔除；不要留在共用程式碼。
+
+### 判定準則
+
+真漏洞：存取權杖、重新整理權杖、密碼、長期 API 金鑰、完整卡片號等
+被寫入系統剪貼簿（含具名 pasteboard 但可被其他 App 讀取）。
+
+真漏洞：OTP／驗證碼寫入後無過期、無清除，且可被背景 App 長時間讀取。
+
+誤判：寫入內容可證明為非機密短碼，且已本機限定／短命，正式流程無憑證 sink。
+
+灰色地帶——**一律當真漏洞修**：把「方便貼到網頁登入」當成複製 session token 的理由。
+
+---
+
+## MAST-PLATFORM-004 · 截圖／螢幕錄影／背景快照未擋
+
+涵蓋轉帳、持卡、身分證、權杖顯示等敏感畫面未擋系統截圖／錄影，
+以及進入背景時未遮罩，導致多工切換器／快照快取露出敏感 UI。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | Screen Recording／Screenshot／FLAG_SECURE 類 | Warning–Info | unverified | — |
+| mobsfscan | `FLAG_SECURE`／截圖防護相關 pattern | INFO–WARNING | unverified | — |
+| Semgrep | `FLAG_SECURE`／`isSecureTextEntry`／背景遮罩社群規則 | WARNING | unverified | — |
+| Android Lint | Window flag 自訂規則（視專案組態） | — | unverified | — |
+| Xcode | 背景快照遮罩多依賴審查；無預設強制規則 | — | unverified | — |
+
+靜態工具常「找不到 `FLAG_SECURE` 就報」，不管畫面是否真的敏感。
+過關以**敏感 Activity／頁面強制安全旗標＋背景遮罩**為準，不要只在根 Activity 設一次。
+
+### 壞味道
+
+```swift
+import UIKit
+
+// 敏感頁（持卡、轉帳確認）無任何防截圖／遮罩
+class CardDetailViewController: UIViewController {
+    @IBOutlet weak var panLabel: UILabel! // 完整卡號明文
+    // 未在 viewWillDisappear／scene 生命週期蓋模糊層
+}
+
+// App 進背景仍保留完整敏感畫面上的視窗快照
+func sceneWillResignActive(_ scene: UIScene) {
+    // 空實作：系統多工快照直接露出餘額與卡號
+}
+
+// 密碼欄位未用安全輸入
+passwordField.isSecureTextEntry = false
+```
+
+```kotlin
+// 轉帳／卡片 Activity 未設 FLAG_SECURE
+class TransferActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_transfer)
+        // window 未加 WindowManager.LayoutParams.FLAG_SECURE
+        amountView.text = balance.toString()
+    }
+}
+
+// 錄影／螢幕分享時仍顯示完整個資
+// 背景切換不做遮罩，Recent Apps 縮圖可見
+
+// EditText 密碼未 inputType=textPassword
+```
+
+### 過關寫法
+
+敏感頁：**Android 加 `FLAG_SECURE`**（同時抑制截圖與錄影進近期任務縮圖）；
+**iOS 在 resign active 蓋遮罩**，並對密碼／CVV 用安全輸入元件。
+遮罩要在回前景時再移除，避免閃爍露出。
+
+```swift
+import UIKit
+
+final class PrivacyOverlay {
+    static var view: UIView?
+
+    static func show(on window: UIWindow?) {
+        guard let window, view == nil else { return }
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+        blur.frame = window.bounds
+        blur.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        window.addSubview(blur)
+        view = blur
+    }
+
+    static func hide() {
+        view?.removeFromSuperview()
+        view = nil
+    }
+}
+
+func sceneWillResignActive(_ scene: UIScene) {
+    PrivacyOverlay.show(on: (scene as? UIWindowScene)?.windows.first)
+}
+
+func sceneDidBecomeActive(_ scene: UIScene) {
+    PrivacyOverlay.hide()
+}
+
+// 密碼／CVV
+passwordField.isSecureTextEntry = true
+```
+
+```kotlin
+import android.view.WindowManager
+
+class TransferActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE,
+        )
+        setContentView(R.layout.activity_transfer)
+    }
+}
+
+// 非敏感頁不要全域亂設，以免誤傷合法截圖需求；
+// 持卡、轉帳、身分證預覽、顯示一次性權杖的頁面必須設。
+```
+
+### 常見誤判與處置
+
+- **行銷／說明頁被規則要求 FLAG_SECURE**——無敏感欄位。
+  處置：標記誤判；規則改為只掃描標了 `sensitive` 的 Activity／路由。
+
+- **「系統仍可能被 root／錄影硬體繞過」**——不是不設旗標的理由。
+  處置：**不當誤判**。先做平台提供的防護，再談殘餘風險。
+
+- **WebView 內嵌銀行頁**——原生旗標管得到視窗，管不到遠端頁自己的政策。
+  處置：敏感流程改原生頁＋FLAG_SECURE；或確認 WebView 所在 Activity 已設。
+
+- **截圖用於客服除錯**——正式版不應在敏感頁開後門。
+  處置：除錯建置才關旗標，並用字串／Manifest 合併證明正式版仍開啟。
+
+### 判定準則
+
+真漏洞：顯示完整卡片號、餘額明細、身分證、權杖、密碼的畫面，
+未設 `FLAG_SECURE`（Android）或等價防護，且可被系統截圖／錄影／近期任務縮圖取得。
+
+真漏洞：進入背景時敏感 UI 仍清晰出現在多工切換器快照。
+
+誤判：畫面可證明無敏感欄位，或已遮罩／安全旗標且僅在非敏感流程允許截圖。
+
+灰色地帶——**一律當真漏洞修**：只遮 App 圖示層、實際內容層仍可被系統快照——改為蓋住整個視窗。
+
+---

@@ -31,7 +31,7 @@ Top 10 for LLM Applications（2025），提供給 Claude Code、Cursor
 |---|---|---|---|
 | **`sec-audit`** | 送掃之前 / 拿到掃描報告之後 | `security-audit/findings.md`、`false-positives.md` | [詳細用法](docs/usage/sec-audit.md) |
 | **`sec-harden`** | 寫程式的當下 | 專案的 `AGENTS.md`、Cursor `.mdc`、Cline / Windsurf / Copilot 規則檔 | [詳細用法](docs/usage/sec-harden.md) |
-| **`sec-deliverables`** | 要交文件時 | 附表十查檢表、源碼查檢表、測試報告、威脅建模、RTM、委外 RFP | [詳細用法](docs/usage/sec-deliverables.md) |
+| **`sec-deliverables`** | 要交文件時 | 附表十查檢表、源碼查檢表、**檢測基準勾稽表**、測試報告、威脅建模、RTM、委外 RFP | [詳細用法](docs/usage/sec-deliverables.md) |
 
 **第一次用建議從 [`sec-audit`](docs/usage/sec-audit.md) 開始**——
 它會告訴你這個專案現在的體質，另外兩支的產出都依賴它的結果。
@@ -88,9 +88,10 @@ python3 security-compliance-tw/tools/validate_kb.py
 
 ```
 references/
-├── checks/              66 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
+├── checks/              71 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
 ├── mapping.md           唯一對照表：check-id → 附表十 / OWASP / CWE
 ├── controls-appendix10.md   附表十查檢表全文與分級
+├── controls-mas-v4.md   檢測基準 V4.0 的 65 條條號與標題
 ├── quick-patterns.md    寫程式當下的速查（sec-harden 的內容來源）
 ├── templates/           各類交付文件的產出規則
 ├── profile.md           分級問答與 check 選取規則
@@ -106,18 +107,25 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 以上由 `tools/validate_kb.py` 自動驗證，同時檢查 `checks/` 與 `mapping.md`
 的雙向對應。
 
-### 涵蓋範圍（66 則）
+### 涵蓋範圍（71 則）
 
 注入（含 XSS）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
 錯誤與例外 · **請求濫用**（`sast-request-abuse.md`：CSRF／SSRF／UPLOAD）·
 API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩 ·
-**MAST**（`mast-storage-crypto.md`、`mast-network-ipc.md`、`mast-device-privacy.md`）·
+**行動端 MAST**（`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`、`mast-resilience.md`）·
 **MDM／EMM／MAM**（`mdm-controls.md`）
 
-Web 46 則（含 W1 請求濫用 +3）。B1＋B2 P0（+20）依 profile「有行動 App」「有 EMM／MDM／MAM」載入上述四檔：
-含 `mast-device-privacy.md`（BACKUP／CLIP／SCREEN／BIO）、`MAST-PIN-001`，
-以及 MDM LOCK／JAIL／PATCH／VPN／MTD。掃描器對照多為 `unverified`／`—`，
+**伺服器與 Web 46 則**（含請求濫用 3 則）·**行動端 17 則**（六檔，依 MASVS 類別命名）·
+**MDM 8 則**（規格外的延伸，見下）。依 profile 勾選「有行動 App」「有 EMM／MDM／MAM」載入。
+
+行動端對照《行動應用 App 基本資安檢測基準》的條號與 L1／L2／L3 分級、
+OWASP MASVS 控制項編號與 Mobile Top 10。掃描器對照多為 `unverified`，
 **未宣稱 Fortify／MobSF 已驗證**。
+
+⚠ **`MDM-*` 8 則不在本專案原始規格的範圍內**——原始規格限定「行動應用程式本身的
+用戶端程式碼與設定檔」，MDM 是機關端的裝置管理政策，其佐證來自主控台報表
+而非掃描器規則命中。保留是因為對實際稽核有用，但在 `mapping.md` 中**獨立一張表**，
+且不計入行動端則數。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。
@@ -174,7 +182,18 @@ Web 46 則（含 W1 請求濫用 +3）。B1＋B2 P0（+20）依 profile「有行
    `mapping.md` 的 Web25 欄依 2025 版排序。
 4. **樣式比對無法取代污點分析**——不安全操作被包進多層 helper、
    動態組成的字串、二階注入等情形可能漏判。「未命中」不等於「無此問題」。
-5. **指引內文與附件 1 查檢表的收錄範圍不完全相同**——例如 HTTP 安全標頭
+5. **行動端與 MDM 的驗證強度低於伺服器端。**
+   行動端沒有真實 APK／IPA、沒跑過 MobSF；`MDM-*` 更是**掃描器看不到的類別**
+   （註冊狀態、組態描述檔、抹除紀錄都在主控台，不在程式碼裡），
+   其佐證方式是主控台報表與裝置抽樣稽核，不是規則命中。
+   兩者的掃描器對照多為 `unverified`。
+
+6. **`MAS` 欄只對照到條號，不代表該條「符合」。**
+   《行動應用 App 基本資安檢測基準》65 條中，目前只有 11 條掛得上 check；
+   其餘產出勾稽表時會落在「非程式碼可判定，需人工確認」或「尚未涵蓋」。
+   **不要把 `MAS` 欄有值當成該項已通過。**
+
+7. **指引內文與附件 1 查檢表的收錄範圍不完全相同**——例如 HTTP 安全標頭
    （4.5.3.4）收錄於內文，查檢表未收錄。產出勾稽表時這類項目會另立區段。
    詳見 `references/controls-appendix10.md` 的「內文與查檢表的收錄範圍」。
 
@@ -190,6 +209,17 @@ Web 46 則（含 W1 請求濫用 +3）。B1＋B2 P0（+20）依 profile「有行
   （依《資通安全管理法》授權訂定之法規命令）
 
 依**著作權法第 9 條**，憲法、法律、命令或公文不得為著作權之標的。
+
+### 檢測基準（不是法規命令，本專案只收條號與標題）
+
+`references/controls-mas-v4.md` 收錄《行動應用 App 基本資安檢測基準》V4.0
+（行動應用資安聯盟，民國 113 年 9 月）**全部 65 條的條號、條目標題與適用分類**，
+由官方 PDF 抽取，並與該基準附錄二的 ★／－ 表格交叉驗證。
+
+**它與附表十的法律地位不同。** 附表十是法規命令，第 9 條不保護，故可全文重製；
+檢測基準是受委託編製的技術文件，第 9 條的排除**不適用**。
+因此本專案只收條號與標題，**不收**其檢測方法、判定標準與條文內文。
+完整條文請自行至 <https://www.mas.org.tw/download/app> 取得。詳見 [NOTICE.md](NOTICE.md)。
 
 ### 參考指引（著作權屬各機關，本專案不重製）
 

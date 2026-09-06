@@ -34,7 +34,7 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 2. **偵測技術棧**——讀 `go.mod` / `requirements.txt` / `pyproject.toml` / `package.json`
 3. **選定 check 集合**——依 `profile.md` 的選取規則決定載入哪些 `checks/*.md`。
    **只載入需要的檔案**，這是控制 context 的關鍵。載入前先確認檔案存在。
-   Profile 複選若勾「**有行動 App**」→ 載入 `mast-storage-crypto.md`、`mast-network-ipc.md`、`mast-device-privacy.md`；
+   Profile 複選若勾「**有行動 App**」→ 載入 `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`；
    勾「**有 EMM／MDM／MAM**」→ 載入 `mdm-controls.md`（含 LOCK／JAIL／PATCH／VPN／MTD；規則見 `profile.md`，勿複製 check 全文）
 4. **樣式比對**——用 check 檔內「壞味道」區塊的樣式在 codebase 搜尋
 5. **逐項判定**——每個命中歸為：真漏洞 / 誤判 / 不適用，各自記錄理由
@@ -92,9 +92,10 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | `profile.md` | 步驟 1 與 3，一定要讀 |
 | `checks/*.md` | 依 profile 選取，只讀需要的 |
 | `scanners.md` | 判讀報告或處理誤判時 |
-| `mapping.md` | 需要在報告中標註附表十或 OWASP 編號時才讀 |
+| `mapping.md` | 需要在報告中標註附表十、檢測基準（`MAS` 欄）或 OWASP 編號時才讀 |
+| `scanner-verification-log.md` | 需要說明某條掃描器對照的驗證依據時 |
 
-`controls-appendix10.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
+`controls-appendix10.md`、`controls-mas-v4.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
 
 **不要一次載入所有 check 檔。**
 
@@ -111,11 +112,11 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 操作與回填流程：
 
 - 開源 fixture 實跑：`{ROOT}/tools/verify_scanners.md`
-- 商用紅acted 報告路徑：`../../../docs/usage/scanner-verification.md`
+- 商用遮蔽（redacted）報告路徑：`../../../docs/usage/scanner-verification.md`
 
 ## 目前涵蓋範圍
 
-66 則 check，16 個檔：
+71 則 check，19 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
@@ -131,12 +132,16 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | HTTP 安全標頭 | `dast-headers.md` | 對外服務 |
 | TLS 與 Cookie | `dast-tls-cookie.md` | 對外服務 |
 | 資訊外洩 | `dast-info-leak.md` | 對外服務 |
-| MAST 儲存／密碼學／日誌 | `mast-storage-crypto.md` | **有行動 App** |
-| MAST 網路／鑑別／IPC／WebView／PIN | `mast-network-ipc.md` | **有行動 App** |
-| MAST 裝置隱私／備份／生物辨識 | `mast-device-privacy.md` | **有行動 App** |
+| MAST 本機儲存／日誌／備份 | `mast-storage.md` | **有行動 App** |
+| MAST 密碼學 | `mast-crypto.md` | **有行動 App** |
+| MAST 網路與憑證釘選 | `mast-network.md` | **有行動 App** |
+| MAST 身分鑑別與生物辨識 | `mast-auth.md` | **有行動 App** |
+| MAST 平台介面（IPC／WebView／剪貼簿／螢幕） | `mast-platform.md` | **有行動 App** |
+| MAST 抗逆向與竄改（F 類） | `mast-resilience.md` | **有行動 App 且勾選 F 類加測** |
 | MDM／EMM／MAM 控制 | `mdm-controls.md` | **有 EMM／MDM／MAM** |
 
-B1＋B2 行動／MDM 共四檔（+20）：含 `mast-device-privacy.md`（BACKUP／CLIP／SCREEN／BIO）、`MAST-PIN-001`，以及 MDM LOCK／JAIL／PATCH／VPN／MTD。W1 新增 `sast-request-abuse.md`（`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`，一律；+3 則至 66）。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
+行動端 17 則分於六個依 MASVS 類別命名的檔案；MDM 8 則獨立一檔（規格外的延伸）。
+`mast-resilience.md` 全部屬 F 類加測或參考項目，**未勾選 F 類時不要載入**。W1 新增 `sast-request-abuse.md`（`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`，一律；+3 則至 66）。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。
