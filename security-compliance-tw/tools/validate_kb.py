@@ -24,9 +24,69 @@ COMMERCIAL_TOOLS = frozenset(
 )
 SCANNER_TABLE_COLUMNS = ["工具", "規則", "預設等級", "狀態", "證據"]
 
+# 設定檔屬性：掃描器實際比對的就是這些字面樣式（manifest 屬性、plist 鍵）。
+# 它們必須以可複製的設定檔圍籬呈現，不可只當註解塞在 kotlin/swift 區塊裡——
+# 工程師複製那段程式碼時會整段漏掉，而那正是紅字的來源。
+CONFIG_MARKERS = [
+    "android:allowBackup",
+    "android:debuggable",
+    "android:exported",
+    "android:usesCleartextTraffic",
+    "cleartextTrafficPermitted",
+    "fullBackupContent",
+    "dataExtractionRules",
+    "network_security_config",
+    "NSAllowsArbitraryLoads",
+    "NSAppTransportSecurity",
+    "NSExceptionMinimumTLSVersion",
+    "UIFileSharingEnabled",
+    "<pin-set",
+]
+CONFIG_FENCE_LANGS = ("xml", "plist", "gradle", "properties", "json")
+CODE_FENCE_LANGS = ("kotlin", "swift", "java", "objectivec")
+
+FENCE_RE = re.compile(r"^```([a-zA-Z]*)\n(.*?)^```", re.S | re.M)
+
 
 def _is_commercial_tool_cell(tool_cell: str) -> bool:
     return any(name in tool_cell for name in COMMERCIAL_TOOLS)
+
+
+def _fences(body):
+    """回傳 [(語言, 內容)]。語言為空字串代表未標註。"""
+    return [(m.group(1).lower(), m.group(2)) for m in FENCE_RE.finditer(body)]
+
+
+def validate_config_fences(check):
+    """設定檔屬性若出現在程式碼圍籬內，必須另有可複製的設定檔圍籬。
+
+    只檢查出現在 kotlin/swift 等程式碼圍籬內的情況——散文裡提到屬性名
+    是正常的說明，不在此限。
+    """
+    errors = []
+    where = f"{check.source} / {check.id}"
+    fences = _fences(check.body)
+
+    in_code = set()
+    in_config = set()
+    for lang, content in fences:
+        bucket = None
+        if lang in CODE_FENCE_LANGS:
+            bucket = in_code
+        elif lang in CONFIG_FENCE_LANGS:
+            bucket = in_config
+        if bucket is None:
+            continue
+        for marker in CONFIG_MARKERS:
+            if marker in content:
+                bucket.add(marker)
+
+    for marker in sorted(in_code - in_config):
+        errors.append(
+            f"{where}: 設定檔屬性 {marker} 只出現在程式碼圍籬內"
+            f"（多半是註解），需另附 {'/'.join(CONFIG_FENCE_LANGS[:3])} 圍籬"
+        )
+    return errors
 
 
 def parse_scanner_tables(body: str):
@@ -144,18 +204,25 @@ def validate_checks(checks):
         # elif MDM- or DAST-: no SAST/MAST language requirements
 
         errors.extend(validate_scanner_tables(c))
+        errors.extend(validate_config_fences(c))
 
     return errors
 
 
 MAPPING_COLUMNS = [
-    "check-id", "附表十", "普", "中", "高",
-    "Web21", "Web25", "API23", "LLM25", "Mob25", "CWE",
+    "check-id", "附表十", "MAS", "普", "中", "高",
+    "Web21", "Web25", "API23", "LLM25", "Mob24", "CWE",
 ]
 
 
 def parse_mapping(mapping_path):
-    """解析 mapping.md 的表格，回傳 {check-id: {欄位: 值}}。"""
+    """解析 mapping.md 的表格，回傳 {check-id: {欄位: 值}}。
+
+    欄數不符的列會整列丟棄（避免 zip 截短產生錯位資料）；
+    這類列的後果由 cross_validate 以「未出現在 mapping.md」報出。
+    重複的 check-id 則標記 `_duplicate`，由 cross_validate 報出——
+    直接覆蓋會讓其中一列無聲消失。
+    """
     rows = {}
     for line in pathlib.Path(mapping_path).read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -166,7 +233,10 @@ def parse_mapping(mapping_path):
             continue
         if cells[0] in ("check-id", "") or set(cells[0]) <= set("- :"):
             continue
-        rows[cells[0]] = dict(zip(MAPPING_COLUMNS, cells))
+        row = dict(zip(MAPPING_COLUMNS, cells))
+        if cells[0] in rows:
+            row["_duplicate"] = True
+        rows[cells[0]] = row
     return rows
 
 
@@ -185,6 +255,8 @@ def cross_validate(check_ids, mapping_rows):
     for cid, row in mapping_rows.items():
         if cid not in check_ids:
             continue
+        if row.get("_duplicate"):
+            errors.append(f"{cid}: mapping.md 有重複的列")
         if not any(row.get(lv, "").strip() for lv in ("普", "中", "高")):
             errors.append(f"{cid}: 至少一個分級欄位必須標記 ◎")
 
