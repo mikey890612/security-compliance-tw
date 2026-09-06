@@ -33,10 +33,16 @@ Android Network Security Config（NSC）允許 cleartext，以及自訂 TrustMan
 
 ### 壞味道
 
-```swift
-// Info.plist：全域關閉 ATS（掃描器必報）
-// NSAppTransportSecurity → NSAllowsArbitraryLoads = true
+```plist
+<!-- Info.plist：全域關閉 ATS（掃描器必報） -->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+</dict>
+```
 
+```swift
 // 執行期允許 http://
 let url = URL(string: "http://api.example.com/login")!
 var req = URLRequest(url: url)
@@ -52,12 +58,20 @@ func urlSession(
 }
 ```
 
-```kotlin
-// AndroidManifest：application 層允許 cleartext
-// android:usesCleartextTraffic="true"
-// 或 network_security_config.xml：
-// <base-config cleartextTrafficPermitted="true" />
+```xml
+<!-- AndroidManifest.xml：application 層允許明文 -->
+<application android:usesCleartextTraffic="true">
+</application>
+```
 
+```xml
+<!-- 或 res/xml/network_security_config.xml -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
+```
+
+```kotlin
 val client = OkHttpClient.Builder()
     .hostnameVerifier { _, _ -> true } // 接受任意主機名
     .build()
@@ -77,8 +91,23 @@ val trustAll = arrayOf<TrustManager>(object : X509TrustManager {
 掃描器認得 `https://`、`NSAllowsArbitraryLoads=false`（或不出現）、
 `cleartextTrafficPermitted="false"` 這類設定——改完之後，多數明文／ATS／NSC 規則就不再命中。
 
+```plist
+<!-- Info.plist：最乾淨的過關方式是整段不出現 NSAppTransportSecurity。
+     必要時只對具名網域開例外，並保留 forward secrecy 與 TLS 下限 -->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSExceptionDomains</key>
+    <dict>
+        <key>legacy.example.com</key>
+        <dict>
+            <key>NSExceptionMinimumTLSVersion</key>
+            <string>TLSv1.2</string>
+        </dict>
+    </dict>
+</dict>
+```
+
 ```swift
-// Info.plist：不要設 NSAllowsArbitraryLoads；必要時僅對具名網域開例外並註明理由
 let url = URL(string: "https://api.example.com/login")!
 var req = URLRequest(url: url)
 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -88,12 +117,32 @@ req.setValue("application/json", forHTTPHeaderField: "Content-Type")
 // 釘選失敗要取消挑戰，不可 fallback 成信任全部
 ```
 
-```kotlin
-// AndroidManifest：usesCleartextTraffic 省略或 false
-// res/xml/network_security_config.xml：
-// <base-config cleartextTrafficPermitted="false" />
-// 開發用 debug-overrides 僅綁 debug 建置，勿進 release
+```xml
+<!-- AndroidManifest.xml：usesCleartextTraffic 省略或設 false，並指向 NSC -->
+<application
+    android:usesCleartextTraffic="false"
+    android:networkSecurityConfig="@xml/network_security_config">
+</application>
+```
 
+```xml
+<!-- res/xml/network_security_config.xml
+     debug-overrides 只在 debug 建置生效，不會進 release -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>
+```
+
+```kotlin
 val client = OkHttpClient.Builder()
     // 不覆寫 hostnameVerifier／TrustManager；必要時用 CertificatePinner
     .certificatePinner(
@@ -349,16 +398,23 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 }
 ```
 
-```kotlin
-// AndroidManifest：
-// <activity android:name=".TransferActivity" android:exported="true">
-//   <intent-filter>
-//     <action android:name="android.intent.action.VIEW" />
-//     <data android:scheme="myapp" android:host="transfer" />
-//   </intent-filter>
-// </activity>
-// <provider ... android:exported="true" android:grantUriPermissions="true" /> 無權限
+```xml
+<!-- AndroidManifest.xml：任何 App 都能送 Intent 進來，且 Provider 開放授權 -->
+<activity android:name=".TransferActivity" android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="myapp" android:host="transfer" />
+    </intent-filter>
+</activity>
 
+<provider
+    android:name=".FileProvider"
+    android:authorities="com.example.files"
+    android:exported="true"
+    android:grantUriPermissions="true" />
+```
+
+```kotlin
 class TransferActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -394,10 +450,29 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 // 優先改 Universal Links（https 網域＋apple-app-site-association），減少自訂 scheme 搶註
 ```
 
-```kotlin
-// Manifest：無跨 App 需求 → android:exported="false"
-// 需要被外部開啟：exported=true + 自訂 permission，或僅 App Links（autoVerify）
+```xml
+<!-- AndroidManifest.xml：無跨 App 需求就關掉；必須開放時用 App Links + 自訂權限 -->
+<activity android:name=".InternalActivity" android:exported="false" />
 
+<activity android:name=".OrderDeepLinkActivity" android:exported="true">
+    <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="https" android:host="app.example.com" />
+    </intent-filter>
+</activity>
+
+<provider
+    android:name=".FileProvider"
+    android:authorities="com.example.files"
+    android:exported="false"
+    android:grantUriPermissions="true" />
+```
+
+`autoVerify="true"` 的 App Links 需要網域端的 `assetlinks.json` 才會生效——
+少了它會靜默退化成一般 scheme，任何 App 都能搶註。
+
+```kotlin
 class OrderDeepLinkActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -625,8 +700,12 @@ ATS／NSC 擋的是明文與明顯的憑證繞過；**使用者安裝的 CA、�
 
 ### 壞味道
 
+```plist
+<!-- Info.plist 維持 ATS 預設（整段不出現 NSAllowsArbitraryLoads）。
+     這只擋明文，不擋「被系統信任的 CA 簽出的假憑證」——以為就此足夠是本則的誤區 -->
+```
+
 ```swift
-// Info.plist 已維持 ATS 預設（無 NSAllowsArbitraryLoads）——以為就此足夠
 let session = URLSession(configuration: .default)
 // 無 URLSessionDelegate 釘選；任何系統信任的 CA 簽出的 api.example.com 都過
 
@@ -640,8 +719,15 @@ func urlSession(
 }
 ```
 
+```xml
+<!-- res/xml/network_security_config.xml：只禁了明文，沒有任何 <pin-set>。
+     系統信任鏈過得了就連得上——這正是釘選要擋的那一段 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
+```
+
 ```kotlin
-// network_security_config：cleartextTrafficPermitted="false"——僅禁明文，無 pin-set
 val client = OkHttpClient.Builder()
     // 未設定 CertificatePinner；系統信任鏈過了就連
     .build()
@@ -697,9 +783,33 @@ val client = OkHttpClient.Builder()
     )
     .build()
 
-// 可另在 res/xml/network_security_config.xml 對正式域名加 <pin-set>
-// debug-overrides 的放寬僅綁 debug 建置；release 抽樣須仍含 pin
 ```
+
+```xml
+<!-- res/xml/network_security_config.xml：對正式域名加 <pin-set>。
+     與 OkHttp 的 CertificatePinner 擇一或並用；NSC 的 pin 對所有
+     走系統堆疊的連線生效（含 WebView），CertificatePinner 只管 OkHttp -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config>
+        <domain includeSubdomains="true">api.example.com</domain>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <!-- 備援 pin 是必要的：只放一枚，憑證輪替當天全體使用者連不上 -->
+            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
+        </pin-set>
+    </domain-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>
+```
+
+`expiration` 到期後該 `pin-set` 會自動失效並退回一般驗證——
+這是刻意的安全閥，但也表示**到期日必須進維運行事曆**，否則釘選會無聲消失。
+`debug-overrides` 只在 debug 建置生效，release 抽樣仍須驗到 pin。
 
 ATS／NSC 仍要維持關閉明文與 TrustAll；它們是底線，**不能替代**對高風險主機的釘選。
 

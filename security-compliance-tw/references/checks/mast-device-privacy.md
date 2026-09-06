@@ -49,10 +49,16 @@ SecItemAdd(query as CFDictionary, nil)
 NSUbiquitousKeyValueStore.default.set(accessToken, forKey: "access_token")
 ```
 
-```kotlin
-// AndroidManifest：允許整包 Auto Backup（含 shared_prefs／內部檔）
-// <application android:allowBackup="true" ...>
+```xml
+<!-- AndroidManifest.xml：允許整包 Auto Backup（含 shared_prefs／內部檔） -->
+<application
+    android:allowBackup="true"
+    android:fullBackupContent="true">
+    <!-- 未提供 dataExtractionRules 排除清單，權杖與憑證一併上雲 -->
+</application>
+```
 
+```kotlin
 val prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
 prefs.edit().putString("access_token", token).apply() // 會進雲端備份
 
@@ -98,11 +104,34 @@ func writeLocalOnlySecret(_ data: Data, name: String) throws {
 }
 ```
 
-```kotlin
-// Manifest：android:allowBackup="false"
-// 若必須開備份：android:fullBackupContent="@xml/backup_rules"
-// 與 dataExtractionRules 明確 exclude sharedpref/auth、files/creds.json
+```xml
+<!-- AndroidManifest.xml：預設關閉備份 -->
+<application
+    android:allowBackup="false"
+    android:dataExtractionRules="@xml/data_extraction_rules">
+</application>
+```
 
+```xml
+<!-- res/xml/data_extraction_rules.xml（Android 12+）
+     必須開備份時，明確排除憑證與權杖 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="auth_enc.xml" />
+        <exclude domain="file" path="creds.json" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="auth_enc.xml" />
+        <exclude domain="file" path="creds.json" />
+    </device-transfer>
+</data-extraction-rules>
+```
+
+Android 11 以下另需 `android:fullBackupContent="@xml/backup_rules"`，
+`backup_rules.xml` 用 `<exclude>` 列出同一組路徑——兩者要同時維護，
+只設其中一個會在另一個 API 級別失效。
+
+```kotlin
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
