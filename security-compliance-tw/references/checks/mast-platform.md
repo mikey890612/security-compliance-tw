@@ -594,3 +594,432 @@ class TransferActivity : AppCompatActivity() {
 灰色地帶——**一律當真漏洞修**：只遮 App 圖示層、實際內容層仍可被系統快照——改為蓋住整個視窗。
 
 ---
+
+## MAST-PLATFORM-005 · 分享資料時未授權的應用程式可存取
+
+涵蓋 `FileProvider` 授權過寬、`grantUriPermissions` 未限縮、
+隱式 Intent 分享敏感檔案、以及 iOS 的 App Group 與分享擴充未限制對象。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | manifest 分析會標記 `exported="true"` 的 `provider` 與 `grantUriPermissions="true"`；另列出 `<grant-uri-permission>` 的 path 範圍 | High–Warning | partial | MobSF `manifest_analysis.py` 的元件檢查 |
+| mobsfscan | —（無專屬規則；`android_kotlin_webview_*` 系列只管 WebView） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+與 `MAST-PLATFORM-001`（IPC 洩漏）的分界：
+前者管**元件被外部呼叫**，本則管**主動分享出去的資料被誰拿到**。
+
+### 壞味道
+
+```xml
+<!-- AndroidManifest.xml：Provider 對外開放且授權整個根目錄 -->
+<provider
+    android:name="androidx.core.content.FileProvider"
+    android:authorities="com.example.files"
+    android:exported="true"
+    android:grantUriPermissions="true">
+    <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/file_paths" />
+</provider>
+```
+
+```xml
+<!-- res/xml/file_paths.xml：把整個 files 目錄都開放出去 -->
+<paths>
+    <files-path name="all" path="." />
+</paths>
+```
+
+```kotlin
+// 隱式 Intent 分享——任何能處理該 MIME 的 App 都收得到
+val intent = Intent(Intent.ACTION_SEND).apply {
+    type = "application/pdf"
+    putExtra(Intent.EXTRA_STREAM, statementUri)   // 對帳單流向不明
+}
+startActivity(intent)
+```
+
+```swift
+// UIActivityViewController 未限制可用的活動類型
+let vc = UIActivityViewController(activityItems: [statementURL], applicationActivities: nil)
+present(vc, animated: true)
+```
+
+### 過關寫法
+
+```xml
+<!-- Provider 不對外開放，僅以逐次授權的方式分享 -->
+<provider
+    android:name="androidx.core.content.FileProvider"
+    android:authorities="com.example.files"
+    android:exported="false"
+    android:grantUriPermissions="true">
+    <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/file_paths" />
+</provider>
+```
+
+```xml
+<!-- 只開放專用的分享子目錄，不是整個 files -->
+<paths>
+    <files-path name="shared_exports" path="exports/" />
+</paths>
+```
+
+```kotlin
+// 逐次授予讀取權限，且用選擇器讓使用者明確決定接收方
+val uri = FileProvider.getUriForFile(context, "com.example.files", exportFile)
+val share = Intent(Intent.ACTION_SEND).apply {
+    type = "application/pdf"
+    putExtra(Intent.EXTRA_STREAM, uri)
+    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)   // 只讀，且僅此次
+}
+startActivity(Intent.createChooser(share, "分享對帳單"))
+
+// 分享結束後主動撤銷
+context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+```
+
+```swift
+// 排除不適合傳遞敏感檔案的活動類型
+let vc = UIActivityViewController(activityItems: [statementURL], applicationActivities: nil)
+vc.excludedActivityTypes = [
+    .postToFacebook, .postToTwitter, .postToWeibo, .postToVimeo,
+    .assignToContact, .addToReadingList,
+]
+present(vc, animated: true)
+```
+
+**分享前取得使用者同意是檢測基準另一條的要求**（同意流程屬人工查核）；
+本則管的是同意之後，資料是否只流向使用者選定的對象。
+
+### 常見誤判與處置
+
+- **`exported="true"` 的 Provider 有 `android:permission` 保護。**
+  處置：標記誤判，佐證附該權限的宣告與 `protectionLevel`——
+  `normal` 等級等同沒有保護，必須是 `signature` 才算數。
+
+- **分享的是使用者自己選的公開檔案。**
+  處置：標記誤判，佐證寫明該路徑下只存放使用者主動匯出的內容，
+  且不含權杖或個資。
+
+### 判定準則
+
+真漏洞：`FileProvider` 的 `exported="true"` 且無 `signature` 等級的權限保護。
+
+真漏洞：`file_paths.xml` 授權範圍涵蓋存放敏感資料的目錄。
+
+真漏洞：以隱式 Intent 傳遞敏感檔案且未使用 `createChooser`，
+或未加 `FLAG_GRANT_READ_URI_PERMISSION` 而改用永久授權。
+
+誤判：分享路徑經確認僅含使用者主動匯出的非敏感內容，有路徑設定佐證。
+
+## MAST-PLATFORM-006 · Android 未防護螢幕覆蓋攻擊
+
+涵蓋敏感操作的畫面未設定觸控過濾，惡意 App 可疊加透明視窗誘導點擊
+（tapjacking／overlay attack）。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| mobsfscan | `android_tapjacking`（Kotlin）／`android_detect_tapjacking`（Java）——屬 **best_practices 類，比對防護程式碼的樣式，缺少時才報** | INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/best_practices/{kotlin/tapjacking.yaml,java/tapjacking.yaml}` |
+| MobSF | 靜態報告的 "This app does not have tapjacking protection" | Info | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（官方規則庫無對應規則） | — | unverified | — |
+| SwiftLint | —（不適用；iOS 系統不允許跨 App 覆蓋） | — | unverified | — |
+
+**這一則只適用 Android。** iOS 的視窗系統不允許第三方 App 疊加在其他 App 之上，
+因此檢測基準的這一條在 iOS 上標「不適用」。
+
+⚠ 規則方向與一般規則相反：**「未命中」代表缺少防護，是壞事。**
+
+### 壞味道
+
+```kotlin
+// 轉帳確認畫面未設任何觸控過濾——透明覆蓋層可誘導使用者點下確認
+class TransferConfirmActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_transfer_confirm)
+        confirmButton.setOnClickListener { doTransfer() }
+    }
+}
+```
+
+### 過關寫法
+
+```kotlin
+class TransferConfirmActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_transfer_confirm)
+
+        // 有其他視窗覆蓋時，本視窗不接受觸控事件
+        window.decorView.filterTouchesWhenObscured = true
+
+        // 個別關鍵控制項也可單獨設定
+        confirmButton.filterTouchesWhenObscured = true
+
+        // 進一步：覆蓋發生時主動中止操作
+        confirmButton.setOnTouchListener { _, event ->
+            if (event.flags and MotionEvent.FLAG_WINDOW_IS_OBSCURED != 0 ||
+                event.flags and MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED != 0) {
+                showOverlayWarning()
+                true      // 吞掉此次觸控
+            } else false
+        }
+    }
+}
+```
+
+也可在版面 XML 上直接宣告，涵蓋整個畫面：
+
+```xml
+<!-- res/layout/activity_transfer_confirm.xml -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:filterTouchesWhenObscured="true">
+    <!-- 敏感操作的控制項 -->
+</LinearLayout>
+```
+
+**不需要每個畫面都設。** 套用在涉及金流、授權同意、權限授予的畫面即可——
+全面套用反而可能在正常的分割畫面情境造成誤擋。
+
+### 常見誤判與處置
+
+- **防護寫在自訂的 base Activity 裡**——規則比對不到個別畫面的設定。
+  處置：標記誤判，佐證寫明 base class 的行號與繼承該 base 的畫面清單。
+
+- **App 完全沒有敏感操作畫面。**
+  處置：標記不適用，佐證說明 App 的功能範圍。
+
+### 判定準則
+
+真漏洞：涉及金流、授權或權限授予的畫面未設 `filterTouchesWhenObscured`
+且未在觸控事件中檢查 `FLAG_WINDOW_IS_OBSCURED`。
+
+不適用：iOS 平台（系統不允許跨 App 覆蓋）。
+
+誤判：防護在共用 base class 中實作，有行號與套用範圍佐證。
+
+## MAST-PLATFORM-007 · 輸入敏感資料的欄位未關閉鍵盤快取
+
+涵蓋密碼、身分證號、卡號等欄位允許系統鍵盤學習與自動填字，
+輸入內容因此進入鍵盤字典並可能出現在其他 App 的建議列。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| mobsfscan | `android_kotlin_sensitive_input_keyboard_cache`（Kotlin）／`android_sensitive_input_keyboard_cache`（Java）；`ios_keyboard_cache`／`ios_custom_keyboard_disabled`（Swift） | WARNING–INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/{kotlin/android.yaml,java/android/sensitive_input.yaml,best_practices/swift/keyboard.yaml}` |
+| MobSF | 靜態報告的 "sensitive input field with keyboard cache enabled" | Warning | partial | 同上 |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+### 壞味道
+
+```kotlin
+// EditText 未設 inputType，輸入內容會進入鍵盤學習字典
+val idField = EditText(context).apply {
+    hint = "身分證字號"
+}
+```
+
+```xml
+<!-- 版面上同樣未宣告 -->
+<EditText
+    android:id="@+id/id_number"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:hint="身分證字號" />
+```
+
+```swift
+let idField = UITextField()
+idField.placeholder = "身分證字號"
+// 未關閉自動修正與自動填字，且未限制第三方鍵盤
+```
+
+### 過關寫法
+
+```kotlin
+// textNoSuggestions 關閉學習；密碼欄位用 textPassword（已隱含不快取）
+val idField = EditText(context).apply {
+    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+}
+
+val pwdField = EditText(context).apply {
+    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+}
+```
+
+```xml
+<EditText
+    android:id="@+id/id_number"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:inputType="textNoSuggestions"
+    android:importantForAutofill="no" />
+
+<EditText
+    android:id="@+id/password"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:inputType="textPassword" />
+```
+
+```swift
+let idField = UITextField()
+idField.autocorrectionType = .no          // 不進入自動修正字典
+idField.spellCheckingType = .no
+idField.textContentType = .oneTimeCode    // 或設為 nil，避免被自動填入既有值
+
+let pwdField = UITextField()
+pwdField.isSecureTextEntry = true         // 隱含關閉快取與截圖
+```
+
+iOS 另可在 `AppDelegate` 拒絕第三方鍵盤，避免輸入內容離開裝置：
+
+```swift
+func application(_ application: UIApplication,
+                 shouldAllowExtensionPointIdentifier id: UIApplication.ExtensionPointIdentifier) -> Bool {
+    return id != .keyboard      // 僅允許系統鍵盤
+}
+```
+
+### 常見誤判與處置
+
+- **欄位收的是非敏感資料**——暱稱、搜尋關鍵字。
+  處置：標記誤判，佐證列出該欄位的用途與收集的資料類型。
+
+- **密碼欄位已用 `textPassword` / `isSecureTextEntry`**，但規則仍報。
+  處置：這兩者已隱含關閉快取，屬誤判。佐證附設定行號。
+
+- **拒絕第三方鍵盤影響使用者習慣。**
+  處置：這是產品決策。金流類 App 通常接受此限制；一般 App 可只對敏感欄位
+  關閉快取而不全面拒絕第三方鍵盤，並記錄該決策。
+
+### 判定準則
+
+真漏洞：收集密碼、身分證號、卡號、健康資料的欄位未關閉鍵盤快取。
+
+誤判：欄位已使用密碼類型（隱含關閉快取），有設定行號佐證。
+
+誤判：欄位收集的資料經確認非敏感，有用途說明佐證。
+
+## MAST-PLATFORM-008 · 過度宣告權限或未說明用途
+
+涵蓋 manifest／plist 宣告了功能用不到的權限，以及宣告了權限卻未提供
+使用者可理解的用途說明。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | manifest 分析會逐一列出宣告的權限並標註其風險等級（"dangerous" 權限特別標示）；iOS 側列出 `Info.plist` 的 `NS*UsageDescription` | High–Info | partial | MobSF `manifest_analysis.py` 與 `permissions` 區段 |
+| Android Lint | —（無「過度宣告」規則；Lint 只檢查缺少的權限，不檢查多餘的） | — | unverified | — |
+| mobsfscan | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+**「多餘」需要對照功能才判得出來**，工具只能列出清單。
+檢測時的做法是：把宣告的權限與調查表所述功能逐一比對，
+問「哪個功能需要這個權限」——答不出來的就是多餘。
+
+iOS 側有一個硬性條件：**宣告了會觸發權限請求的 API，卻沒有對應的
+`NS*UsageDescription`，App 會直接閃退**。這是 App Store 審查會擋的項目。
+
+### 壞味道
+
+```xml
+<!-- AndroidManifest.xml：一次要滿，之後再說 -->
+<uses-permission android:name="android.permission.READ_CONTACTS" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+```
+
+```plist
+<!-- Info.plist：用途說明寫得等於沒寫 -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>需要位置權限</string>
+<key>NSCameraUsageDescription</key>
+<string>App 需要相機</string>
+```
+
+### 過關寫法
+
+```xml
+<!-- 只宣告功能實際需要的權限；可選功能用 uses-feature required="false" -->
+<uses-permission android:name="android.permission.CAMERA" />
+
+<!-- 相機僅用於掃描 QR Code，非核心功能 -->
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+
+<!-- 儲存權限：Android 10 以上改用 scoped storage，不需要廣泛的讀寫權限 -->
+<uses-permission
+    android:name="android.permission.READ_EXTERNAL_STORAGE"
+    android:maxSdkVersion="28" />
+```
+
+```plist
+<!-- 用途說明要具體到使用者看得懂「為什麼」與「用來做什麼」 -->
+<key>NSCameraUsageDescription</key>
+<string>用於掃描帳單上的 QR Code 以自動帶入付款資訊，不會儲存或上傳影像。</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>用於顯示您附近的服務據點，僅在使用地圖功能時取用，不會於背景持續蒐集。</string>
+```
+
+iOS 17 以上另需 **Privacy Manifest**（`PrivacyInfo.xcprivacy`）
+宣告蒐集的資料類型與必要理由 API 的使用原因：
+
+```xml
+<!-- PrivacyInfo.xcprivacy -->
+<dict>
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+            <key>NSPrivacyCollectedDataTypeLinkedToUser</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeUsedForTracking</key>
+            <false/>
+        </dict>
+    </array>
+</dict>
+```
+
+**送檢前自己走一遍**：列出所有宣告的權限，逐一寫出「哪個功能用到、
+在哪個畫面觸發」。寫不出來的就刪掉——這份對照表本身就是佐證。
+
+### 常見誤判與處置
+
+- **權限由第三方 SDK 帶進來**——manifest merger 合併後才出現。
+  處置：這是真實情況但**仍需說明**。用 `tools:node="remove"` 移除不需要的，
+  或在調查表列出該 SDK 與其所需權限。不要略過——檢測會看合併後的 manifest。
+
+- **權限為未來功能預留。**
+  處置：**刪掉。** 未上線的功能不該宣告權限，這在檢測時無法辯護。
+
+### 判定準則
+
+真漏洞：宣告的權限無法對應到任何已上線功能。
+
+真漏洞：iOS 使用了需要授權的 API 但缺少對應的 `NS*UsageDescription`。
+
+真漏洞：用途說明過於空泛，未說明取用時機與用途。
+
+誤判：權限由第三方 SDK 帶入，且已於調查表列出該 SDK 與用途。

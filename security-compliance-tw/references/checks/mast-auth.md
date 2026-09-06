@@ -362,3 +362,322 @@ fun unlockWithFallback(activity: FragmentActivity, cipher: javax.crypto.Cipher) 
 誤判：生物辨識僅裝飾 UI，受保護資料與導航在取消／錯誤時不可達，且有文件化後備或拒絕策略。
 
 灰色地帶——**一律當真漏洞修**：負按鈕文案寫「略過／稍後」並在回呼裡呼叫與成功相同的 `openVault`。
+
+## MAST-AUTH-003 · 授權判斷由用戶端執行
+
+涵蓋以本機旗標、回應欄位或畫面顯示與否作為權限控制，
+伺服器端未對每個請求重新驗證權限。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | —（**無規則**。授權邏輯正確與否無法由樣式比對判定） | — | unverified | — |
+| mobsfscan | —（無對應規則） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+**這一則沒有任何自動化涵蓋。** 它是行動端最常見的越權來源，
+卻完全靠人工審查與動態測試發現——攔截 API 回應、改掉 `isAdmin` 欄位，
+看功能是否解鎖。
+
+伺服器端的對應檢查在 `sast-api-authz.md`（`SAST-API-001`～`003`）。
+**兩邊要一起看**：用戶端藏起按鈕不是防護，伺服器端擋下請求才是。
+
+### 壞味道
+
+```kotlin
+// 用回應欄位決定顯示什麼，且後續操作不再驗證
+data class Profile(val userId: String, val role: String)
+
+fun render(profile: Profile) {
+    adminPanel.isVisible = profile.role == "admin"   // 改掉回應就解鎖
+}
+
+// 更糟：把權限存在本機，之後都讀本機
+prefs.edit().putBoolean("is_admin", profile.role == "admin").apply()
+
+fun onDeleteUserClicked(targetId: String) {
+    if (prefs.getBoolean("is_admin", false)) {
+        api.deleteUser(targetId)     // 伺服器端若不再驗證，任何人都刪得掉
+    }
+}
+```
+
+```swift
+// 以本機旗標控制功能入口
+final class Session {
+    static var isAdmin = false
+}
+
+func onDeleteTapped(_ targetId: String) {
+    guard Session.isAdmin else { return }
+    api.deleteUser(targetId)          // 同樣依賴用戶端判斷
+}
+```
+
+### 過關寫法
+
+**用戶端的顯示控制是體驗，不是安全。** 兩件事要同時做：
+
+```kotlin
+// 1. 用戶端仍可依回應調整畫面——這是體驗，不是防護
+adminPanel.isVisible = profile.role == "admin"
+
+// 2. 但每個敏感操作都由伺服器重新驗證，用戶端不做最終裁決
+suspend fun deleteUser(targetId: String): Result<Unit> {
+    // 不夾帶任何「我是 admin」的參數——權限由伺服器依 token 判定
+    val resp = api.deleteUser(targetId)
+    return when (resp.code()) {
+        204 -> Result.success(Unit)
+        403 -> Result.failure(NotAuthorized())   // 伺服器擋下才是真的擋下
+        else -> Result.failure(ApiError(resp.code()))
+    }
+}
+```
+
+```swift
+// 同樣：畫面依回應調整，操作由伺服器裁決
+func deleteUser(_ targetId: String) async throws {
+    let (_, response) = try await api.delete("/users/\(targetId)")
+    guard let http = response as? HTTPURLResponse else { throw ApiError.malformed }
+    switch http.statusCode {
+    case 204: return
+    case 403: throw ApiError.notAuthorized      // 伺服器端的判定才算數
+    default:  throw ApiError.status(http.statusCode)
+    }
+}
+```
+
+三個具體準則：
+
+- **請求中不夾帶權限宣告**——不要送 `role=admin` 或 `isAdmin=true`
+  這類參數，權限一律由伺服器依 token 判定
+- **物件識別碼不可直接信任**——請求 `/orders/{id}` 時，
+  伺服器要驗證該訂單屬於 token 的擁有者（見 `sast-api-authz.md`）
+- **用戶端不快取權限決定**——每次操作都以伺服器回應為準
+
+### 常見誤判與處置
+
+- **伺服器端確實有驗證，用戶端只是先過濾以減少無效請求。**
+  處置：這是正確設計。標記誤判，佐證需附**伺服器端的授權檢查位置**——
+  只說「伺服器有做」而拿不出程式碼位置，稽核不會接受。
+
+- **離線模式必須在本機判斷權限。**
+  處置：這是真實限制。記錄為已知風險接受，說明離線可用的功能範圍
+  （應限縮為唯讀或本機資料），並確認**恢復連線後會重新驗證**。
+
+### 判定準則
+
+真漏洞：敏感操作僅由用戶端旗標控制，伺服器端未對該請求重新驗證權限。
+
+真漏洞：請求中夾帶權限宣告參數，且伺服器採信該參數。
+
+真漏洞：權限決定被快取於本機，後續操作不再向伺服器確認。
+
+誤判：用戶端過濾僅為體驗優化，伺服器端有對應的授權檢查且有程式碼位置佐證。
+
+## MAST-AUTH-004 · 使用交易資源前未進行身分鑑別
+
+涵蓋付款、轉帳、預授權等交易動作在執行前未要求重新驗證身分，
+或僅以既有的登入狀態放行。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | —（**無規則**。交易流程的鑑別時機無法由樣式比對判定） | — | unverified | — |
+| mobsfscan | —（無對應規則） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+同 `MAST-AUTH-003`，這一則靠人工審查與動態測試發現。
+
+### 壞味道
+
+```kotlin
+// 登入後就一路放行，轉帳不再確認身分
+fun onTransferConfirmed(amount: Long, to: String) {
+    api.transfer(amount, to)          // 手機被短暫取用即可轉帳
+}
+```
+
+```swift
+func confirmTransfer(amount: Decimal, to account: String) async throws {
+    try await api.transfer(amount: amount, to: account)   // 無二次驗證
+}
+```
+
+### 過關寫法
+
+交易前的再驗證要**綁定到伺服器可驗證的憑據**，而不是本機的布林值——
+這一點與 `MAST-AUTH-002`（生物辨識綁定金鑰）是同一個道理。
+
+```kotlin
+// 用 Keystore 中「需使用者驗證才可用」的金鑰對交易內容簽章
+val spec = KeyGenParameterSpec.Builder(
+    "txn_key", KeyProperties.PURPOSE_SIGN
+).setDigests(KeyProperties.DIGEST_SHA256)
+ .setUserAuthenticationRequired(true)
+ .setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
+ .build()
+
+// 簽章成功即代表使用者剛通過驗證——伺服器驗簽後才執行交易
+suspend fun transfer(amount: Long, to: String, signature: ByteArray) {
+    api.transfer(amount, to, signature)   // 伺服器驗章，用戶端不做裁決
+}
+```
+
+```swift
+import LocalAuthentication
+
+// 存取受保護金鑰時系統會要求驗證；取得簽章才代表驗證通過
+func signTransaction(_ payload: Data) throws -> Data {
+    let context = LAContext()
+    context.localizedReason = "確認轉帳"
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassKey,
+        kSecAttrApplicationTag as String: "com.example.txn".data(using: .utf8)!,
+        kSecUseAuthenticationContext as String: context,
+        kSecReturnRef as String: true,
+    ]
+    var item: CFTypeRef?
+    guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+          let key = item else { throw TxnError.authFailed }
+    // 以該金鑰簽章 payload，送交伺服器驗證
+    return try sign(payload, with: key as! SecKey)
+}
+```
+
+**「驗證通過」不可只是一個布林值。** 布林值可被 hook 改寫；
+簽章不行——伺服器驗不過就不執行交易。
+
+### 常見誤判與處置
+
+- **小額交易免驗證是產品設計。**
+  處置：這是業務決策不是缺陷。記錄免驗證的金額上限與其依據，
+  並確認上限判斷在**伺服器端**執行——放在用戶端等於沒有上限。
+
+- **已在登入時做過多因素驗證。**
+  處置：檢測基準要求的是「使用交易資源時」進行鑑別。
+  登入時的驗證不等於交易時的驗證——手機在登入後被取用是常見情境。
+  除非有 session 短時效等補償控制並附佐證，否則當真漏洞修。
+
+### 判定準則
+
+真漏洞：交易動作僅依既有登入狀態放行，無任何再驗證。
+
+真漏洞：有再驗證但結果為本機布林值，未綁定伺服器可驗證的憑據。
+
+真漏洞：免驗證的金額上限由用戶端判斷。
+
+誤判：免驗證範圍經業務核可、上限在伺服器端強制，且有設定佐證。
+
+## MAST-AUTH-005 · 未提示使用者設定足夠複雜的密碼
+
+涵蓋 App 自建密碼認證但未於設定或變更密碼時檢查強度、
+未給出具體提示，以及僅在伺服器端檢查而用戶端無任何回饋。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | —（**無規則**。密碼強度邏輯需語意理解） | — | unverified | — |
+| mobsfscan | —（無對應規則） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+無自動化涵蓋，靠人工審查與實際操作驗證。
+
+**若 App 的身分鑑別完全委外**（OIDC／SSO／平台登入），本則標不適用——
+密碼策略由身分提供者負責。
+
+### 壞味道
+
+```kotlin
+// 只檢查非空
+fun onRegisterClicked() {
+    if (passwordField.text.isEmpty()) { showError("請輸入密碼"); return }
+    api.register(email, passwordField.text.toString())
+}
+```
+
+```swift
+func register() {
+    guard !password.isEmpty else { return }   // 無強度要求、無提示
+    api.register(email: email, password: password)
+}
+```
+
+### 過關寫法
+
+用戶端給即時回饋，伺服器端做最終強制——**兩邊都要**，
+用戶端的檢查可被繞過，但沒有它使用者不知道要改什麼。
+
+```kotlin
+data class PasswordCheck(val ok: Boolean, val hints: List<String>)
+
+fun check(pw: String): PasswordCheck {
+    val hints = buildList {
+        if (pw.length < 12) add("至少 12 個字元")
+        if (!pw.any { it.isUpperCase() }) add("需包含大寫英文字母")
+        if (!pw.any { it.isLowerCase() }) add("需包含小寫英文字母")
+        if (!pw.any { it.isDigit() }) add("需包含數字")
+        if (pw.none { !it.isLetterOrDigit() }) add("需包含特殊符號")
+    }
+    return PasswordCheck(hints.isEmpty(), hints)
+}
+
+// 輸入時即時顯示還差什麼，不要等按下送出才報錯
+passwordField.doAfterTextChanged {
+    val r = check(it.toString())
+    hintView.text = r.hints.joinToString("、")
+    registerButton.isEnabled = r.ok
+}
+```
+
+```swift
+struct PasswordCheck { let ok: Bool; let hints: [String] }
+
+func check(_ pw: String) -> PasswordCheck {
+    var hints: [String] = []
+    if pw.count < 12 { hints.append("至少 12 個字元") }
+    if pw.rangeOfCharacter(from: .uppercaseLetters) == nil { hints.append("需包含大寫英文字母") }
+    if pw.rangeOfCharacter(from: .lowercaseLetters) == nil { hints.append("需包含小寫英文字母") }
+    if pw.rangeOfCharacter(from: .decimalDigits) == nil { hints.append("需包含數字") }
+    if pw.rangeOfCharacter(from: .punctuationCharacters) == nil,
+       pw.rangeOfCharacter(from: .symbols) == nil { hints.append("需包含特殊符號") }
+    return PasswordCheck(ok: hints.isEmpty, hints: hints)
+}
+```
+
+**提示要說「還差什麼」，不要只說「密碼太弱」。** 後者使用者不知道怎麼改，
+實務上會導致他們用最低限度的變形（`Password1!`）通過檢查。
+
+更好的做法是**支援密碼管理器**——Android 的 autofill hint、
+iOS 的 `textContentType = .newPassword`，讓系統建議強密碼：
+
+```swift
+passwordField.textContentType = .newPassword    // 觸發系統的強密碼建議
+```
+
+### 常見誤判與處置
+
+- **身分鑑別完全委外**（OIDC／SSO／Sign in with Apple）。
+  處置：標不適用，佐證寫明本地無密碼建立流程。
+
+- **密碼規則在伺服器端，用戶端只顯示伺服器回傳的錯誤。**
+  處置：這符合安全要求，但**不符合本條「主動提醒」的要求**——
+  使用者要送出後才知道。建議補上用戶端即時回饋；
+  若不補，記錄為已知差異並說明理由。
+
+### 判定準則
+
+真漏洞：App 自建密碼流程但未檢查長度與字元組合。
+
+真漏洞：有檢查但無任何提示，使用者不知道要求為何。
+
+不適用：身分鑑別完全委外，本地無密碼建立或變更流程。

@@ -186,6 +186,24 @@
 | MAST-RESILIENCE-003 | MAS 4.1.5.5.7 / MAS 4.1.5.5.3 |   |   |   | ◎ | ◎ | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-4 | M7 | CWE-693 |
 | MAST-RESILIENCE-004 | MAS 4.1.5.2.1 |   |   |   |   | ◎ | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-2 | M7 | CWE-354 |
 | MAST-RESILIENCE-005 | MAS 4.1.5.5.6 / MAS 4.1.5.5.5 |   |   |   | ◎ | ◎ | 設定檔 | —（查檢表外） | MASVS-RESILIENCE-3 | M7 | — |
+| MAST-STORAGE-004 | MAS 4.1.2.3.8 | ◎ | ◎ | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-STORAGE-1 | M1 | CWE-798 |
+| MAST-STORAGE-005 | MAS 4.1.2.3.4 / MAS 4.1.2.3.5 | ◎ | ◎ | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-STORAGE-2 | M9 | CWE-524 |
+| MAST-STORAGE-006 | MAS 4.1.2.3.10 |   |   |   | ◎ |   | 雙平台 | 4.6.2 | MASVS-STORAGE-1 | M1 | CWE-522 |
+| MAST-CRYPTO-002 | MAS 4.1.4.2.1 |   | ◎ | ◎ |   |   | 雙平台 | 4.4.2 | MASVS-CRYPTO-1 | M10 | CWE-338 |
+| MAST-CRYPTO-003 | MAS 4.1.2.3.15 |   |   |   |   | ◎ | 雙平台 | —（查檢表外） | MASVS-CRYPTO-1 | M10 | CWE-323 |
+| MAST-NETWORK-003 | MAS 4.1.4.2.3 | ◎ | ◎ | ◎ |   |   | 雙平台 | 4.6.1 | MASVS-NETWORK-1 | M5 | CWE-295 |
+| MAST-NETWORK-004 | MAS 4.1.4.2.4 | ◎ | ◎ | ◎ |   |   | 設定檔 | —（查檢表外） | MASVS-NETWORK-1 | M5 | CWE-923 |
+| MAST-AUTH-003 | MAS 4.1.4.1.2 |   | ◎ | ◎ |   |   | 雙平台 | 4.1.3 | MASVS-AUTH-3 | M3 | CWE-602 |
+| MAST-AUTH-004 | MAS 4.1.3.2.1 |   |   | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-AUTH-1 | M3 | CWE-306 |
+| MAST-PLATFORM-005 | MAS 4.1.2.5.3 | ◎ | ◎ | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-PLATFORM-1 | M8 | CWE-926 |
+| MAST-PLATFORM-006 | MAS 4.1.5.1.3 | ◎ | ◎ | ◎ |   |   | Android | —（查檢表外） | MASVS-PLATFORM-3 | M8 | CWE-1021 |
+| MAST-PLATFORM-007 | MAS 4.1.2.3.11 |   | ◎ | ◎ |   |   | 雙平台 | —（查檢表外） | MASVS-PLATFORM-3 | M6 | CWE-524 |
+| MAST-CODE-001 | MAS 4.1.5.4.1 | ◎ | ◎ | ◎ |   |   | 雙平台 | 4.7.3 | MASVS-CODE-4 | M4 | CWE-20 |
+| MAST-CODE-002 | MAS 4.1.5.4.2 | ◎ | ◎ | ◎ |   |   | 雙平台 | 4.5.3.1 | MASVS-CODE-4 | M4 | CWE-89 |
+| MAST-CODE-003 | MAS 4.1.5.3.1 | ◎ | ◎ | ◎ |   |   | 設定檔 | 4.5.5 | MASVS-CODE-3 | M2 | CWE-1104 |
+| MAST-PLATFORM-008 | MAS 4.1.1.1.2 | ◎ | ◎ | ◎ |   |   | 設定檔 | —（查檢表外） | MASVS-PRIVACY-1 | M6 | CWE-250 |
+| MAST-AUTH-005 | MAS 4.1.2.2.3 |   |   |   | ◎ |   | 雙平台 | 4.4.2 | MASVS-AUTH-1 | M1 | CWE-521 |
+| MAST-RESILIENCE-006 | MAS 4.1.5.5.2 / MAS 4.1.5.5.4 |   |   |   |   | ◎ | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-2 | M7 | CWE-354 |
 
 ---
 

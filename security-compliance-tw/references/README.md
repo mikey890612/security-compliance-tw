@@ -63,18 +63,19 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 
 ## 目前涵蓋範圍
 
-共 71 則 check：伺服器與 Web 46 則、行動端 17 則、MDM 8 則。
+共 89 則 check：伺服器與 Web 46 則、行動端 35 則、MDM 8 則。
 
 ### 行動端與 MDM
 
 | check 檔 | 則數 | 涵蓋 |
 |---|---|---|
-| `mast-storage.md` | 3 | 明文本機儲存 / 敏感資料入日誌 / 系統備份外洩 |
-| `mast-crypto.md` | 1 | 弱演算法與加密模式 |
-| `mast-network.md` | 2 | 明文與 ATS／NSC / 憑證釘選 |
-| `mast-auth.md` | 2 | 用戶端鑑別閘道 / 生物辨識可略過 |
-| `mast-platform.md` | 4 | IPC 與深層連結 / WebView / 剪貼簿 / 螢幕擷取 |
-| `mast-resilience.md` | 5 | Root／越獄 / 偵錯模式 / 模擬器與動態分析 / 安裝包完整性 / 混淆與加殼 |
+| `mast-storage.md` | 6 | 明文儲存 / 日誌 / 系統備份 / 硬編碼機密 / 快取殘留 / 憑證儲存設施 |
+| `mast-crypto.md` | 3 | 弱演算法與加密模式 / 不安全亂數 / 金鑰與 IV 重用 |
+| `mast-network.md` | 4 | 明文與 ATS／NSC / 憑證釘選 / 信任評估 / 網域宣告 |
+| `mast-auth.md` | 5 | 用戶端鑑別閘道 / 生物辨識 / 用戶端授權 / 交易鑑別 / 密碼強度提示 |
+| `mast-platform.md` | 8 | IPC／深層連結 / WebView / 剪貼簿 / 螢幕擷取 / 資料分享 / 螢幕覆蓋 / 鍵盤快取 / 權限宣告 |
+| `mast-resilience.md` | 6 | Root／越獄 / 偵錯模式 / 模擬器與動態分析 / 安裝包完整性 / 混淆與加殼 / 執行期竄改 |
+| `mast-code.md` | 3 | 輸入驗證 / 注入防護 / 函式庫已知漏洞 |
 | `mdm-controls.md` | 8 | 註冊 / 受管 App / 遠端抹除 / 鎖定 / 越獄偵測 / 修補 / VPN / MTD |
 
 `MAST-*` 對照《行動應用 App 基本資安檢測基準》的條號（`mapping.md` 的 `MAS` 欄）。

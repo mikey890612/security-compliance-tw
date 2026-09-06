@@ -355,3 +355,226 @@ ATS／NSC 仍要維持關閉明文與 TrustAll；它們是底線，**不能替�
 
 灰色地帶——**一律當真漏洞修**：pin 寫死過期雜湊後全面改走「略過驗證」後門，
 或只在註解／文件寫「應釘選」而正式二進位無實作。
+
+## MAST-NETWORK-003 · 自訂信任評估接受任意憑證
+
+涵蓋自訂 `TrustManager`／`HostnameVerifier`／`URLSessionDelegate` 無條件回傳成功，
+以及 WebView 的 SSL 錯誤處理直接 `proceed()`。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| mobsfscan | `accept_self_signed_certificate`（空的 `checkServerTrusted`／接受自簽）；`ignore_ssl_certificate_errors`（WebView 的 `onReceivedSslError` 直接 `proceed()`）；`android_kotlin_webview_ignore_ssl`（Kotlin 版） | ERROR | partial | 規則原始碼：`mobsfscan/rules/semgrep/{java/network/accept_self_signed.yaml,java/webview/webview_ignore_ssl_errors.yaml,kotlin/webview.yaml}` |
+| MobSF | 靜態報告的 "Insecure TrustManager" / "WebView ignores SSL errors" | High | partial | 同上 |
+| Android Lint | `TrustAllX509TrustManager`、`BadHostnameVerifier` | Warning | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（官方規則庫的行動端部分無對應規則） | — | unverified | — |
+
+**這一則與 `MAST-NETWORK-002`（憑證釘選）的分界要講清楚：**
+本則管的是「連基本的鏈驗證都放棄」，那是更嚴重、更常見的錯；
+釘選是在鏈驗證之上再加一層。**沒做釘選是缺防護，接受任意憑證是沒有防護。**
+
+### 壞味道
+
+```kotlin
+// 空的 TrustManager——任何憑證都通過
+val trustAll = object : X509TrustManager {
+    override fun checkClientTrusted(c: Array<X509Certificate>, a: String) {}
+    override fun checkServerTrusted(c: Array<X509Certificate>, a: String) {}   // 什麼都不做
+    override fun getAcceptedIssuers() = arrayOf<X509Certificate>()
+}
+val ctx = SSLContext.getInstance("TLS").apply { init(null, arrayOf(trustAll), SecureRandom()) }
+
+// 主機名驗證形同虛設
+val client = OkHttpClient.Builder()
+    .sslSocketFactory(ctx.socketFactory, trustAll)
+    .hostnameVerifier { _, _ -> true }
+    .build()
+
+// WebView 忽略 SSL 錯誤
+webView.webViewClient = object : WebViewClient() {
+    override fun onReceivedSslError(v: WebView, h: SslErrorHandler, e: SslError) {
+        h.proceed()      // ignore_ssl_certificate_errors
+    }
+}
+```
+
+```swift
+// URLSession delegate 無條件信任
+func urlSession(
+    _ session: URLSession,
+    didReceive challenge: URLAuthenticationChallenge,
+    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+) {
+    let trust = challenge.protectionSpace.serverTrust!
+    completionHandler(.useCredential, URLCredential(trust: trust))   // 未做任何評估
+}
+```
+
+### 過關寫法
+
+**最好的過關寫法是完全不實作 delegate。** 系統預設的鏈驗證已經是對的——
+自己寫只會寫錯。掃描器認的也是「沒有可疑的自訂實作」。
+
+```kotlin
+// 什麼都不覆寫：使用系統信任鏈
+val client = OkHttpClient.Builder().build()
+
+// 確實需要內部 CA 時，把它加進信任庫，而不是關掉驗證
+fun clientWithInternalCa(context: Context): OkHttpClient {
+    val cf = CertificateFactory.getInstance("X.509")
+    val ca = context.resources.openRawResource(R.raw.internal_ca).use { cf.generateCertificate(it) }
+    val ks = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
+        load(null, null); setCertificateEntry("internal", ca)
+    }
+    val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+        .apply { init(ks) }
+    val ctx = SSLContext.getInstance("TLS").apply { init(null, tmf.trustManagers, null) }
+    return OkHttpClient.Builder()
+        .sslSocketFactory(ctx.socketFactory, tmf.trustManagers[0] as X509TrustManager)
+        .build()
+}
+```
+
+```swift
+// 不實作 didReceive challenge：系統會做完整的鏈驗證與主機名比對
+let session = URLSession(configuration: .default)
+
+// 必須自訂時，先跑系統評估，失敗就取消——不可 fallback 成信任
+func urlSession(
+    _ session: URLSession,
+    didReceive challenge: URLAuthenticationChallenge,
+    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+) {
+    guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+          let trust = challenge.protectionSpace.serverTrust else {
+        completionHandler(.performDefaultHandling, nil); return
+    }
+    var error: CFError?
+    guard SecTrustEvaluateWithError(trust, &error) else {
+        completionHandler(.cancelAuthenticationChallenge, nil)   // 失敗就斷線
+        return
+    }
+    completionHandler(.useCredential, URLCredential(trust: trust))
+}
+```
+
+Android 側更省事的做法是**用 `network_security_config.xml` 加內部 CA**，
+完全不碰程式碼——見 `MAST-NETWORK-001` 的設定檔範例。
+
+### 常見誤判與處置
+
+- **開發環境用自簽憑證**——本機沒有正式憑證，開發時關掉驗證，
+  程式碼一路帶進正式庫。**這是行動端紅字最常見的來源。**
+  處置：**不是誤判，是真漏洞。** 改用 `network_security_config.xml` 的
+  `debug-overrides`（只在 debug 建置生效），或把自簽 CA 加進信任庫。
+  用旗標切換一樣會被標——工具無法證明該旗標在正式版為 false。
+
+- **憑證釘選的自訂實作**——為了比對指紋而實作了 delegate。
+  處置：標記誤判，佐證需寫明**失敗路徑會取消連線**的行號。
+  若任一路徑會 fallback 成信任，就是真漏洞。
+
+### 判定準則
+
+真漏洞：正式程式碼路徑存在空的 `checkServerTrusted`、
+永遠回 true 的 `HostnameVerifier`、或無條件 `.useCredential` 的 delegate。
+
+真漏洞：WebView 的 `onReceivedSslError` 呼叫 `proceed()`。
+
+真漏洞：上述行為由旗標或環境變數控制——工具無法證明正式環境的取值。
+
+誤判：自訂實作僅為憑證釘選，且所有失敗路徑都取消連線，有行號佐證。
+
+## MAST-NETWORK-004 · 連線網域未宣告或與宣告不符
+
+涵蓋 App 實際連線的網域超出送檢時宣告的清單，以及未使用平台的網域設定機制
+（`network_security_config.xml` 的 `domain-config`、ATS 的 `NSExceptionDomains`）
+限縮連線範圍。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | 靜態報告會列出反編譯後找到的所有 URL 與網域（"URLs" 區段），**但不比對宣告清單** | Info | unverified | — |
+| mobsfscan | —（無對應規則） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+**這一則本質上是「比對兩份清單」**：MobSF 抽出的網域 vs 送檢調查表宣告的網域。
+沒有工具會自動做這件事——檢測實驗室以動態流量側錄比對。
+本知識庫能提供的是**讓清單可被驗證的寫法**。
+
+### 壞味道
+
+```xml
+<!-- AndroidManifest.xml：未指定 networkSecurityConfig，連線範圍無任何限制 -->
+<application android:name=".App">
+</application>
+```
+
+```plist
+<!-- Info.plist：未使用 NSExceptionDomains，無從得知預期連線範圍 -->
+```
+
+第三方 SDK 是這一則最常見的破口——分析、廣告、崩潰回報 SDK
+會連到未宣告的網域，而那些連線不出現在自家程式碼裡。
+
+### 過關寫法
+
+把預期連線的網域**明確寫進設定檔**，讓宣告清單與實作一致且可被稽核：
+
+```xml
+<!-- res/xml/network_security_config.xml
+     逐一列出正式網域；未列出者仍走 base-config 的預設規則 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.example.com</domain>
+        <domain includeSubdomains="false">cdn.example.com</domain>
+    </domain-config>
+</network-security-config>
+```
+
+```plist
+<!-- Info.plist：僅在確有必要時列出例外網域，並保留 TLS 下限。
+     整段不出現代表全面套用 ATS 預設，那是最乾淨的宣告 -->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSExceptionDomains</key>
+    <dict>
+        <key>legacy.partner.com</key>
+        <dict>
+            <key>NSExceptionMinimumTLSVersion</key>
+            <string>TLSv1.2</string>
+        </dict>
+    </dict>
+</dict>
+```
+
+**送檢前自己先做一次比對**：用 MobSF 或 `strings` 抽出 APK／IPA 內的網域，
+與調查表宣告的清單逐一核對。第三方 SDK 帶進來的網域也要列——
+實驗室的動態測試會看到它們。
+
+### 常見誤判與處置
+
+- **CDN 或雲端服務使用大量子網域**——列不完。
+  處置：用 `includeSubdomains="true"` 涵蓋，並在調查表宣告母網域與用途。
+
+- **第三方 SDK 的網域無法事先窮舉。**
+  處置：這是真實限制。處理方式是在調查表列出所使用的 SDK 及其官方文件所載的
+  連線網域，並說明無法窮舉的原因——**不要略過不提**，動態測試一定會發現。
+
+### 判定準則
+
+真漏洞：實際連線的網域未出現在送檢宣告清單中。
+
+真漏洞：完全未使用平台的網域設定機制，導致預期連線範圍無從驗證。
+
+誤判：差異來自 CDN 的子網域，且母網域已宣告並使用 `includeSubdomains`。
