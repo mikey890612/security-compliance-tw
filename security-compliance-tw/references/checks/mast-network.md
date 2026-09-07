@@ -22,7 +22,7 @@ Android Network Security Config（NSC）允許 cleartext，以及自訂 TrustMan
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | MobSF | Cleartext Traffic／ATS／Network Security Config／Trust All Certs 類 | High–Warning | unverified | — |
-| mobsfscan | `ios_ats_arbitrary_loads`／Android cleartext／insecure SSL pattern | WARNING–ERROR | unverified | — |
+| mobsfscan | Android：`android_manifest_usescleartext`（`android:usesCleartextTraffic="true"`）／`android_manifest_base_config_cleartext`（NSC 的 `cleartextTrafficPermitted="true"`）。iOS：`ios_ats_arbitrary_loads`（`NSAllowsArbitraryLoads`） | ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_manifest_usescleartext`、`#rule=android_manifest_base_config_cleartext`；`testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_ats_arbitrary_loads`（另見 `references/scanner-verification-log.md`） |
 | Semgrep | `swift.*`／`kotlin.*`／`java.lang.security.*` 明文傳輸與 SSL 繞過社群規則 | ERROR–WARNING | unverified | — |
 | Android Lint | `CleartextTraffic`／`InsecureTrustManager` 等（視 AGP／Lint 組態） | Error–Warning | unverified | — |
 | Xcode／Clang Static Analyzer | ATS／自訂 TLS 驗證多依賴 Info.plist 與手動／自訂規則 | — | unverified | — |
@@ -205,7 +205,7 @@ ATS／NSC 擋的是明文與明顯的憑證繞過；**使用者安裝的 CA、�
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | MobSF | SSL Pinning／Certificate Pinning 缺失類 | High–Warning | unverified | — |
-| mobsfscan | certificate pin／TrustKit／CertificatePinner 相關 pattern | WARNING | unverified | — |
+| mobsfscan | `android_ssl_pinning`／`android_certificate_transparency`（Android）、`ios_cert_pinning`（iOS）——**皆屬 best_practices 類，缺少時才報** | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_ssl_pinning`、`#rule=android_certificate_transparency`；`testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_cert_pinning`（fixture 未實作釘選，三條均命中）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | `swift.*`／`kotlin.*` pinning／TrustKit／CertificatePinner 社群規則 | ERROR–WARNING | unverified | — |
 | Android Lint | CertificatePinner／自訂 TrustManager 相關（視專案組態） | — | unverified | — |
 | Xcode／Clang Static Analyzer | URLSession 釘選多依賴手動或 TrustKit 等自訂規則 | — | unverified | — |

@@ -11,10 +11,10 @@
 | 寫程式當下的過關寫法速查 | `quick-patterns.md` | sec-harden |
 | 附表十查檢表全文與分級 | `controls-appendix10.md` | sec-deliverables |
 | 行動應用 App 基本資安檢測基準的條號與標題（65 條） | `controls-mas-v4.md` | sec-deliverables |
-| 掃描器對照的驗證紀錄（工具版本、fixture、findings） | `scanner-verification-log.md` | sec-audit |
 | 各類交付文件的產出規則與格式 | `templates/*.md` | sec-deliverables |
 | 檢測基準勾稽表的產出規則 | `templates/checklist-mas.md` | sec-deliverables |
 | 流程類項目該問誰、該備什麼證據 | `evidence-mas-process.md` | sec-deliverables |
+| 掃描器對照的驗證紀錄、工具版本與重跑方式 | `scanner-verification-log.md` | sec-audit |
 
 ## 路徑注意事項
 
@@ -64,7 +64,7 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 
 ## 目前涵蓋範圍
 
-共 89 則 check：伺服器與 Web 46 則、行動端 35 則、MDM 8 則。
+共 90 則 check：伺服器與 Web 46 則、行動端 36 則、MDM 8 則。
 
 ### 行動端與 MDM
 
@@ -74,7 +74,7 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 | `mast-crypto.md` | 3 | 弱演算法與加密模式 / 不安全亂數 / 金鑰與 IV 重用 |
 | `mast-network.md` | 4 | 明文與 ATS／NSC / 憑證釘選 / 信任評估 / 網域宣告 |
 | `mast-auth.md` | 5 | 用戶端鑑別閘道 / 生物辨識 / 用戶端授權 / 交易鑑別 / 密碼強度提示 |
-| `mast-platform.md` | 8 | IPC／深層連結 / WebView / 剪貼簿 / 螢幕擷取 / 資料分享 / 螢幕覆蓋 / 鍵盤快取 / 權限宣告 |
+| `mast-platform.md` | 9 | IPC／深層連結 / WebView / 剪貼簿 / 螢幕擷取 / 資料分享 / 螢幕覆蓋 / 鍵盤快取 / 權限宣告 / 工作堆疊劫持 |
 | `mast-resilience.md` | 6 | Root／越獄 / 偵錯模式 / 模擬器與動態分析 / 安裝包完整性 / 混淆與加殼 / 執行期竄改 |
 | `mast-code.md` | 3 | 輸入驗證 / 注入防護 / 函式庫已知漏洞 |
 | `mdm-controls.md` | 8 | 註冊 / 受管 App / 遠端抹除 / 鎖定 / 越獄偵測 / 修補 / VPN / MTD |

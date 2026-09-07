@@ -204,6 +204,7 @@
 | MAST-PLATFORM-008 | MAS 4.1.1.1.2 | ◎ | ◎ | ◎ |   |   | 設定檔 | —（查檢表外） | MASVS-PRIVACY-1 | M6 | CWE-250 |
 | MAST-AUTH-005 | MAS 4.1.2.2.3 |   |   |   | ◎ |   | 雙平台 | 4.4.2 | MASVS-AUTH-1 | M1 | CWE-521 |
 | MAST-RESILIENCE-006 | MAS 4.1.5.5.2 / MAS 4.1.5.5.4 |   |   |   |   | ◎ | 雙平台 | —（查檢表外） | MASVS-RESILIENCE-2 | M7 | CWE-354 |
+| MAST-PLATFORM-009 | —（查檢表外） |   |   |   |   | ◎ | 設定檔 | —（查檢表外） | MASVS-PLATFORM-1 | M1 | CWE-1021 |
 
 ---
 

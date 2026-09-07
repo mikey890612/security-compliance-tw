@@ -163,7 +163,7 @@ Android 避免 `getExternalStorage*`／媒體公開目錄放憑證；
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | MobSF | Logging／Sensitive Information in Logs 類 | Warning–Info | unverified | — |
-| mobsfscan | `android_kotlin_logging`／`ios_log` | INFO | partial | https://github.com/MobSF/mobsfscan |
+| mobsfscan | `android_kotlin_logging`（比對 `Log.$M(...)`／`System.out.print*`）；`ios_log`（比對 `print`／`NSLog`） | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_logging`（AuthManager.kt:33、:61）；`testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-ios.json#rule=ios_log`（AuthManager.swift:19）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | 敏感欄位名流入 log sink 的社群／自訂規則 | ERROR–WARNING | unverified | — |
 | Android Lint | `LogNotTimber`／自訂禁止 `Log.d` 規則（視組態） | Warning | unverified | — |
 | Xcode | 對 `print`／`NSLog` 無預設安全規則；多依賴自訂與程式碼審查 | — | unverified | — |
@@ -279,8 +279,8 @@ Swift 的 `-O`／無 `-D DEBUG`，避免「只有本機正式包才關日誌」�
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| MobSF | Backup／`allowBackup`／Insecure Data Storage 類 | High–Warning | unverified | — |
-| mobsfscan | Android backup／iOS 備份與 Keychain 可同步 pattern | WARNING | unverified | — |
+| MobSF | 靜態報告的 "Application Data can be Backed up"（內嵌上列規則） | High–Warning | partial | 同上 |
+| mobsfscan | `android_manifest_allow_backup`（比對 `android:allowBackup="true"`，走 manifest 分析非 semgrep）。iOS 側無對應規則 | WARNING | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_manifest_allow_backup`（AndroidManifest.xml）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | `android.*allowBackup*`／iOS backup／CloudKit 社群規則 | ERROR–WARNING | unverified | — |
 | Android Lint | Manifest／backup 相關自訂規則（視專案組態） | Warning | unverified | — |
 | Xcode | 備份排除與 Keychain accessible 屬性多依賴程式碼審查 | — | unverified | — |
@@ -449,7 +449,7 @@ iTunes／Finder 備份、iCloud Keychain 同步，或 App 自動上傳的雲端�
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_kotlin_hardcoded`（Kotlin 常數）；`hardcoded_api_key`／`hardcoded_password`／`hardcoded_secret`／`hardcoded_username`（Java）；`ios_hardcoded_secret`（Swift）；`aes_hardcoded_key`／`android_kotlin_aes_hardcoded_key`（寫死的 AES 金鑰） | WARNING–ERROR | partial | 規則原始碼：`mobsfscan/rules/semgrep/{kotlin/android.yaml,java/android/secrets.yaml,swift/secrets.yaml,java/crypto/aes_encryption_keys.yaml,kotlin/crypto.yaml}` |
+| mobsfscan | `android_kotlin_hardcoded`（Kotlin 常數）；`hardcoded_api_key`／`hardcoded_password`／`hardcoded_secret`／`hardcoded_username`（Java）；`ios_hardcoded_secret`（Swift）；`aes_hardcoded_key`／`android_kotlin_aes_hardcoded_key`（寫死的 AES 金鑰） | WARNING–ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_hardcoded`（AuthManager.kt:19）；`testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-ios.json#rule=ios_hardcoded_secret`（AuthManager.swift:9）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告的 "Hardcoded Secrets" 區段；另會列出 `strings.xml` 內疑似金鑰的字串 | High | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
 | Semgrep | `generic.secrets.security.detected-generic-secret.detected-generic-secret`（entropy 式，涵蓋任意檔案格式） | ERROR | unverified | — |
 | Android Lint | —（無對應規則） | — | unverified | — |

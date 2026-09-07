@@ -148,7 +148,7 @@ func textField(_ tf: UITextField,
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_kotlin_sql_raw_query`（Kotlin 的 `rawQuery`／`execSQL` 拼接）；`sqlite_injection`（Java） | ERROR | partial | 規則原始碼：`mobsfscan/rules/semgrep/{kotlin/injection.yaml,java/injection/sqlite_injection.yaml}` |
+| mobsfscan | `android_kotlin_sql_raw_query`（Kotlin 的 `rawQuery`／`execSQL` 拼接）；`sqlite_injection`（Java） | ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_sql_raw_query`（MainActivity.kt:43、:44）（另見 `references/scanner-verification-log.md`） |
 | mobsfscan（WebView） | `webview_javascript_interface`／`android_kotlin_webview`（`addJavascriptInterface` 橋接） | ERROR | partial | 規則原始碼：`mobsfscan/rules/semgrep/{java/webview/webview_javascript_interface.yaml,kotlin/webview.yaml}` |
 | MobSF | 靜態報告的 "App uses SQLite Database and execute raw SQL query" | High | partial | 同上 |
 | Android Lint | —（無對應規則） | — | unverified | — |

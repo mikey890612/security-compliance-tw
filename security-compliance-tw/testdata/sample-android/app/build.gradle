@@ -1,0 +1,22 @@
+// 刻意不安全：release 未混淆、可除錯、相依為動態版本
+android {
+    namespace "com.example.insecure"
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.example.insecure"
+        minSdk 24
+        targetSdk 34
+    }
+    buildTypes {
+        release {
+            debuggable true
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
+
+dependencies {
+    implementation "com.squareup.okhttp3:okhttp:3.12.0"
+    implementation "androidx.appcompat:appcompat:1.+"
+}

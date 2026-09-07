@@ -34,7 +34,8 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 2. **偵測技術棧**——讀 `go.mod` / `requirements.txt` / `pyproject.toml` / `package.json`
 3. **選定 check 集合**——依 `profile.md` 的選取規則決定載入哪些 `checks/*.md`。
    **只載入需要的檔案**，這是控制 context 的關鍵。載入前先確認檔案存在。
-   Profile 複選若勾「**有行動 App**」→ 載入 `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`；
+   Profile 複選若勾「**有行動 App**」→ 載入 `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md`；
+   另勾「**將送 F 類加測**」才載入 `checks/mast-resilience.md`；
    勾「**有 EMM／MDM／MAM**」→ 載入 `mdm-controls.md`（含 LOCK／JAIL／PATCH／VPN／MTD；規則見 `profile.md`，勿複製 check 全文）
 4. **樣式比對**——用 check 檔內「壞味道」區塊的樣式在 codebase 搜尋
 5. **逐項判定**——每個命中歸為：真漏洞 / 誤判 / 不適用，各自記錄理由
@@ -116,7 +117,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-89 則 check，20 個檔：
+90 則 check，20 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
@@ -141,8 +142,12 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | MAST 抗逆向與竄改（F 類） | `mast-resilience.md` | **有行動 App 且勾選 F 類加測** |
 | MDM／EMM／MAM 控制 | `mdm-controls.md` | **有 EMM／MDM／MAM** |
 
-行動端 35 則分於七個依 MASVS 類別命名的檔案；MDM 8 則獨立一檔（規格外的延伸）。
-`mast-resilience.md` 全部屬 F 類加測或參考項目，**未勾選 F 類時不要載入**。W1 新增 `sast-request-abuse.md`（`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`，一律；+3 則至 66）。掃描器對照多為 `unverified`／`—`，**勿宣稱 Fortify／MobSF 已驗證**。
+行動端 36 則分於七個依 MASVS 類別命名的檔案；MDM 8 則獨立一檔（規格外的延伸）。
+`mast-resilience.md` 全部屬 F 類加測或參考項目，**未勾選 F 類時不要載入**。
+
+行動端有 16 列掃描器對照已對 fixture 實跑驗證（狀態 `verified`，附檔名行號）；
+其餘仍為 `unverified`。**商用工具（Fortify／Checkmarx）的行動端對照本知識庫不收錄**，
+報告反查時若命中商用規則，直接寫「知識庫尚無已驗證對照」。
 
 **未涵蓋**：備份備援、稽核儲存容量、時戳校時、系統文件、委外管理、
 供應鏈完整性、基礎設施加固（GCB / 防火牆 / OS）。

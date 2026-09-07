@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Insecure Sample</string>
+    <!-- 硬編碼機密：反編譯後直接可讀 -->
+    <string name="api_key">FIXTURE-NOT-A-REAL-KEY-0000000000</string>
+    <string name="db_password">FIXTURE-NOT-A-REAL-PASSWORD</string>
+</resources>

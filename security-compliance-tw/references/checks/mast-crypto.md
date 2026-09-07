@@ -19,8 +19,8 @@ detekt、SwiftLint、Semgrep——規則 id 逐一與官方原始碼或規則清
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| MobSF | Weak Cryptography／Hardcoded Secrets／Insecure Random 類 | High–Warning | unverified | — |
-| mobsfscan | `ios_sha1_collision`／`ios_hardcoded_secret`／Android 弱雜湊與硬編碼 pattern | WARNING | partial | https://github.com/MobSF/mobsfscan |
+| MobSF | 靜態報告的 "Weak Hash"／"Insecure Encryption" 區段（內嵌上列 mobsfscan 規則） | High–Warning | partial | 同上（本次僅驗證 mobsfscan 規則本身，未跑完整 MobSF） |
+| mobsfscan | Android：`android_kotlin_md5`（`MessageDigest.getInstance("MD5")`）／`cbc_kotlin_padding_oracle`（`AES/CBC/PKCS5Padding`）。iOS：`ios_weak_hash`（`CC_MD5`／`CC_SHA1`） | ERROR–WARNING | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_md5`（AuthManager.kt:38、:49）；`testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-ios.json#rule=ios_weak_hash`（AuthManager.swift:27）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | `*.security.*.use-of-md5*`／`*.security.audit.hardcoded-*`／mobile crypto 社群規則 | ERROR–WARNING | unverified | — |
 | Android Lint | 密碼學相關自訂／Error Prone 規則（視專案組態） | — | unverified | — |
 | Xcode／CryptoKit 診斷 | 過時 CommonCrypto API 與硬編碼字串的手動／自訂檢查 | — | unverified | — |
@@ -161,7 +161,7 @@ val iv = cipher.iv // 由系統產生，與密文一併保存
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_kotlin_insecure_random`（Kotlin）／`java_insecure_random`（Java，比對 `java.util.Random`）；`ios_insecure_random_no_generator`（Swift，比對未指定安全來源的亂數呼叫） | WARNING | partial | 規則原始碼：`mobsfscan/rules/semgrep/{kotlin/crypto.yaml,java/crypto/insecure_random.yaml,swift/crypto.yaml}` |
+| mobsfscan | `android_kotlin_insecure_random`（Kotlin，比對 `Random()`／`java.util.Random(...)`）／`java_insecure_random`（Java）；`ios_insecure_random_no_generator`（Swift） | WARNING | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_insecure_random`（AuthManager.kt:43、:45）；`testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-ios.json#rule=ios_insecure_random_no_generator`（AuthManager.swift:34、:38）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告的 "App uses an insecure Random Number Generator" | Warning | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
 | Android Lint | —（無對應規則） | — | unverified | — |
 | SwiftLint | —（無對應規則） | — | unverified | — |

@@ -45,7 +45,7 @@ description: 產出台灣政府資訊系統驗收所需的 SSDLC 交付文件—
    但要說明「未經源碼檢視，實作狀態欄位無法回填」。
    若 profile 曾勾「有行動 App」，findings 會含 `MAST-*`；勾「有 EMM／MDM／MAM」
    會含 `MDM-*`；勾「將送 F 類加測」才會含 `MAST-RESILIENCE-*`。
-   知識庫共 89 則。勾稽時只經 `{ROOT}/references/mapping.md` 對照，
+   知識庫共 90 則。勾稽時只經 `{ROOT}/references/mapping.md` 對照，
    **勿自行發明項次**
 3. **行動 App 專案另需判定檢測基準的 App 類別**（L1 / L2 / L3，是否加測 F）。
    推導規則見 `{ROOT}/references/profile.md`——L1/L2/L3 由既有資料點推導不必問，

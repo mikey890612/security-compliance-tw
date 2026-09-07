@@ -181,7 +181,7 @@ Deep Link 僅導航且參數已白名單。
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | MobSF | WebView／JavaScript Interface／File Access／Mixed Content 類 | High–Warning | unverified | — |
-| mobsfscan | `android_kotlin_webview`／`ios_webview`／JS bridge pattern | WARNING–ERROR | unverified | — |
+| mobsfscan | `android_kotlin_webview`（`addJavascriptInterface`）／`android_kotlin_webview_debug`（`setWebContentsDebuggingEnabled`）／`android_kotlin_webview_set_allow_file_access`／`android_kotlin_webview_allow_file_from_url` | ERROR–WARNING | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_webview`（MainActivity.kt:28）、`_debug`（:27）、`_set_allow_file_access`（:25）、`_allow_file_from_url`（:26）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | WebView 設定與 bridge 社群規則 | ERROR–WARNING | unverified | — |
 | Android Lint | `SetJavaScriptEnabled`／`AddJavascriptInterface` 等 | Warning–Error | unverified | — |
 | Xcode | WKWebView 設定多依賴手動與自訂規則 | — | unverified | — |
@@ -466,7 +466,7 @@ fun neverCopySecrets() {
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | MobSF | Screen Recording／Screenshot／FLAG_SECURE 類 | Warning–Info | unverified | — |
-| mobsfscan | `FLAG_SECURE`／截圖防護相關 pattern | INFO–WARNING | unverified | — |
+| mobsfscan | `android_prevent_screenshot`——**best_practices 類，未設 `FLAG_SECURE` 時才報** | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_prevent_screenshot`（fixture 未設 FLAG_SECURE，命中）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | `FLAG_SECURE`／`isSecureTextEntry`／背景遮罩社群規則 | WARNING | unverified | — |
 | Android Lint | Window flag 自訂規則（視專案組態） | — | unverified | — |
 | Xcode | 背景快照遮罩多依賴審查；無預設強制規則 | — | unverified | — |
@@ -729,7 +729,7 @@ present(vc, animated: true)
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_tapjacking`（Kotlin）／`android_detect_tapjacking`（Java）——屬 **best_practices 類，比對防護程式碼的樣式，缺少時才報** | INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/best_practices/{kotlin/tapjacking.yaml,java/tapjacking.yaml}` |
+| mobsfscan | `android_tapjacking`（Kotlin）／`android_detect_tapjacking`（Java）——**best_practices 類，未設觸控過濾時才報** | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_tapjacking`（fixture 未設 filterTouchesWhenObscured，命中）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告的 "This app does not have tapjacking protection" | Info | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
 | Android Lint | —（無對應規則） | — | unverified | — |
 | Semgrep | —（官方規則庫無對應規則） | — | unverified | — |
@@ -821,7 +821,7 @@ class TransferConfirmActivity : AppCompatActivity() {
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_kotlin_sensitive_input_keyboard_cache`（Kotlin）／`android_sensitive_input_keyboard_cache`（Java）；`ios_keyboard_cache`／`ios_custom_keyboard_disabled`（Swift） | WARNING–INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/{kotlin/android.yaml,java/android/sensitive_input.yaml,best_practices/swift/keyboard.yaml}` |
+| mobsfscan | `android_kotlin_sensitive_input_keyboard_cache`／`android_sensitive_input_keyboard_cache`（Android）；`ios_keyboard_cache`／`ios_custom_keyboard_disabled`（iOS，**best_practices 類，缺少時才報**） | WARNING–INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_keyboard_cache`、`#rule=ios_custom_keyboard_disabled`（fixture 兩條均命中）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告的 "sensitive input field with keyboard cache enabled" | Warning | partial | 同上 |
 | Android Lint | —（無對應規則） | — | unverified | — |
 | SwiftLint | —（無對應規則） | — | unverified | — |
@@ -1023,3 +1023,104 @@ iOS 17 以上另需 **Privacy Manifest**（`PrivacyInfo.xcprivacy`）
 真漏洞：用途說明過於空泛，未說明取用時機與用途。
 
 誤判：權限由第三方 SDK 帶入，且已於調查表列出該 SDK 與用途。
+
+## MAST-PLATFORM-009 · Android 工作堆疊劫持（StrandHogg）
+
+涵蓋 Activity 的 `taskAffinity` 與 `launchMode` 組態讓惡意 App 得以把自己的畫面
+插進本 App 的工作堆疊，使用者以為在操作本 App，實際在操作攻擊者的畫面。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| mobsfscan | `android_task_hijacking2`（StrandHogg 2.0：`android:launchMode` 非 `singleInstance` 且未設空 `taskAffinity`）；另有 `android_task_hijacking`（1.0 變體） | ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_task_hijacking2`（sample-android AndroidManifest.xml）（另見 `references/scanner-verification-log.md`） |
+| MobSF | manifest 分析的 "Task Hijacking" 項目（內嵌上列規則） | High | partial | 同上 |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（不適用；iOS 無工作堆疊概念） | — | unverified | — |
+| Semgrep | —（官方規則庫無對應規則） | — | unverified | — |
+
+**這一則是實跑 fixture 才發現的**——先前依規則清單盤點時漏掉了它。
+它的預設等級是 **ERROR**，且在 Android 9 以下無平台層防護，
+實務上很容易在檢測報告第一頁出現。
+
+⚠ **只適用 Android。** iOS 沒有工作堆疊的概念，該條標不適用。
+
+### 壞味道
+
+```xml
+<!-- AndroidManifest.xml：未設 taskAffinity，所有 Activity 共用預設的
+     package name 作為 affinity，惡意 App 宣告相同 affinity 即可插隊 -->
+<application android:name=".App">
+    <activity android:name=".MainActivity" android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
+
+    <!-- 敏感畫面同樣沒有隔離 -->
+    <activity android:name=".TransferActivity" />
+</application>
+```
+
+### 過關寫法
+
+兩種做法，擇一即可；**應用層級設定最省事**：
+
+```xml
+<!-- AndroidManifest.xml：在 application 層設空 taskAffinity，
+     所有 Activity 繼承，惡意 App 無從宣告相同 affinity -->
+<application
+    android:name=".App"
+    android:taskAffinity="">
+
+    <activity android:name=".MainActivity" android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
+</application>
+```
+
+```xml
+<!-- 或對啟動 Activity 單獨設 singleInstance，讓它獨佔一個工作堆疊 -->
+<activity
+    android:name=".MainActivity"
+    android:launchMode="singleInstance"
+    android:taskAffinity=""
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+```
+
+⚠ **`launchMode="singleInstance"` 會改變導覽行為**——該 Activity 獨佔工作堆疊，
+從它啟動的其他 Activity 會落到不同堆疊，返回鍵的行為與預期不同。
+**優先用 `android:taskAffinity=""`**，它不影響導覽。
+
+Android 11（API 30）以上平台已加入部分防護，但**檢測仍會看 manifest 設定**——
+不能以「新版系統已修」為由不設。
+
+### 常見誤判與處置
+
+- **App 只有單一 Activity。**
+  處置：仍需設定。單一 Activity 同樣可被插隊，攻擊面不因數量減少。
+
+- **設了 `taskAffinity=""` 但規則仍報。**
+  處置：確認設在 `<application>` 或每個 `<activity>` 上，
+  且值是**空字串**而非省略。省略等於使用預設 affinity。
+  另確認 manifest merger 合併後的結果——第三方 SDK 的 Activity 也會繼承。
+
+- **導覽行為因 `singleInstance` 而異常。**
+  處置：這是選錯做法。改用 `taskAffinity=""`。
+
+### 判定準則
+
+真漏洞：Activity 未設空 `taskAffinity` 且 `launchMode` 非 `singleInstance`。
+
+不適用：iOS 平台。
+
+誤判：已於 `<application>` 層設空 `taskAffinity`，合併後的 manifest 有佐證。

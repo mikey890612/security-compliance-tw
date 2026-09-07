@@ -31,7 +31,7 @@ detekt、SwiftLint、Semgrep——規則 id 逐一與官方原始碼或規則清
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_root_detection`（比對 `isRooted()`／`isDeviceRooted()`／`isJailBroken()`／`RootTools.isAccessGiven()`／`contains("test-keys")`，**缺少時報**）；`ios_jailbreak_detect`（比對 Cydia／MobileSubstrate／sshd 等已知路徑字串，同為缺少時報） | INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/best_practices/{kotlin/root_detection,swift/jailbreak}.yaml` |
+| mobsfscan | `android_root_detection`（比對 `isRooted()`／`isDeviceRooted()`／`isJailBroken()`／`RootTools.isAccessGiven()`／`contains("test-keys")`）；`android_safetynet`（裝置完整性證明）；`ios_jailbreak_detect`（Cydia／MobileSubstrate／sshd 等路徑字串）——**皆為缺少時報** | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_root_detection`、`#rule=android_safetynet`；`testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_jailbreak_detect`（fixture 皆未實作，三條均命中）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告的 "This app does not have root detection capabilities" / "does not have Jailbreak detection capabilities" | Info | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
 | Android Lint | —（無對應規則；Lint 不檢查執行期環境偵測） | — | unverified | — |
 | detekt | —（無對應規則） | — | unverified | — |
@@ -172,9 +172,9 @@ func hasJailbreakIndicators() -> Bool {
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| MobSF | manifest 分析的 "Debug Enabled For App"（比對 `android:debuggable="true"`）；iOS 側檢查建置設定是否含除錯符號 | High | partial | MobSF `manifest_analysis.py` 的 manifest 檢查項 |
+| MobSF | 靜態報告的 "Debug Enabled For App"（內嵌上列 mobsfscan 規則）；iOS 側檢查建置設定是否含除錯符號 | High | partial | 同上 |
 | Android Lint | `HardcodedDebugMode`（`android:debuggable` 寫死在 manifest 內） | Warning | unverified | — |
-| mobsfscan | —（無專屬規則；`android_kotlin_webview_debug` 只管 WebView 的 `setWebContentsDebuggingEnabled`） | — | unverified | — |
+| mobsfscan | `android_manifest_debugging_enabled`（比對 `android:debuggable="true"`）。另 `android_kotlin_webview_debug` 管 WebView 的 `setWebContentsDebuggingEnabled` | ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_manifest_debugging_enabled`（AndroidManifest.xml）（另見 `references/scanner-verification-log.md`） |
 | detekt | —（無對應規則） | — | unverified | — |
 | Semgrep | —（官方規則庫無 manifest debuggable 規則） | — | unverified | — |
 
@@ -276,7 +276,7 @@ fun isDebuggerAttached(): Boolean =
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `ios_jailbreak_detect` 的比對字串**含 `frida-server`／`cycript`**，可間接涵蓋部分動態分析工具 | INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/best_practices/swift/jailbreak.yaml` |
+| mobsfscan | `ios_detect_reversing`（iOS，**缺少反逆向偵測時才報**）；`ios_jailbreak_detect` 的比對字串**含 `frida-server`／`cycript`**，可間接涵蓋部分動態分析工具 | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_detect_reversing`（fixture 未實作，命中）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告無專屬項目；動態分析模組才會觀察到 | — | unverified | — |
 | Android Lint | —（無對應規則） | — | unverified | — |
 | detekt | —（無對應規則） | — | unverified | — |
