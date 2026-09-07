@@ -90,7 +90,7 @@
 | 有 API 端點 | `checks/sast-api-authz.md` |
 | 有 LLM / RAG / Agent | `checks/sast-llm.md` |
 | 有個資或金流 | `checks/sast-logging.md`、`checks/sast-crypto.md` |
-| 有行動 App | `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md` |
+| 有行動 App | `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md` |
 | 有 EMM／MDM／MAM | `checks/mdm-controls.md` |
 | 行動 App **且**勾選 F 類加測 | `checks/mast-resilience.md` |
 

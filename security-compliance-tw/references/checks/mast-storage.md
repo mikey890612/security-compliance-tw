@@ -163,7 +163,7 @@ Android 避免 `getExternalStorage*`／媒體公開目錄放憑證；
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | MobSF | Logging／Sensitive Information in Logs 類 | Warning–Info | unverified | — |
-| mobsfscan | `android_kotlin_logging`／`ios_log` | INFO | partial | https://github.com/MobSF/mobsfscan |
+| mobsfscan | `android_kotlin_logging`（比對 `Log.$M(...)`／`System.out.print*`）；`ios_log`（比對 `print`／`NSLog`） | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_logging`（AuthManager.kt:33、:61）；`testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-ios.json#rule=ios_log`（AuthManager.swift:19）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | 敏感欄位名流入 log sink 的社群／自訂規則 | ERROR–WARNING | unverified | — |
 | Android Lint | `LogNotTimber`／自訂禁止 `Log.d` 規則（視組態） | Warning | unverified | — |
 | Xcode | 對 `print`／`NSLog` 無預設安全規則；多依賴自訂與程式碼審查 | — | unverified | — |
@@ -279,8 +279,8 @@ Swift 的 `-O`／無 `-D DEBUG`，避免「只有本機正式包才關日誌」�
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| MobSF | Backup／`allowBackup`／Insecure Data Storage 類 | High–Warning | unverified | — |
-| mobsfscan | Android backup／iOS 備份與 Keychain 可同步 pattern | WARNING | unverified | — |
+| MobSF | 靜態報告的 "Application Data can be Backed up"（內嵌上列規則） | High–Warning | partial | 同上 |
+| mobsfscan | `android_manifest_allow_backup`（比對 `android:allowBackup="true"`，走 manifest 分析非 semgrep）。iOS 側無對應規則 | WARNING | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_manifest_allow_backup`（AndroidManifest.xml）（另見 `references/scanner-verification-log.md`） |
 | Semgrep | `android.*allowBackup*`／iOS backup／CloudKit 社群規則 | ERROR–WARNING | unverified | — |
 | Android Lint | Manifest／backup 相關自訂規則（視專案組態） | Warning | unverified | — |
 | Xcode | 備份排除與 Keychain accessible 屬性多依賴程式碼審查 | — | unverified | — |
@@ -439,3 +439,333 @@ iTunes／Finder 備份、iCloud Keychain 同步，或 App 自動上傳的雲端�
 灰色地帶——**一律當真漏洞修**：欄位名像 `token`／`secret` 卻聲稱「可進雲端」——先排除與改儲存，再談誤判。
 
 ---
+
+## MAST-STORAGE-004 · 敏感性資料硬編碼於程式碼或資源檔
+
+涵蓋 API 金鑰、密碼、對稱加密金鑰、憑證私鑰直接寫在原始碼、`strings.xml`、
+`Info.plist`、`.xcconfig` 或 `gradle.properties` 內。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| mobsfscan | `android_kotlin_hardcoded`（Kotlin 常數）；`hardcoded_api_key`／`hardcoded_password`／`hardcoded_secret`／`hardcoded_username`（Java）；`ios_hardcoded_secret`（Swift）；`aes_hardcoded_key`／`android_kotlin_aes_hardcoded_key`（寫死的 AES 金鑰） | WARNING–ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-android.json#rule=android_kotlin_hardcoded`（AuthManager.kt:19）；`testdata/scan-artifacts/open-source/20260907T001858Z/semgrep-mobsfscan-ios.json#rule=ios_hardcoded_secret`（AuthManager.swift:9）（另見 `references/scanner-verification-log.md`） |
+| MobSF | 靜態報告的 "Hardcoded Secrets" 區段；另會列出 `strings.xml` 內疑似金鑰的字串 | High | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
+| Semgrep | `generic.secrets.security.detected-generic-secret.detected-generic-secret`（entropy 式，涵蓋任意檔案格式） | ERROR | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+
+這一類是**規則最單純、最不可能誤判的一種**——比對的是變數名稱加字串字面值。
+包進 `BuildConfig` 或 `Info.plist` 一樣會被抓到，因為那些值最終仍在 APK／IPA 裡。
+
+### 壞味道
+
+```kotlin
+object ApiConfig {
+    const val API_KEY = "sk-live-4f9a2b8c1d7e"          // android_kotlin_hardcoded
+    const val AES_KEY = "0123456789abcdef"              // aes_hardcoded_key
+}
+
+// 從 BuildConfig 讀也一樣——值是在建置期塞進 APK 的
+val key = BuildConfig.API_SECRET
+```
+
+```swift
+struct ApiConfig {
+    static let apiKey = "sk-live-4f9a2b8c1d7e"          // ios_hardcoded_secret
+    static let aesKey = "0123456789abcdef"
+}
+```
+
+```xml
+<!-- res/values/strings.xml：反編譯後直接可讀 -->
+<resources>
+    <string name="api_key">sk-live-4f9a2b8c1d7e</string>
+</resources>
+```
+
+### 過關寫法
+
+**唯一可靠的做法是讓金鑰不進到用戶端。** 需要簽章或授權的動作由伺服器代理，
+用戶端只拿短期、可撤銷的憑證。
+
+```kotlin
+// 用戶端只持有登入後取得的短期 token，存進受保護儲存
+class TokenStore(context: Context) {
+    private val prefs = EncryptedSharedPreferences.create(
+        context, "auth",
+        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+    )
+    fun save(token: String) = prefs.edit().putString("access_token", token).apply()
+}
+
+// 對稱金鑰由 Keystore 產生，永遠不離開硬體支援的金鑰庫
+val spec = KeyGenParameterSpec.Builder(
+    "data_key", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+ .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+ .build()
+KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").run {
+    init(spec); generateKey()
+}
+```
+
+```swift
+import CryptoKit
+import Security
+
+// 金鑰由 Secure Enclave 產生；私鑰無法匯出
+let access = SecAccessControlCreateWithFlags(
+    nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, .privateKeyUsage, nil)!
+let key = try SecureEnclave.P256.Signing.PrivateKey(accessControl: access)
+
+// 短期 token 存 Keychain，不寫進程式碼
+func store(token: Data) throws {
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrAccount as String: "access",
+        kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        kSecValueData as String: token,
+    ]
+    SecItemDelete(query as CFDictionary)
+    guard SecItemAdd(query as CFDictionary, nil) == errSecSuccess else {
+        throw KeychainError.storeFailed
+    }
+}
+```
+
+### 常見誤判與處置
+
+- **公開的識別碼被當成機密**——Firebase 的 `google-services.json`、
+  Google Maps 的 API key、OAuth 的 client id。這些設計上就是公開的。
+  處置：標記誤判，佐證寫明該值的公開性質，**並確認伺服器端有配額與來源限制**
+  （Maps key 未設限制時仍是真問題，只是問題在配額不在保密）。
+
+- **測試用的假金鑰**——fixture 或單元測試中的 `"test-key-1234"`。
+  處置：把測試檔排除在掃描範圍外，或改用明顯是佔位符的值
+  （`"REPLACE_ME"`）——規則多半依 entropy 判斷，低 entropy 的字串不會命中。
+
+- **憑證釘選用的公鑰指紋**——那是公開資訊，不是機密。
+  處置：標記誤判，佐證寫明該值為公鑰雜湊。
+
+### 判定準則
+
+真漏洞：任何可用於存取後端服務、解密資料或簽署請求的憑材出現在
+程式碼、資源檔或建置設定中，無論是否經過編碼或拆分。
+
+真漏洞：對稱加密金鑰為常數，即使拆成多段再組合——反編譯後一樣可還原。
+
+誤判：該值設計上即為公開（公鑰、client id、公開 API 識別碼），
+且伺服器端有對應的來源或配額限制作為佐證。
+
+## MAST-STORAGE-005 · 敏感性資料殘留於快取、暫存與冗餘檔案
+
+涵蓋登出或關閉後未清除的快取、WebView 快取、崩潰日誌、
+以及自動產生的暫存檔中仍含權杖或個資。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | 靜態報告會列出 `getCacheDir`／`NSTemporaryDirectory` 等 API 的使用位置（`api_local_file_io`），但**不判斷是否清除** | Info | unverified | — |
+| mobsfscan | —（無專屬規則） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（官方規則庫無對應規則） | — | unverified | — |
+
+**這一則靜態涵蓋率極低。** 檢測實驗室以「登出後拉取裝置檔案系統」的
+動態方式驗證。本知識庫提供的是寫法與判定準則，不預判掃描器行為。
+
+### 壞味道
+
+```kotlin
+// 登出只清了 token，快取與 WebView 資料原封不動
+fun logout() {
+    prefs.edit().remove("access_token").apply()
+    startActivity(Intent(this, LoginActivity::class.java))
+}
+
+// 把回應整包寫進 cache，且從不清除
+File(context.cacheDir, "profile.json").writeText(responseBody)
+```
+
+```swift
+// URLCache 預設會把含個資的回應寫到磁碟
+let session = URLSession(configuration: .default)
+
+// 暫存檔寫完不刪
+let tmp = NSTemporaryDirectory() + "export.csv"
+try csv.write(toFile: tmp, atomically: true, encoding: .utf8)
+```
+
+### 過關寫法
+
+```kotlin
+fun logout(context: Context) {
+    prefs.edit().clear().apply()
+
+    // 應用程式快取與 WebView 快取一併清除
+    context.cacheDir.deleteRecursively()
+    android.webkit.WebStorage.getInstance().deleteAllData()
+    android.webkit.WebView(context).apply {
+        clearCache(true); clearHistory(); clearFormData()
+    }
+    android.webkit.CookieManager.getInstance().removeAllCookies(null)
+}
+
+// 敏感回應不進磁碟快取
+val client = OkHttpClient.Builder()
+    .cache(null)   // 或對敏感端點加 Cache-Control: no-store
+    .build()
+```
+
+```swift
+func logout() {
+    // 記憶體與磁碟快取一併清除
+    URLCache.shared.removeAllCachedResponses()
+    HTTPCookieStorage.shared.cookies?.forEach {
+        HTTPCookieStorage.shared.deleteCookie($0)
+    }
+    try? FileManager.default.contentsOfDirectory(atPath: NSTemporaryDirectory())
+        .forEach { try? FileManager.default.removeItem(atPath: NSTemporaryDirectory() + $0) }
+}
+
+// 敏感請求走不快取的組態
+let config = URLSessionConfiguration.ephemeral   // 不寫磁碟
+let session = URLSession(configuration: config)
+```
+
+伺服器端對敏感回應加 `Cache-Control: no-store` 是最省事的做法——
+兩個平台的 HTTP 快取都會遵守，不必逐處清除。
+
+### 常見誤判與處置
+
+- **快取中只有非敏感的清單資料**——商品列表、公告內容。
+  處置：標記誤判，佐證寫明快取內容的欄位清單。注意**登入後的個人化清單通常含個資**，
+  不要一律當成非敏感。
+
+- **崩潰回報 SDK 蒐集的堆疊含變數值。**
+  處置：這是真問題。設定 SDK 過濾敏感欄位，或關閉區域變數蒐集。
+
+### 判定準則
+
+真漏洞：登出後裝置上仍可讀到權杖、個資或交易內容。
+
+真漏洞：WebView 快取或 Cookie 在登出後未清除。
+
+誤判：殘留內容經逐欄位確認不含敏感性資料，且有欄位清單佐證。
+
+## MAST-STORAGE-006 · 憑證與金鑰未存放於系統憑證儲存設施
+
+涵蓋權杖、私鑰、加密金鑰存在一般檔案或偏好設定，而非 Android Keystore
+或 iOS Keychain；以及 Keychain 屬性選得過寬（可同步、可備份）。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | `api_keystore`／`api_keychain_access` 屬 **API 使用清單**（Info 等級），**不判定違規**——它只告訴你有沒有用到，用不用得對要人工看 | Info | partial | 規則原始碼：`mobsfscan/rules/semgrep/{android_apis.yaml,ios_apis.yaml}` |
+| mobsfscan | —（無「未使用 Keystore」的專屬規則；缺席無法被樣式比對偵測） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+**「沒有使用某個 API」這種缺席，樣式比對工具偵測不到。**
+掃描器只能看到缺席造成的**症狀**——金鑰出現在明文儲存位置，
+那由 `MAST-STORAGE-001` 與 `MAST-STORAGE-004` 涵蓋。
+
+### 壞味道
+
+```kotlin
+// 私鑰存成一般檔案
+File(context.filesDir, "private.pem").writeText(privateKeyPem)
+
+// 或存進未加密的偏好設定
+prefs.edit().putString("signing_key", keyBase64).apply()
+```
+
+```swift
+// 存進 UserDefaults，等同明文
+UserDefaults.standard.set(privateKeyPem, forKey: "signingKey")
+
+// Keychain 屬性過寬：可同步到 iCloud、可進備份
+let query: [String: Any] = [
+    kSecClass as String: kSecClassKey,
+    kSecAttrAccessible as String: kSecAttrAccessibleAlways,   // 已棄用且過寬
+    kSecAttrSynchronizable as String: true,                   // 會同步到其他裝置
+    kSecValueData as String: keyData,
+]
+```
+
+### 過關寫法
+
+```kotlin
+// 金鑰在 Keystore 內產生並使用，程式碼從頭到尾拿不到金鑰材料
+val spec = KeyGenParameterSpec.Builder(
+    "signing_key", KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+).setDigests(KeyProperties.DIGEST_SHA256)
+ .setUserAuthenticationRequired(true)     // 綁定裝置解鎖或生物辨識
+ .build()
+
+KeyPairGenerator.getInstance(
+    KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore"
+).apply { initialize(spec) }.generateKeyPair()
+
+// 使用時取 handle，不取金鑰本身
+val entry = java.security.KeyStore.getInstance("AndroidKeyStore")
+    .apply { load(null) }
+    .getEntry("signing_key", null) as java.security.KeyStore.PrivateKeyEntry
+```
+
+```swift
+import Security
+
+// 存取控制限定本機、需解鎖；可用時再加生物辨識
+let access = SecAccessControlCreateWithFlags(
+    nil,
+    kSecAttrAccessibleWhenUnlockedThisDeviceOnly,   // 不同步、不進備份
+    [.privateKeyUsage, .biometryCurrentSet],
+    nil
+)!
+
+let attrs: [String: Any] = [
+    kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+    kSecAttrKeySizeInBits as String: 256,
+    kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,   // 私鑰不可匯出
+    kSecPrivateKeyAttrs as String: [
+        kSecAttrIsPermanent as String: true,
+        kSecAttrApplicationTag as String: "com.example.signing".data(using: .utf8)!,
+        kSecAttrAccessControl as String: access,
+    ],
+]
+var error: Unmanaged<CFError>?
+let privateKey = SecKeyCreateRandomKey(attrs as CFDictionary, &error)
+```
+
+`kSecAttrAccessible` 的選擇是這一則最常出錯的地方：
+`...ThisDeviceOnly` 系列不會同步到 iCloud Keychain、也不進裝置備份，
+非 `ThisDeviceOnly` 的則會——**兩者的差別在檢測時會被實際驗證**。
+
+### 常見誤判與處置
+
+- **金鑰確實在 Keystore／Keychain，但存取的變數名含 `key`**——
+  被硬編碼規則誤報。
+  處置：標記誤判，佐證寫明金鑰產生與存取的行號，並確認該變數持有的是
+  handle 或 alias 而非金鑰材料。
+
+- **需要跨裝置同步的憑證**——例如使用者的加密備份金鑰。
+  處置：這是產品決策不是誤判。若確實需要同步，記錄為已知風險接受，
+  並說明同步路徑的保護方式。
+
+### 判定準則
+
+真漏洞：私鑰、對稱金鑰或長期權杖存放於一般檔案、`SharedPreferences`
+或 `UserDefaults`。
+
+真漏洞：Keychain 項目使用 `kSecAttrAccessibleAlways`
+或未加 `ThisDeviceOnly` 而該資料不應離開本機。
+
+誤判：金鑰在 Keystore／Secure Enclave 內產生且不可匯出，
+變數僅持有 alias 或 handle，有行號佐證。

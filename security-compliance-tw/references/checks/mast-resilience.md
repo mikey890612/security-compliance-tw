@@ -31,7 +31,7 @@ detekt、SwiftLint、Semgrep——規則 id 逐一與官方原始碼或規則清
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `android_root_detection`（比對 `isRooted()`／`isDeviceRooted()`／`isJailBroken()`／`RootTools.isAccessGiven()`／`contains("test-keys")`，**缺少時報**）；`ios_jailbreak_detect`（比對 Cydia／MobileSubstrate／sshd 等已知路徑字串，同為缺少時報） | INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/best_practices/{kotlin/root_detection,swift/jailbreak}.yaml` |
+| mobsfscan | `android_root_detection`（比對 `isRooted()`／`isDeviceRooted()`／`isJailBroken()`／`RootTools.isAccessGiven()`／`contains("test-keys")`）；`android_safetynet`（裝置完整性證明）；`ios_jailbreak_detect`（Cydia／MobileSubstrate／sshd 等路徑字串）——**皆為缺少時報** | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_root_detection`、`#rule=android_safetynet`；`testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_jailbreak_detect`（fixture 皆未實作，三條均命中）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告的 "This app does not have root detection capabilities" / "does not have Jailbreak detection capabilities" | Info | partial | 同上（MobSF 內嵌 mobsfscan 規則） |
 | Android Lint | —（無對應規則；Lint 不檢查執行期環境偵測） | — | unverified | — |
 | detekt | —（無對應規則） | — | unverified | — |
@@ -172,9 +172,9 @@ func hasJailbreakIndicators() -> Bool {
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| MobSF | manifest 分析的 "Debug Enabled For App"（比對 `android:debuggable="true"`）；iOS 側檢查建置設定是否含除錯符號 | High | partial | MobSF `manifest_analysis.py` 的 manifest 檢查項 |
+| MobSF | 靜態報告的 "Debug Enabled For App"（內嵌上列 mobsfscan 規則）；iOS 側檢查建置設定是否含除錯符號 | High | partial | 同上 |
 | Android Lint | `HardcodedDebugMode`（`android:debuggable` 寫死在 manifest 內） | Warning | unverified | — |
-| mobsfscan | —（無專屬規則；`android_kotlin_webview_debug` 只管 WebView 的 `setWebContentsDebuggingEnabled`） | — | unverified | — |
+| mobsfscan | `android_manifest_debugging_enabled`（比對 `android:debuggable="true"`）。另 `android_kotlin_webview_debug` 管 WebView 的 `setWebContentsDebuggingEnabled` | ERROR | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-android.json#rule=android_manifest_debugging_enabled`（AndroidManifest.xml）（另見 `references/scanner-verification-log.md`） |
 | detekt | —（無對應規則） | — | unverified | — |
 | Semgrep | —（官方規則庫無 manifest debuggable 規則） | — | unverified | — |
 
@@ -276,7 +276,7 @@ fun isDebuggerAttached(): Boolean =
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| mobsfscan | `ios_jailbreak_detect` 的比對字串**含 `frida-server`／`cycript`**，可間接涵蓋部分動態分析工具 | INFO | partial | 規則原始碼：`mobsfscan/rules/semgrep/best_practices/swift/jailbreak.yaml` |
+| mobsfscan | `ios_detect_reversing`（iOS，**缺少反逆向偵測時才報**）；`ios_jailbreak_detect` 的比對字串**含 `frida-server`／`cycript`**，可間接涵蓋部分動態分析工具 | INFO | verified | `testdata/scan-artifacts/open-source/20260907T001858Z/mobsfscan-ios.json#rule=ios_detect_reversing`（fixture 未實作，命中）（另見 `references/scanner-verification-log.md`） |
 | MobSF | 靜態報告無專屬項目；動態分析模組才會觀察到 | — | unverified | — |
 | Android Lint | —（無對應規則） | — | unverified | — |
 | detekt | —（無對應規則） | — | unverified | — |
@@ -598,3 +598,93 @@ Apple 未提供 Swift 的符號混淆工具。可做到的僅有部分縮減：
 灰色地帶——**依實際風險判斷**：敏感邏輯（金鑰推導、風控規則）留在用戶端
 且未混淆。正解不是加強混淆，而是**把該邏輯移到伺服器**——
 混淆只提高成本，移走才是消除。
+
+## MAST-RESILIENCE-006 · 未偵測執行期的檔案與記憶體竄改
+
+涵蓋沙盒內的檔案、資源與載入的程式碼在執行期被替換或修改而未被察覺。
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| MobSF | —（**無規則**。執行期竄改偵測屬動態行為，靜態分析看不到） | — | unverified | — |
+| mobsfscan | —（無對應規則） | — | unverified | — |
+| Android Lint | —（無對應規則） | — | unverified | — |
+| SwiftLint | —（無對應規則） | — | unverified | — |
+| Semgrep | —（無對應規則） | — | unverified | — |
+
+**完全無靜態涵蓋。** 檢測實驗室以「替換資源檔後重新執行」的動態方式驗證。
+
+本則的兩個來源條號在檢測基準中**皆屬參考項目**（非必要）。
+
+### 壞味道
+
+```kotlin
+// 從外部可寫入的位置載入設定或資源，且不驗證內容
+val config = File(context.getExternalFilesDir(null), "rules.json").readText()
+applyRules(Json.decodeFromString(config))    // 檔案被換掉也不知道
+```
+
+```swift
+// 從 Documents 載入可被 iTunes 檔案共享取代的資源
+let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("rules.json")
+let config = try Data(contentsOf: url)
+applyRules(try JSONDecoder().decode(Rules.self, from: config))
+```
+
+### 過關寫法
+
+**優先做的不是偵測，是讓竄改不可能**——把資源放在不可寫入的位置，
+從 APK／IPA 的 assets 讀取而非外部儲存。
+
+```kotlin
+// 1. 敏感資源從 assets 讀，那是唯讀且隨簽章保護的
+val config = context.assets.open("rules.json").bufferedReader().use { it.readText() }
+
+// 2. 確實需要動態更新時，驗證內容的簽章
+fun loadVerified(file: File, publicKey: PublicKey): String? {
+    val content = file.readBytes()
+    val sig = File(file.path + ".sig").readBytes()
+    val ok = java.security.Signature.getInstance("SHA256withECDSA").run {
+        initVerify(publicKey); update(content); verify(sig)
+    }
+    return if (ok) String(content) else null    // 驗不過就不載入
+}
+```
+
+```swift
+// 1. 從 Bundle 讀取——Bundle 內容受簽章保護，改動會使簽章失效
+guard let url = Bundle.main.url(forResource: "rules", withExtension: "json") else { return }
+let config = try Data(contentsOf: url)
+
+// 2. 動態下載的資源驗簽後才使用
+func loadVerified(_ data: Data, signature: Data, publicKey: SecKey) -> Data? {
+    var error: Unmanaged<CFError>?
+    let ok = SecKeyVerifySignature(
+        publicKey, .ecdsaSignatureMessageX962SHA256,
+        data as CFData, signature as CFData, &error)
+    return ok ? data : nil
+}
+```
+
+記憶體竄改偵測（檢測基準的另一個參考項目）在兩個平台都沒有可靠的
+原生機制——**本知識庫不提供實作建議**。可行的替代是把會被竄改後獲利的
+判斷（風控規則、額度上限、權限決定）移到伺服器，讓竄改本機記憶體無利可圖。
+
+### 常見誤判與處置
+
+- **App 完全不從外部載入資源。**
+  處置：標不適用，佐證列出資源載入點皆為 Bundle／assets。
+
+- **需要熱更新設定。**
+  處置：這是正當需求。改為驗簽後載入，並確認驗證失敗時**不會 fallback
+  成使用未驗證的內容**——那是本則最常見的實作缺陷。
+
+### 判定準則
+
+真漏洞：從外部可寫入位置載入影響安全決策的資源且未驗證完整性。
+
+真漏洞：有驗證但失敗時仍載入內容。
+
+不適用：未送測 F 類；或所有資源皆自 Bundle／assets 載入，有清單佐證。
