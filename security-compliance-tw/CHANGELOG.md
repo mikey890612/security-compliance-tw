@@ -8,6 +8,35 @@
 - **minor**（0.**x**.0）：新增或更正 check、掃描器對照、skill 的流程——判定結果可能改變，建議更新
 - **major**（**x**.0.0）：check-id 異動或移除——舊的 `findings.md`、`false-positives.md` 可能對不上
 
+## 0.4.0（2026-09-24）
+
+**建議更新**：`sec-audit` 載入的 check 變多——普級、無個資或內部系統的專案，
+`findings.md` 會多出之前整類漏查的項目；另新增 5 則 check。
+
+- 載入規則改由分級欄推導。`sast-authz`、`sast-logging`、`dast-tls-cookie`、`dast-info-leak`
+  改為**一律載入**：這四檔都含普級必查的項目，之前只在中級、有個資或對外服務時才載入
+- `sast-crypto` 另在將面對 SAST 時載入；`dast-headers` 改為分級 ≥ 中、對外服務或將面對弱點掃描時載入。
+  第 3 題答「不知道」視為各類掃描器都會面對
+- 新增「逐則決定要不要查」：本分級沒要求、但使用者將面對的掃描器會標的 check 照樣查；
+  兩者皆否才歸不適用
+- `mapping.md` 的分級欄一律照附表十原文，刪除「刻意放寬分級之處」：`SAST-CRYPTO-001` 回到只有高、
+  `SAST-LLM-003` 回到中高。該節與主表不一致，會讓 `SAST-LLM-002`（LLM 輸出造成的 SQL 注入）
+  被排成 P1；P0 規則的例外子句一併刪除
+- 驗證器新增三項交叉檢查：分級欄不得比附表十寬、載入表與分級欄一致、
+  `sec-audit` 涵蓋範圍表與載入表一致
+- 新增 5 則 check（90 → 95）：`SAST-INJ-005` XML 外部實體、`SAST-INJ-006` 不安全的反序列化、
+  `SAST-INJ-007` HTTP 標頭注入、`SAST-REDIRECT-001` Open Redirect，以及新檔 `sast-dependencies.md` 的
+  `SAST-DEP-001` 已知漏洞元件（附表十 4.5.5，普中高必查，一律載入）
+- 新 check 的開源對照在新 fixture `testdata/sample-untrusted-data/` 實跑，12 列標 `verified`。
+  實測發現 lxml 的 `resolve_entities=True`（真正會解析外部實體）bandit 與 semgrep 都不標，
+  它們反而標新版 Python 已安全的 `xml.etree`——判定準則照實際解析器設定寫
+- `SAST-DEP-001` 不憑記憶判定版本漏洞：模式 1 只盤點元件，`findings.md` 開頭新增「待使用者執行」，
+  列出 `npm audit`／`pip-audit`／`govulncheck` 指令，使用者提供輸出後再判定
+- 依第五次盲測修正：`4.5.3.4`（HTTP 安全標頭）在 `mapping.md` 標「（內文）」——查檢表沒有這一列，
+  不觸發 P0 第 ① 條，勾稽表也比照查檢表外；前端顯示的錯誤只來自瀏覽器 API 時改判改寫即過；
+  Go 只漏 panic 路徑的資源釋放改判改寫即過；`DAST-HDR-002` 涵蓋內網 HTTPS；
+  TLS 在 repo 以外終結時列「待使用者執行」
+
 ## 0.3.0（2026-09-24）
 
 **建議更新**：`sec-audit` 的判定分類與優先序改變，`findings.md` 的排序會不同。

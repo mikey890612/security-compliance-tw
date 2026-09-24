@@ -51,9 +51,11 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 **只讀需要的段落。** 要更完整的說明（掃描器規則名稱、誤判處置、判定準則）
 再去 `{ROOT}/references/checks/`——但寫程式時通常不需要，速查就夠。
 
-撰寫 **狀態變更表單／伺服端代發 URL／檔案上傳** 時，
-`quick-patterns.md` 尚無 CSRF／SSRF／UPLOAD 速查——改讀
-`checks/sast-request-abuse.md`（一律；`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`；勿整份貼進規則檔）。
+撰寫 **狀態變更表單／伺服端代發 URL／檔案上傳／登入後導回** 時，
+`quick-patterns.md` 尚無 CSRF／SSRF／UPLOAD／Open Redirect 速查——改讀
+`checks/sast-request-abuse.md`（一律；`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`／`SAST-REDIRECT-001`；勿整份貼進規則檔）。
+**解析 XML、反序列化、自組回應標頭或 `Set-Cookie`** 時，讀 `checks/sast-injection.md` 的
+`SAST-INJ-005`～`007`；**新增或升級第三方套件** 時，讀 `checks/sast-dependencies.md`。
 
 撰寫 **iOS／Android 原生 App** 時，先用 `quick-patterns.md` 的四個行動端段落
 （儲存資料 / 連線 / 平台介面 / 身分鑑別）。速查沒涵蓋的情境才讀完整 check：
@@ -275,7 +277,7 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 
 `quick-patterns.md` 是從 `checks/` 萃取出「寫的當下能預防」的 43 則，
 Web／API／LLM 九段、行動端四段（儲存資料 / 連線 / 平台介面 / 身分鑑別）。
-尚未收入速查的：請求濫用（CSRF／SSRF／UPLOAD）、行動端密碼學與輸入驗證
+尚未收入速查的：請求濫用（CSRF／SSRF／UPLOAD／Open Redirect）、XXE／反序列化／標頭注入、第三方元件、行動端密碼學與輸入驗證
 （`mast-crypto.md`、`mast-code.md`）、F 類（`mast-resilience.md`）、MDM（`mdm-controls.md`）。
 兩者內容不一致時，**以 `checks/` 為準**——那是完整版。
 

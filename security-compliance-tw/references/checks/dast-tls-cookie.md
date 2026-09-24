@@ -550,5 +550,8 @@ ssl_prefer_server_ciphers on;
 真漏洞：程式碼中出現 `InsecureSkipVerify: true` 或等效的憑證驗證關閉，
 且該路徑會用於正式環境的對外連線。
 
+TLS 在 repo 以外的 LB／CDN 終結、程式碼裡看不到組態時，不判通過也不判不適用：
+列入 `findings.md` 的「待使用者執行」，附 `testssl.sh https://<主機>` 或 `sslyze <主機>:443`。
+
 通過：僅開放 TLS 1.2 與 1.3、加密套件為明列的 AEAD 套件；
 舊協定若因裝置相容性保留，已限縮在獨立端點且有汰換期限記錄在案。

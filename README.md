@@ -92,7 +92,7 @@ python3 security-compliance-tw/tools/validate_kb.py
 
 ```
 references/
-├── checks/              90 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
+├── checks/              95 則：怎麼偵測、怎麼修（不含任何法規或 OWASP 編號）
 ├── mapping.md           唯一對照表：check-id → 附表十 / OWASP / CWE
 ├── controls-appendix10.md   附表十查檢表全文與分級
 ├── controls-mas-v4.md   檢測基準 V4.0 的 65 條條號與標題
@@ -107,20 +107,21 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 清單改版時要修改全部檔案；集中對照則只需改一個檔。
 
 每則 check 固定五個小節：**掃描器怎麼標 / 壞味道 / 過關寫法 /
-常見誤判與處置 / 判定準則**。`SAST-` 類必須含 Go、Python、JavaScript 三種範例；
+常見誤判與處置 / 判定準則**。`SAST-` 類必須含 Go、Python、JavaScript 三種範例（看 manifest 與 lockfile 的 `SAST-DEP-001` 例外）；
 `MAST-` 類依平台要求 Kotlin／Swift；設定檔屬性必須以可複製的 xml／plist 圍籬呈現。
 以上由 `tools/validate_kb.py` 自動驗證，同時檢查 `checks/` 與 `mapping.md`
 的雙向對應。
 
-### 涵蓋範圍（90 則）
+### 涵蓋範圍（95 則）
 
-注入（含 XSS）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
-錯誤與例外 · **請求濫用**（`sast-request-abuse.md`：CSRF／SSRF／UPLOAD）·
+注入（含 XSS、XXE、反序列化、標頭注入）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
+錯誤與例外 · **請求濫用**（`sast-request-abuse.md`：CSRF／SSRF／UPLOAD／Open Redirect）·
+**第三方元件**（`sast-dependencies.md`：已知漏洞元件）·
 API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩 ·
 **行動端 MAST**（`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`、`mast-code.md`、`mast-resilience.md`）·
 **MDM／EMM／MAM**（`mdm-controls.md`）
 
-**伺服器與 Web 46 則**（含請求濫用 3 則）·**行動端 36 則**（七檔，依 MASVS 類別命名）·
+**伺服器與 Web 51 則**（含請求濫用 4 則）·**行動端 36 則**（七檔，依 MASVS 類別命名）·
 **MDM 8 則**（規格外的延伸，見下）。依 profile 勾選「有行動 App」「有 EMM／MDM／MAM」載入。
 
 行動端對照《行動應用 App 基本資安檢測基準》的條號與 L1／L2／L3 分級、

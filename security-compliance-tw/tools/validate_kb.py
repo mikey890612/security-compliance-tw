@@ -36,8 +36,17 @@ LANGS_BY_PLATFORM = {
 }
 
 
+# 個別 check 的例外：看的是 manifest／lockfile 而不是程式碼。硬要求 go/python/javascript
+# 會逼出把 go.mod 塞進 go 區塊的變形內容——與 MAST 設定檔類同一個理由。
+LANGS_BY_CHECK = {
+    "SAST-DEP-001": ["text"],
+}
+
+
 def required_langs(check_id, platform):
     """回傳該 check 必須具備的程式碼圍籬語言清單。"""
+    if check_id in LANGS_BY_CHECK:
+        return LANGS_BY_CHECK[check_id]
     prefix = check_id.split("-", 1)[0]
     if prefix != "MAST":
         return LANGS_BY_PREFIX.get(prefix, [])
@@ -354,6 +363,173 @@ def cross_validate(check_ids, mapping_rows):
             if platform not in LANGS_BY_PLATFORM:
                 errors.append(f"{cid}: 平台欄值無效 {platform!r}")
 
+    return errors
+
+
+# ── 分級欄與載入規則 ─────────────────────────────────────────────
+# 分級欄照附表十原文；profile.md 的載入表由分級欄推導。兩邊各改各的，
+# 就會出現「普級必查、卻只在中級才載入」這種整類漏檢——0.3.0 以前
+# sast-logging、sast-authz 都是這樣。
+
+GRADES = ("普", "中", "高")
+APPENDIX10_HEADING_RE = re.compile(r"^#{2,3} ", re.M)
+APPENDIX10_ITEM_RE = re.compile(r"^### (4(?:\.\d+)+) ")
+APPENDIX10_REF_RE = re.compile(r"4(?:\.\d+)+")
+
+
+def parse_appendix10_grades(path):
+    """controls-appendix10.md → {項次: 該項次所有條目分級的聯集}。"""
+    path = pathlib.Path(path)
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    starts = [m.start() for m in APPENDIX10_HEADING_RE.finditer(text)] + [len(text)]
+    sections = {}
+    for begin, end in zip(starts, starts[1:]):
+        block = text[begin:end]
+        m = APPENDIX10_ITEM_RE.match(block)
+        if not m:
+            continue
+        grades = set()
+        for line in block.splitlines():
+            if not line.strip().startswith("|"):
+                continue
+            cells = _cells(line)
+            if len(cells) < 4:
+                continue
+            grades |= {g for g, c in zip(GRADES, cells[-3:]) if "◎" in c}
+        sections[m.group(1)] = grades
+    return sections
+
+
+def _appendix10_grades_for(ref, sections):
+    """mapping 的項次（可比附表十細，如 4.5.3.1；或粗，如 4.1）→ 分級聯集。"""
+    hits = [
+        grades
+        for num, grades in sections.items()
+        if num == ref or ref.startswith(num + ".") or num.startswith(ref + ".")
+    ]
+    return set().union(*hits) if hits else None
+
+
+def validate_grades_vs_appendix10(mapping_rows, sections):
+    """Web 表的分級欄不得比附表十該項次的分級寬。
+
+    只能比到項次層級（項次下各條目分級不同時取聯集），所以是必要條件：
+    擋得住 LLM-003 標普級這種錯，擋不住同項次內選錯條目。
+    """
+    errors = []
+    for cid, row in mapping_rows.items():
+        if row.get("_schema") != "web":
+            continue
+        refs = APPENDIX10_REF_RE.findall(row.get("附表十", ""))
+        if not refs:
+            continue
+        marks = {g for g in GRADES if "◎" in row.get(g, "")}
+        allowed = set()
+        for ref in refs:
+            grades = _appendix10_grades_for(ref, sections)
+            if grades is None:
+                errors.append(f"{cid}: 附表十欄的 {ref} 不在 controls-appendix10.md")
+                grades = set(GRADES)
+            allowed |= grades
+        extra = [g for g in GRADES if g in marks - allowed]
+        if extra:
+            errors.append(
+                f"{cid}: 分級欄標了{'、'.join(extra)}，但附表十 {'／'.join(refs)} 沒有這個分級"
+                "——分級欄照附表十原文，掃描器會標的情況見 profile.md「逐則決定要不要查」"
+            )
+    return errors
+
+
+LOAD_TABLE_SECTION = "## check 集合選取規則"
+LOAD_TABLE_HEADER = ["條件", "載入"]
+LOAD_FILE_RE = re.compile(r"`checks/([a-z0-9-]+\.md)`")
+# 依專案特性才成立的檔：沒有登入就沒有 session 可查，與分級無關。
+TRAIT_GATED_FILES = frozenset(
+    {"sast-session-auth.md", "sast-api-authz.md", "sast-llm.md"}
+)
+ALWAYS = "一律"
+GRADE_CONDITIONS = {"中": ("分級 ≥ 中",), "高": ("分級 ≥ 中", "分級 = 高")}
+
+
+def parse_load_table(profile_path):
+    """profile.md 的載入表 → {檔名: [條件, ...]}。"""
+    path = pathlib.Path(profile_path)
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    start = text.find(LOAD_TABLE_SECTION)
+    if start < 0:
+        return {}
+    end = text.find("\n## ", start + len(LOAD_TABLE_SECTION))
+    table = {}
+    in_table = False
+    for line in text[start:end if end > 0 else len(text)].splitlines():
+        if not line.strip().startswith("|"):
+            in_table = False
+            continue
+        cells = _cells(line)
+        if cells == LOAD_TABLE_HEADER:
+            in_table = True
+            continue
+        if not in_table or _is_separator(cells) or len(cells) != 2:
+            continue
+        for name in LOAD_FILE_RE.findall(cells[1]):
+            table.setdefault(name, []).append(cells[0])
+    return table
+
+
+def validate_load_rules(load_table, checks, mapping_rows):
+    """每個 check 檔都要在載入表上；含普級 ◎ 的檔必須一律載入。"""
+    errors = []
+    by_file = collections.defaultdict(list)
+    for c in checks:
+        by_file[c.source].append(c.id)
+    for name in sorted(by_file):
+        conds = load_table.get(name)
+        if not conds:
+            errors.append(f"{name}: 未列在 profile.md 的載入表")
+            continue
+        if name in TRAIT_GATED_FILES or not name.startswith(("sast-", "dast-")):
+            continue
+        for grade in GRADES:
+            ids = [
+                cid for cid in by_file[name]
+                if "◎" in mapping_rows.get(cid, {}).get(grade, "")
+            ]
+            if not ids:
+                continue
+            accepted = GRADE_CONDITIONS.get(grade, ())
+            if not any(c == ALWAYS or any(a in c for a in accepted) for c in conds):
+                need = "「一律」" if grade == "普" else "「一律」或「分級 ≥ 中」"
+                errors.append(
+                    f"{name}: {'、'.join(ids)} 在{grade}級標 ◎，"
+                    f"但 profile.md 載入表沒有列為{need}——{grade}級專案會漏查"
+                )
+            break
+    return errors
+
+
+SKILL_COVERAGE_ROW_RE = re.compile(
+    r"^\|[^|\n]+\|\s*`((?:sast|dast|mast|mdm)-[a-z0-9-]+\.md)`\s*\|([^|\n]+)\|", re.M
+)
+
+
+def validate_skill_load_column(skill_path, load_table):
+    """sec-audit 涵蓋範圍表的「一律」必須與 profile.md 載入表一致。"""
+    path = pathlib.Path(skill_path)
+    if not path.exists() or not load_table:
+        return []
+    errors = []
+    for m in SKILL_COVERAGE_ROW_RE.finditer(path.read_text(encoding="utf-8")):
+        name, cond = m.group(1), m.group(2).strip()
+        in_profile = ALWAYS in load_table.get(name, [])
+        if in_profile != (cond == ALWAYS):
+            errors.append(
+                f"sec-audit SKILL.md: {name} 的載入條件寫「{cond}」，"
+                f"與 profile.md 載入表{'的「一律」' if in_profile else '（非一律）'}不一致"
+            )
     return errors
 
 
@@ -784,6 +960,14 @@ def main():
 
     errors += validate_mas_refs(
         mapping_rows, parse_mas_items(root / "controls-mas-v4.md")
+    )
+    errors += validate_grades_vs_appendix10(
+        mapping_rows, parse_appendix10_grades(root / "controls-appendix10.md")
+    )
+    load_table = parse_load_table(root / "profile.md")
+    errors += validate_load_rules(load_table, checks, mapping_rows)
+    errors += validate_skill_load_column(
+        plugin / "skills" / "sec-audit" / "SKILL.md", load_table
     )
     errors += validate_references(plugin)
     errors += validate_root_sections(plugin / "skills")

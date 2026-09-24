@@ -7,6 +7,7 @@
 | 2026-09-05 | semgrep | 1.176.1 | sast-injection (INJ-001 string-formatted-query, INJ-002 dangerous-exec-command, INJ-004 xss ResponseWriter) | sample-go+sample-multi: 8 findings; verified 3 rows; artifact `testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json` | 埕碩 許 |
 | 2026-09-07 | mobsfscan | 1.0.0（規則集內含 semgrep 66 檔） | mast-storage（STORAGE-002/003/004）、mast-crypto（CRYPTO-001/002）、mast-network（NETWORK-001/002）、mast-platform（PLATFORM-002/004/006/007/009）、mast-code（CODE-002）、mast-resilience（RESILIENCE-001/002/003） | sample-android：14 條 semgrep 命中 + 11 條 manifest／best-practice；sample-ios：5 + 6。verified 16 列。artifact `testdata/scan-artifacts/open-source/20260907T001858Z/` | 埕碩 許 |
 | 2026-09-24 | Fortify SCA | 26.1.0.0059（Rulepacks 2026.1.1.0001） | sast-request-abuse（UPLOAD-001、CSRF-001）、sast-errors（ERR-001）、sast-crypto（CRYPTO-001/002）、sast-injection（INJ-001）、sast-api-authz（API-002）、dast-tls-cookie（COOKIE-002） | 真實專案的內部報告（檢測日 2026-04-24；報告、路徑與程式碼不入庫）：Go／HTML／JS 專案 27 項 4 類、C# 專案 15 項 7 類。verified 4 列、partial 6 列。模式 2 反查模擬：校準前 42 項只精確對到 12 項，校準後 42 項全對到 | 埕碩 許 |
+| 2026-09-24 | semgrep／bandit／npm audit／pip-audit | semgrep 1.178.0（規則取自 GitHub semgrep-rules a84ff9c）；bandit 1.9.4；npm 10.9.7；pip-audit 2.10.1 | sast-injection（INJ-005/006）、sast-request-abuse（REDIRECT-001）、sast-dependencies（DEP-001） | sample-untrusted-data：semgrep 對 vulnerable.* 命中 12 項（另 1 項為無關的 CSRF 提示）、bandit 5 項；fixed.* 只剩 Go 的 open-redirect（污點規則認不得自寫檢查）。INJ-007 兩工具皆無規則命中。verified 12 列；artifact `testdata/scan-artifacts/open-source/20260924T115741Z/` | 埕碩 許 |
 
 ## 行動端驗證的執行方式與限制
 
@@ -57,3 +58,43 @@ Fortify／Checkmarx 等商用工具的行動端對照仍為未驗證，且本專
 
 **這份報告證明的是「規則名稱與觸發樣式」，不是「知識庫的判定正確」**——
 沒有原始碼，無法逐項確認真漏洞或誤判。
+
+
+## 0.4.0 新增 check 的實跑（2026-09-24）
+
+Fixture `testdata/sample-untrusted-data/` 每種語言各有一份 `vulnerable.*` 與 `fixed.*`，
+同時驗證「壞寫法會被標」與「過關寫法不再被標」。
+
+**semgrep 官方規則庫（semgrep.dev）在本次環境連不上**，改從 GitHub 取 `semgrep-rules`
+原始碼，以本機目錄執行：
+
+```bash
+R=/path/to/semgrep-rules
+semgrep --metrics=off --json -o semgrep.json \
+  --config $R/python/lang/security --config $R/python/flask/security \
+  --config $R/go/lang/security --config $R/javascript/express/security \
+  --config $R/javascript/lang/security testdata/sample-untrusted-data
+```
+
+本機執行時 `check_id` 帶有規則目錄的路徑前綴；各 check 證據欄寫的是去掉前綴後的部分
+（例如 `python.flask.security.open-redirect`）。
+
+| check | 壞寫法（vulnerable.*） | 過關寫法（fixed.*） |
+|---|---|---|
+| INJ-005 XXE | semgrep `use-defused-xml`、`express-libxml-noent`；bandit B405、B314 | 無命中 |
+| INJ-006 反序列化 | semgrep `avoid-pickle`、`avoid-pyyaml-load`、`insecure-deserialization`、`express-third-party-object-deserialization`、`go-unsafe-deserialization-interface`；bandit B403、B301、B506 | 無命中 |
+| INJ-007 標頭注入 | **無命中**（semgrep、bandit 皆無對應規則） | 無命中 |
+| REDIRECT-001 | semgrep 三語言規則皆命中 | Go 的污點規則仍命中（認不得 `safeNext`）；Python、JS 無命中 |
+
+**lxml：** `resolve_entities=True` 兩工具都不標——bandit 1.9 已移除 B320／B410。
+另以 lxml 4.9.4 與 5.0.0 實測：4.9.4 預設會讀入 `file:///etc/hostname`，5.0.0 起預設拒絕外部實體。
+
+**標頭注入的框架行為**（Go 1.24、Werkzeug 3.1.8、Node 22）：CR/LF 分別被換成空白、丟 `ValueError`、
+丟 `ERR_INVALID_CHAR`；以字串自組的 `Set-Cookie` 帶 `; Domain=evil.example` 三者都原樣送出。
+
+**DEP-001：** 為避免公開 repo 觸發 Dependabot 警報，含已知漏洞版本的 manifest **不入庫**，
+只放在 artifact 目錄（`deps-probe-requirements.txt` 為 `PyYAML==5.3`，`deps-probe-package.json` 為
+`lodash` `4.17.15`）。`pip-audit` 報出 `PYSEC-2020-96` 等 4 項；`npm audit` 報出 `lodash` high。
+`govulncheck` 的漏洞資料庫（vuln.go.dev）在本次環境連不上，維持 `unverified`。
+
+商用工具的新增列一律 `unverified`；Checkmarx 只收有把握存在的名稱，沒把握的不列。

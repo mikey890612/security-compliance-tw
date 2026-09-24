@@ -45,7 +45,8 @@
 
 ## 分級的實質差異
 
-以下項目**僅高等級要求**。普 / 中等級不應報告，否則產生大量不適用雜訊：
+以下項目**僅高等級要求**。普 / 中等級不應報告，否則產生大量不適用雜訊
+（掃描器會標的例外，見下方「逐則決定要不要查」）：
 
 - 多重因素身分鑑別
 - 資訊系統備援採高可用性架構
@@ -79,21 +80,52 @@
 
 ## check 集合選取規則
 
+**本表由 `mapping.md` 的分級欄推導**：檔內只要有一則在某分級標 ◎，該分級就要載入這個檔——
+那一則是查檢表必查，漏載等於漏查。依專案特性才成立的檔（登入、API、LLM、行動端、MDM）
+看特性，不看分級。驗證器會檢查本表與分級欄一致。
+
 | 條件 | 載入 |
 |---|---|
 | 一律 | `checks/sast-injection.md` |
 | 一律 | `checks/sast-errors.md` |
 | 一律 | `checks/sast-request-abuse.md` |
-| 對外服務 = 是 | `checks/dast-headers.md`、`checks/dast-tls-cookie.md`、`checks/dast-info-leak.md` |
-| 分級 ≥ 中 | `checks/sast-authz.md`、`checks/sast-crypto.md` |
+| 一律 | `checks/sast-dependencies.md` |
+| 一律 | `checks/sast-authz.md` |
+| 一律 | `checks/sast-logging.md` |
+| 一律 | `checks/dast-tls-cookie.md` |
+| 一律 | `checks/dast-info-leak.md` |
+| 分級 ≥ 中，或有個資或金流，或將面對 SAST | `checks/sast-crypto.md` |
+| 分級 ≥ 中，或對外服務，或將面對 DAST | `checks/dast-headers.md` |
 | 有登入功能 | `checks/sast-session-auth.md` |
 | 有 API 端點 | `checks/sast-api-authz.md` |
 | 有 LLM / RAG / Agent | `checks/sast-llm.md` |
-| 有個資或金流 | `checks/sast-logging.md`、`checks/sast-crypto.md` |
 | 有行動 App | `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md` |
 | 有 EMM／MDM／MAM | `checks/mdm-controls.md` |
 | 行動 App **且**勾選 F 類加測 | `checks/mast-resilience.md` |
-| 將面對商用 SAST（Fortify／Checkmarx） | `checks/dast-tls-cookie.md`——Cookie 屬性寫在原始碼裡，SAST 不管服務是否對外都會標 |
+
+第 3 題的答案對應如下。**勾「不知道」視為各類都會面對**——附表十 4.5.4 普中高都要求弱點掃描，
+送驗收幾乎一定會被掃。
+
+| 第 3 題勾選 | 將面對 | 對應「掃描器怎麼標」表的工具 |
+|---|---|---|
+| 商用 SAST | SAST | Fortify、Checkmarx |
+| 開源 SAST | SAST | Semgrep、SonarQube、CodeQL、gosec、bandit |
+| DAST／弱點掃描 | DAST | AWVS、Nessus、ZAP、WebInspect |
+| 不知道 | SAST 與 DAST | 全部 |
+
+### 逐則決定要不要查
+
+載入的是整個檔，但檔內每一則是否適用本專案，逐則判斷：
+
+| 情況 | 處理 |
+|---|---|
+| 本分級在 `mapping.md` 標 ◎ | 查——查檢表必查 |
+| 未標 ◎，但該 check 的「掃描器怎麼標」表列了本專案將面對的工具（不論狀態） | 查——掃描器不看分級，照樣會標 |
+| 兩者皆否 | 不適用，不列 |
+
+例：分級「中」的專案，`SAST-CRYPTO-001`（弱演算法）附表十只要求高，但 Fortify、gosec、bandit
+都會標 MD5，所以照樣查；優先序依下方規則，不因此變成查檢表必查。
+行動端 check 看 L1／L2／L3／F 欄，不適用本節。
 
 **程式碼看得出來的特性，以較寬的一方為準。** 使用者答「否」、但程式碼明顯具備時照樣載入，
 並在 `findings.md` 開頭寫明「使用者未勾選，但程式碼可見 X（位置），因此載入 Y」：
@@ -159,7 +191,7 @@ manifest 只是捷徑：**專案裡有該語言的原始檔就算**，掃描器�
 
 | 優先序 | 條件 |
 |---|---|
-| **P0** | 真漏洞，且符合任一：① 查檢表必查——`mapping.md` 該 check 的附表十欄有項次（不是「查檢表外」），且本專案分級欄標 ◎（列在 `mapping.md`「刻意放寬分級之處」的 check，改以該節的附表十原文分級判斷——放寬只為了載入，不代表查檢表必查）；行動端看推導出的 L1／L2／L3 欄，勾了 F 類加測再看 F 欄 ② 掃描器確定會標為 Critical／High——模式 2 看**報告上的等級**；模式 1 只看 **`verified` 列**的等級 |
+| **P0** | 真漏洞，且符合任一：① 查檢表必查——`mapping.md` 該 check 的附表十欄有項次（不是「查檢表外」，也不是標「（內文）」的指引內文項目），且本專案分級欄標 ◎；行動端看推導出的 L1／L2／L3 欄，勾了 F 類加測再看 F 欄 ② 掃描器確定會標為 Critical／High——模式 2 看**報告上的等級**；模式 1 只看 **`verified` 列**的等級 |
 | **P1** | 其他真漏洞 |
 | **P2** | 改寫即過 |
 | — | 誤判：不排序，列為「送掃前備妥的佐證」。不適用：不列 |

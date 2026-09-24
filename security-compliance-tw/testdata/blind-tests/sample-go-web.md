@@ -18,7 +18,7 @@ fixture 不含該專案的任何程式碼或內容。
 | 2 | `templates/import.html:15` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上 |
 | 3 | `templates/attachment.html:15` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上 |
 | 4 | `templates/attachment.html:22` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上（`/editor/images`） |
-| 5 | `static/js/app.js:7` | System Information Leak: External | Medium | SAST-ERR-001 | 真漏洞：錯誤物件寫進 DOM，改顯示常數訊息 |
+| 5 | `static/js/app.js:7` | System Information Leak: External | Medium | SAST-ERR-001 | 0.4.0 起：改寫即過——錯誤來自瀏覽器剪貼簿 API，不含伺服器資訊；改顯示常數訊息（0.3.0 以前判真漏洞） |
 | 6 | `static/vendor/richedit/richedit.js:41` | System Information Leak: External | Medium | SAST-ERR-001 | 第三方。0.3.0 起：伺服器錯誤回應皆為常數，判誤判；可另以 `settings.uploader` 覆寫，不改套件檔 |
 | 7 | `static/vendor/richedit/richedit.js:12` | Cross-Site Request Forgery | Low | SAST-CSRF-001 | 誤判：接收端 `withCSRF` 驗 `X-CSRF-Token` |
 | 8 | `events.go:29` | Weak Cryptographic Hash | Low | SAST-CRYPTO-001 | 真漏洞：校驗碼離開行程，改 SHA-256 |
@@ -60,6 +60,24 @@ fixture 不含該專案的任何程式碼或內容。
 0.1.0 與 0.2.0 兩次都另外找到 fixture 裡的真問題：所有路由沒有身分鑑別（SAST-AUTHZ-001）、
 沒有稽核紀錄（SAST-LOG-003）；0.2.0 那次還指出 CSRF 中介層先解析了整個
 multipart 本體，使上傳 handler 的大小上限對表單路徑失效。
+
+### 0.4.0（載入規則改由分級欄推導，新增 5 則）
+
+第五個全新子代理：**標準答案仍 8／8**。新規則照設計運作——
+
+- 一律載入的 `sast-authz`、`sast-logging`、`dast-info-leak`、`sast-dependencies` 都有載入；
+  `dast-headers` 依「分級 ≥ 中」載入
+- `SAST-CRYPTO-001` 在「中」不標 ◎，但表上有 Fortify，依「逐則決定要不要查」照樣檢查，排 P1
+- `findings.md` 開頭出現「待使用者執行」：Go toolchain 的 `govulncheck`、內附 JS 的元件比對，
+  以及 TLS 在 repo 以外終結時的 TLS 端點檢查
+- 新發現：樣板引用 `/static/vendor/jquery/jquery.min.js`，repo 裡卻沒有這個檔——
+  版本無從評估，判 `SAST-DEP-001` 真漏洞
+
+它回報的疑點裡，七處在發布前修正：`4.5.3.4` 是指引內文、查檢表沒有這一列，不再觸發 P0 第 ① 條；
+`DAST-HDR-002` 涵蓋內網 HTTPS；「待使用者執行」涵蓋程式碼以外的設定；前端錯誤依來源分
+（只來自瀏覽器 API 的改判改寫即過，#5 隨之改變）；`SAST-ERR-003` 的 Go panic 路徑改判改寫即過；
+請求解析產生的錯誤物件視為外部輸入；`SAST-DEP-001` 補上「頁面引用、repo 裡沒有」與 retire.js。
+另外 `sast-dependencies.md` 的範例曾用了與本 fixture 內附套件相同的名稱，已改成佔位符。
 
 **限制：** fixture 與 0.2.0 的校準來自同一份報告，所以這證明的是「校準確實傳到了模式 1」，
 不是「模式 1 在任意專案上都準」。真實專案的盲測仍待做。

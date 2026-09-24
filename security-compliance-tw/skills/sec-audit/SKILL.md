@@ -34,7 +34,7 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 | **真漏洞** | 風險存在。灰色地帶一律歸此 | P0／P1，見 `profile.md` |
 | **改寫即過** | 實質安全，但寫法會被標，且**換成掃描器認得的寫法後就不再被標**。check 的處置寫了改寫方式（「改寫比寫誤判說明省事」）的情況一律歸此，**不要判誤判**。改完仍會被標的（例如自訂的消毒函式），判誤判 | P2 |
 | **誤判** | 符合上方兩點，且不需要改程式碼 | 不排序，列為送掃前要備妥的佐證 |
-| **不適用** | 該 check 的前提不成立（例如沒有對外 TLS） | 不列 |
+| **不適用** | 該 check 的前提不成立（例如專案沒有任何檔案上傳） | 不列 |
 
 第三方套件（`vendor/` 等）的發現同樣歸入這四類：風險已被接收端或伺服器端的控制消除的，判誤判；
 風險真實存在的，判真漏洞，修法依 `{ROOT}/references/scanners.md` 的「第三方程式碼的發現」（升級或設定覆寫，不改套件檔）。
@@ -55,6 +55,8 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
    （例如有 `.js`／`.html` 但沒有 `package.json`）
 3. **選定 check 集合**——依 `profile.md` 的選取規則決定載入哪些 `checks/*.md`。
    **只載入需要的檔案**，這是控制 context 的關鍵。載入前先確認檔案存在。
+   載入的檔裡**逐則**依 `profile.md` 的「逐則決定要不要查」判斷：本分級沒要求、
+   使用者將面對的掃描器也不會標的，歸不適用。
    Profile 複選若勾「**有行動 App**」→ 載入 `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md`；
    另勾「**將送 F 類加測**」才載入 `checks/mast-resilience.md`；
    勾「**有 EMM／MDM／MAM**」→ 載入 `checks/mdm-controls.md`（含 LOCK／JAIL／PATCH／VPN／MTD；規則見 `profile.md`，勿複製 check 全文）
@@ -95,9 +97,13 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 寫入專案根目錄的 `security-audit/`：
 
 - `findings.md`——逐項：check-id / 檔案位置 / 判定（四類之一）/ 優先序 / 預期或實際的掃描器規則 / 處置。
-  依 P0、P1、P2 排列；人工審查項也排進去，不另立「表外」
+  依 P0、P1、P2 排列；人工審查項也排進去，不另立「表外」。
+  需要使用者先執行工具、或提供程式碼以外的設定才能判定的（例如 `SAST-DEP-001` 的元件比對、
+  TLS 在 repo 以外的 LB 終結時的 `DAST-TLS-001`），不歸入四類，列在開頭的「**待使用者執行**」，
+  附要跑的指令或要提供的設定；使用者提供後再判定
 - `false-positives.md`——供複掃與人工審查使用，分兩段：
-  - **誤判**：判定為誤判的項目與佐證。對照為 `unverified` 的規則也要預先列出「可能被標」的項目，註明規則名待確認
+  - **誤判**：判定為誤判的項目與佐證。對照為 `unverified` 的規則也要預先列出「可能被標」的項目，註明規則名待確認——
+    只列壞味道樣式在程式碼中實際命中、且資料來源追得到的位置
   - **已知風險接受**：判定仍是真漏洞、但受外部限制無法修的項目（例如對方系統只收 MD5），附限制的出處。
     這不是第五類判定，findings 裡照樣列為真漏洞
 
@@ -153,6 +159,8 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 3. **禁止捏造** Fortify、Checkmarx、AWVS、WebInspect、Nessus 等商用規則 ID；表上沒有就寫「知識庫尚無已驗證對照」
 4. 模式 2 命中 `unverified` 列時，findings 必須註明「**規則名待真實報告確認**」
 5. **`unverified` 列的等級不參與優先序**——寫成「可能被標，等級待確認」
+6. 一列並列多個子類別時（例如 `Cross-Site Scripting: Reflected / Persistent / DOM`），
+   模式 1 照原文整列引用，**不要自行挑一個當成預測**
 
 操作與回填流程：
 
@@ -163,22 +171,23 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-90 則 check，20 個檔：
+95 則 check，21 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
-| 注入 | `sast-injection.md` | 一律 |
-| 存取控制 | `sast-authz.md` | 分級 ≥ 中 |
+| 注入（含 XXE、反序列化、標頭注入） | `sast-injection.md` | 一律 |
+| 存取控制 | `sast-authz.md` | 一律 |
 | 身分鑑別與 Session | `sast-session-auth.md` | 有登入功能 |
-| 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流 |
-| 日誌與稽核 | `sast-logging.md` | 有個資或金流 |
+| 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流／將面對 SAST |
+| 日誌與稽核 | `sast-logging.md` | 一律 |
 | 錯誤與例外 | `sast-errors.md` | 一律 |
-| 請求濫用（CSRF／SSRF／上傳） | `sast-request-abuse.md` | 一律 |
+| 請求濫用（CSRF／SSRF／上傳／Open Redirect） | `sast-request-abuse.md` | 一律 |
+| 第三方元件（已知漏洞） | `sast-dependencies.md` | 一律 |
 | API 授權 | `sast-api-authz.md` | 有 API 端點 |
 | LLM / Agent | `sast-llm.md` | 有 LLM／RAG／Agent |
-| HTTP 安全標頭 | `dast-headers.md` | 對外服務 |
-| TLS 與 Cookie | `dast-tls-cookie.md` | 對外服務 |
-| 資訊外洩 | `dast-info-leak.md` | 對外服務 |
+| HTTP 安全標頭 | `dast-headers.md` | 分級 ≥ 中／對外服務／將面對 DAST |
+| TLS 與 Cookie | `dast-tls-cookie.md` | 一律 |
+| 資訊外洩 | `dast-info-leak.md` | 一律 |
 | MAST 本機儲存／日誌／備份 | `mast-storage.md` | **有行動 App** |
 | MAST 密碼學 | `mast-crypto.md` | **有行動 App** |
 | MAST 網路與憑證釘選 | `mast-network.md` | **有行動 App** |

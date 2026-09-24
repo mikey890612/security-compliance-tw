@@ -1,9 +1,9 @@
-# SAST：請求濫用（CSRF／SSRF／不安全上傳）
+# SAST：請求濫用（CSRF／SSRF／不安全上傳／Open Redirect）
 
 本檔不含法規或 OWASP 編號。對照關係一律查 `../mapping.md`。
 
-這三則的共同點是：**伺服端代使用者發出或接受「有副作用的請求／資源」**，
-卻沒有把來源或內容限制在可驗證的範圍內。Cookie 的 `SameSite`、路徑尋訪讀檔、
+這四則的共同點是：**伺服端代使用者發出、接受或指示「有副作用的請求／資源」**，
+卻沒有把來源、內容或目的地限制在可驗證的範圍內。Cookie 的 `SameSite`、路徑尋訪讀檔、
 儲存型 XSS 輸出跳脫，分別見 `dast-tls-cookie.md`、`sast-injection.md`，
 不在本檔重複。
 
@@ -509,3 +509,117 @@ app.post("/upload", upload.single("file"), (req, res) => {
 
 灰色地帶——**一律當真漏洞修**：只信 `Content-Type` 標頭；或允許清單含
 `.html`／`.svg`／腳本副檔名卻仍從同源靜態目錄提供下載。
+
+---
+
+## SAST-REDIRECT-001 · 未驗證的重新導向（Open Redirect）
+
+### 掃描器怎麼標
+
+| 工具 | 規則 | 預設等級 | 狀態 | 證據 |
+|---|---|---|---|---|
+| Fortify | Open Redirect | Medium | unverified | — |
+| Semgrep | `python.flask.security.open-redirect`（語法比對：`redirect()` 參數裡直接出現 `request`） | ERROR | verified | testdata/scan-artifacts/open-source/20260924T115741Z/semgrep.json#rule=python.flask.security.open-redirect（見 `references/scanner-verification-log.md`） |
+| Semgrep | `javascript.express.security.audit.express-open-redirect` | WARNING | verified | testdata/scan-artifacts/open-source/20260924T115741Z/semgrep.json#rule=javascript.express.security.audit.express-open-redirect（見 `references/scanner-verification-log.md`） |
+| Semgrep | `go.lang.security.injection.open-redirect`（污點規則，認不得自寫的檢查函式） | WARNING | verified | testdata/scan-artifacts/open-source/20260924T115741Z/semgrep.json#rule=go.lang.security.injection.open-redirect（見 `references/scanner-verification-log.md`） |
+| SonarQube | S5146 | — | unverified | — |
+| CodeQL | `py/url-redirection`、`go/unvalidated-url-redirection`、`js/server-side-unvalidated-url-redirection` | — | unverified | — |
+| AWVS / ZAP | Open redirection / External Redirect | Medium | unverified | — |
+
+### 壞味道
+
+登入後導回、登出後導向、`?next=`／`?returnUrl=`／`?redirect=` 參數直接交給 redirect：
+
+```go
+next := r.URL.Query().Get("next")
+http.Redirect(w, r, next, http.StatusFound)
+```
+
+```python
+@app.route("/login/done")
+def login_done():
+    return redirect(request.args.get("next", "/"))
+```
+
+```javascript
+app.get("/login/done", function (req, res) {
+  res.redirect(req.query.next);
+});
+```
+
+攻擊者把 `next` 設成外站，受害者點的是真網址、落地卻在仿冒登入頁——釣魚最常用的跳板。
+
+### 過關寫法
+
+只接受**站內相對路徑**；其餘一律導回首頁。要導到外站時，用**代號對照表**，不要收 URL。
+注意 `//evil.example`（協定相對）與 `/\evil.example`（瀏覽器會把反斜線當成 `/`）都要擋。
+
+```go
+func safeNext(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "" || u.Host != "" ||
+		!strings.HasPrefix(u.Path, "/") || strings.HasPrefix(raw, "//") || strings.Contains(raw, "\\") {
+		return "/"
+	}
+	return u.RequestURI()
+}
+
+http.Redirect(w, r, safeNext(r.URL.Query().Get("next")), http.StatusFound)
+```
+
+```python
+from urllib.parse import urlsplit
+
+
+def safe_next(raw):
+    parts = urlsplit(raw or "")
+    if parts.scheme or parts.netloc or not parts.path.startswith("/") or raw.startswith("//") or "\\" in raw:
+        return "/"
+    return raw
+
+
+@app.route("/login/done")
+def login_done():
+    target = safe_next(request.args.get("next", "/"))
+    return redirect(target)
+```
+
+```javascript
+function safeNext(raw) {
+  if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
+    return "/";
+  }
+  const u = new URL(raw, "http://placeholder.invalid");
+  return u.origin === "http://placeholder.invalid" ? u.pathname + u.search : "/";
+}
+
+app.get("/login/done", function (req, res) {
+  res.redirect(safeNext(req.query.next));
+});
+```
+
+實測（見 `references/scanner-verification-log.md`）：Python 與 JS 的寫法 semgrep 都不再標；
+Go 的污點規則仍會標——見下方誤判處置。
+
+### 常見誤判與處置
+
+- **已過站內路徑檢查，污點規則仍標**——semgrep 的 Go 規則與 Fortify 都追資料流，
+  認不得自寫的檢查函式。處置：判誤判，佐證寫明檢查函式位置、拒絕分支，
+  最好附上對 `//evil.example`、`/\evil.example`、`https://evil.example` 都導回 `/` 的測試。
+
+- **semgrep 的 Go 規則對「固定網址前綴 + 輸入」不標**——例如
+  `"https://app.example.gov.tw" + next`。**這不是過關寫法**：`next` 為 `@evil.example` 時，
+  整串會被解析成主機 `evil.example`。要用固定前綴，前綴必須以 `/` 結尾，且 `next` 仍要過站內路徑檢查。
+
+- **導向目標來自程式內常數或代號對照表**——處置：判誤判，佐證附對照表位置；
+  查不到代號時必須導回預設頁，不能 fallback 成原輸入。
+
+### 判定準則
+
+真漏洞：外部可控的值成為重新導向目標（`Location` 標頭、`redirect()`、`<meta refresh>`、
+前端 `location.href`），且未限制為站內相對路徑或對照表。
+
+誤判：目標經站內路徑檢查或代號對照表，且拒絕時導回固定頁，有函式位置為證。
+
+灰色地帶——**一律當真漏洞修**：只檢查「開頭是 `/`」而沒擋 `//` 與反斜線；
+或用字串包含（`"example.gov.tw" in url`）判斷網域——`evil.example/?example.gov.tw` 就能通過。
