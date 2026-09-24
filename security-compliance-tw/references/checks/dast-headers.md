@@ -102,11 +102,11 @@ app.use(helmet.contentSecurityPolicy({
 
 ### 判定準則
 
-真問題：任何會回傳 HTML 的路徑，其回應缺少 `Content-Security-Policy`。
+真漏洞：任何會回傳 HTML 的路徑，其回應缺少 `Content-Security-Policy`。
 
-真問題：CSP 存在但 `default-src` 未定義，或 `script-src` 含 `*` 萬用來源。
+真漏洞：CSP 存在但 `default-src` 未定義，或 `script-src` 含 `*` 萬用來源。
 
-可接受：CSP 完整定義四項核心指令，`'unsafe-inline'` 僅出現在
+通過：CSP 完整定義四項核心指令，`'unsafe-inline'` 僅出現在
 `style-src` 且有架構原因記錄在案。
 
 ---
@@ -171,7 +171,7 @@ app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 
 ### 判定準則
 
-真問題：對外提供 HTTPS 服務，但回應缺少 HSTS 或 `max-age` 小於 31536000。
+真漏洞：對外提供 HTTPS 服務，但回應缺少 HSTS 或 `max-age` 小於 31536000。
 
 誤判：純內網 HTTP 服務，且無對外路徑。
 
@@ -245,8 +245,8 @@ app.use(helmet.contentSecurityPolicy({
 
 ### 判定準則
 
-真問題：回傳 HTML 的路徑同時缺少 `X-Frame-Options` 與 CSP `frame-ancestors`。
+真漏洞：回傳 HTML 的路徑同時缺少 `X-Frame-Options` 與 CSP `frame-ancestors`。
 
-真問題：使用 `X-Frame-Options: ALLOW-FROM`（已廢棄，無效）。
+真漏洞：使用 `X-Frame-Options: ALLOW-FROM`（已廢棄，無效）。
 
 誤判：已設 `frame-ancestors` 且明列允許來源，僅因工具版本舊而被標記。

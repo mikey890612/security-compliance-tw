@@ -19,7 +19,7 @@ fixture 不含該專案的任何程式碼或內容。
 | 3 | `templates/attachment.html:15` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上 |
 | 4 | `templates/attachment.html:22` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上（`/editor/images`） |
 | 5 | `static/js/app.js:7` | System Information Leak: External | Medium | SAST-ERR-001 | 真漏洞：錯誤物件寫進 DOM，改顯示常數訊息 |
-| 6 | `static/vendor/richedit/richedit.js:41` | System Information Leak: External | Medium | SAST-ERR-001 | 第三方：以 `settings.uploader` 覆寫，不改套件檔 |
+| 6 | `static/vendor/richedit/richedit.js:41` | System Information Leak: External | Medium | SAST-ERR-001 | 第三方。0.3.0 起：伺服器錯誤回應皆為常數，判誤判；可另以 `settings.uploader` 覆寫，不改套件檔 |
 | 7 | `static/vendor/richedit/richedit.js:12` | Cross-Site Request Forgery | Low | SAST-CSRF-001 | 誤判：接收端 `withCSRF` 驗 `X-CSRF-Token` |
 | 8 | `events.go:29` | Weak Cryptographic Hash | Low | SAST-CRYPTO-001 | 真漏洞：校驗碼離開行程，改 SHA-256 |
 
@@ -36,7 +36,28 @@ fixture 不含該專案的任何程式碼或內容。
 | 前端錯誤外洩 #5–6 | 判 SAST-ERR-001「通過」——只看伺服器端 | 全中；#6 依第三方處置 |
 | #8 的優先序 | P0（表上 Critical–High） | P3（Low，與實際報告一致） |
 
-兩次都另外找到 fixture 裡的真問題：所有路由沒有身分鑑別（SAST-AUTHZ-001）、
+### 0.3.0（四類判定與新優先序）
+
+同一份 fixture、同樣的 profile，第三個全新子代理：**標準答案仍 8／8**，且分類與優先序照新規則走——
+
+| 項目 | 判定 | 優先序 |
+|---|---|---|
+| 所有路由沒有身分鑑別（SAST-AUTHZ-001）、沒有稽核紀錄（SAST-LOG-003） | 真漏洞 | **P0**（不再列「表外」） |
+| #5 前端錯誤寫進頁面 | 真漏洞 | P0（附表十 4.5.3.2，普中高皆要求） |
+| #8 md5 校驗碼 | 真漏洞 | P1——CRYPTO-001 的「中」是 `mapping.md` 刻意放寬，附表十原文只要求高 |
+| `_ = dst.Close()`（刪除殘檔前的清理） | 改寫即過 | P2 |
+| #1–4、#6、#7 | 誤判 | 列為送掃前佐證 |
+| unverified 列 | — | 一律寫「可能被標，等級待確認」，不參與排序 |
+
+它另外指出的疑點（登入判定誤把 CSRF cookie 算進去、profile 答案與程式碼事實不一致、
+技術棧只看 manifest、放寬分級與 P0 條件的衝突、完全沒有身分鑑別該歸哪則）都已在 0.3.0 修正。
+
+第四次（套用載入規則的修正後）：仍 8／8。未勾 API 但程式碼有回 JSON 的端點 → 載入 `sast-api-authz`
+並在 findings 開頭寫明；面對商用 SAST → 載入 `dast-tls-cookie`；有 `.js`／`.html` 沒有 `package.json`
+→ JS 納入；CSRF cookie 不算登入。它另以一支小程式實測，確認 fixture 的 Log Forging 為真
+（CR 與 ESC 會原樣進入日誌），P0 的判定正確。
+
+0.1.0 與 0.2.0 兩次都另外找到 fixture 裡的真問題：所有路由沒有身分鑑別（SAST-AUTHZ-001）、
 沒有稽核紀錄（SAST-LOG-003）；0.2.0 那次還指出 CSRF 中介層先解析了整個
 multipart 本體，使上傳 handler 的大小上限對表單路徑失效。
 

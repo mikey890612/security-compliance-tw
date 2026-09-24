@@ -132,8 +132,8 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 
 ### 常見誤判與處置
 
-- **MD5 用於非安全用途**——快取鍵、檔案去重、ETag、分片雜湊、
-  第三方 API 要求的簽章格式。gosec G401、bandit B303/B324 與 Fortify 的
+- **MD5 用於非安全用途**——快取鍵、檔案去重、ETag、分片雜湊。
+  （對方系統**規定**要 MD5 的，見下一條。）gosec G401、bandit B303/B324 與 Fortify 的
   Weak Cryptographic Hash 都不看用途，一律報。
   處置：**優先改寫**。Go 換 `hash/fnv` 或 `maphash`，Python 換
   `hashlib.blake2b`，JavaScript 換 SHA-256 截短——換掉比申報誤判快。
@@ -142,7 +142,8 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 
 - **與外部系統的相容性需求**——對方只收 MD5 簽章或 3DES 加密（常見於
   舊金流、政府介接、傳真閘道）。
-  處置：這是真實限制不是誤判。在 `false-positives.md` 記錄為已知風險接受，
+  處置：這是真實限制不是誤判——判定仍是**真漏洞**，處置寫「已知風險接受」，
+  記在 `false-positives.md` 的「已知風險接受」段（與誤判分開），
   佐證附上對方介接規格的段落，並把該演算法**限縮在單一 adapter 檔案**內，
   避免掃描面擴散到整個程式庫。
 
@@ -162,8 +163,9 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 
 真漏洞：加密使用 ECB 模式（含未指定模式而套件預設為 ECB），無論演算法強度。
 
-誤判：弱雜湊的輸出僅用於效能最佳化（快取鍵、分桶、去重），
-且輸出不參與任何存取控制或完整性判斷。
+改寫即過：弱雜湊的輸出僅用於效能最佳化（快取鍵、分桶、去重），
+且輸出不參與任何存取控制或完整性判斷——掃描器不看用途照報，換成上方處置列的
+非密碼學雜湊即可。
 
 灰色地帶——**一律當真漏洞修**：用途說不清楚、或雜湊值會離開行程邊界
 （寫入資料庫、回傳給前端、送往其他服務）。

@@ -129,7 +129,7 @@ app.use(session({ secret: mustEnv("SESSION_SECRET") }));
   不看檔案是否為測試檔，必然誤報。
   處置：優先讓測試資料在執行期產生（隨機字串或測試專用環境變數）。
   無法改時用 `//nosec G101` / `# nosec B105` 行內抑制並註明原因，
-  **不要在設定檔整條停用規則**——那會連正式碼的真問題一起放掉。
+  **不要在設定檔整條停用規則**——那會連正式碼的真漏洞一起放掉。
 
 - **變數名含關鍵字但值不是秘密**——如 `passwordPolicyURL = "https://.../policy"`、
   `tokenEndpoint = "https://idp.example.gov.tw/token"`、
