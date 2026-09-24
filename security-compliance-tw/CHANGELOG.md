@@ -24,7 +24,8 @@
 - 修正安裝後會失效的文件連結，以及多處過期的則數與條數
 
 維護者：`tools/validate_kb.py` 新增文件數字、路徑、check 檔登錄、ROOT 段落、
-版本與本檔的一致性檢查；新增 `testdata/sample-go-web`。
+版本與本檔的一致性檢查；新增 `testdata/sample-go-web` 與盲測紀錄
+（`testdata/blind-tests/`：模式 1 預判命中 2／8 → 8／8）；CI。
 
 ## 0.1.0（2026-09-07）
 

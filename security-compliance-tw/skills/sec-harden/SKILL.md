@@ -22,7 +22,7 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 
 1. 若環境變數 `SECURITY_COMPLIANCE_TW_ROOT` 已設定 → 用它
 2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
-3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
+3. 否則 fallback：本 `SKILL.md` **所在目錄**往上兩層（`skills/<name>/../..`；仍在 clone 裡開發時才成立）
 
 三者都找不到 `references/` 時，停下來請使用者執行 repo 的 `install.sh`——
 **不要憑印象作答**，本 skill 的價值在於答案來自知識庫。
