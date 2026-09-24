@@ -14,7 +14,8 @@ Go／Python／JavaScript 程式。
 | npm audit | 依 advisory 逐項列出（`GHSA-…`） | 依 advisory（critical／high／moderate／low） | verified | testdata/scan-artifacts/open-source/20260924T115741Z/npm-audit.json#advisory=GHSA-35jh-r3h4-6jhm（暫存 lockfile，見 `references/scanner-verification-log.md`） |
 | pip-audit | 依 advisory 逐項列出（`PYSEC-…`／`GHSA-…`），附修補版本 | —（不給等級） | verified | testdata/scan-artifacts/open-source/20260924T115741Z/pip-audit.json#id=PYSEC-2020-96（暫存 requirements，見 `references/scanner-verification-log.md`） |
 | govulncheck | 依 Go 漏洞資料庫逐項列出（`GO-…`），區分「有呼叫到」與「只有匯入」 | — | unverified | — |
-| OWASP Dependency-Check | 依 CVE 逐項列出 | 依 CVSS | unverified | — |
+| OWASP Dependency-Check | 依 CVE 逐項列出（也能掃沒有 manifest 的目錄） | 依 CVSS | unverified | — |
+| retire.js | 依已知漏洞 JS 函式庫資料庫比對內附檔（不需要 `package.json`） | 依 advisory | unverified | — |
 | AWVS | Vulnerable JavaScript libraries | 依 CVE | unverified | — |
 | ZAP | Vulnerable JS Library | Medium | unverified | — |
 | Nessus | 依產品與版本比對的個別 plugin（網頁伺服器、框架、執行環境） | 依 CVSS | unverified | — |
@@ -56,6 +57,12 @@ static/vendor/legacy-widget.js     從舊專案複製，檔頭沒有版本
 static/js/editor.min.js            壓縮檔，改過內容，不知道原本是哪一版
 ```
 
+頁面有引用、repo 裡卻沒有的第三方檔——部署時才另外放上去，從 repo 無從得知版本：
+
+```text
+<script src="/static/vendor/somelib/somelib.min.js"></script>   ← static/vendor/somelib/ 不存在
+```
+
 Go 模組天生鎖版（`go.mod` 加 `go.sum`），壞味道多半是 `replace` 指到本機目錄的分叉版本——
 上游的修補不會自動進來：
 
@@ -87,7 +94,14 @@ pyyaml==6.0.2
 ```text
 static/vendor/README.md
 | 檔案 | 元件 | 版本 | 來源 |
-| richedit.js | RichEdit | 2.4.1 | https://… 官方發布包 |
+| <檔名> | <元件名> | <照檔頭或官方發布包填寫> | <官方發布網址> |
+```
+
+沒有 manifest 的內附 JS，改用 retire.js 或 OWASP Dependency-Check 比對：
+
+```yaml
+- run: npx retire --path static/vendor
+- run: dependency-check.sh --scan static/vendor --format JSON --out dc-report
 ```
 
 要交 SBOM 的案子，可用 CycloneDX 的工具由 lockfile 產生，不要手寫。
@@ -113,7 +127,8 @@ static/vendor/README.md
 真漏洞：工具輸出或掃描報告指出正式環境使用的元件版本有已知漏洞，且尚未升級到修補版本。
 
 真漏洞：無從評估——相依沒有鎖定版本（沒有 lockfile、manifest 只寫套件名），
-或內附的第三方檔查不出名稱與版本。定期評估更新的前提是知道自己用了什麼版本。
+內附的第三方檔查不出名稱與版本，或頁面引用的第三方檔不在 repo 裡。
+定期評估更新的前提是知道自己用了什麼版本。
 
 誤判：受影響的只有開發相依且正式建置不含；Go 專案經 govulncheck 確認沒有呼叫到受影響函式；
 或系統套件已 backport 修補。三者都要附工具輸出或公告編號。
@@ -121,5 +136,6 @@ static/vendor/README.md
 灰色地帶——**一律當真漏洞修**：版本在受影響範圍內，但無法確認是否呼叫到受影響函式。
 
 模式 1 沒有工具輸出時：列出元件清單（manifest、lockfile 有無、內附檔與其版本），
-附上各生態系的比對指令請使用者執行；使用者提供輸出後再逐項判定。
+附上各生態系的比對指令請使用者執行（npm／pip／Go 用上方 CI 範例；沒有 manifest 的內附 JS
+用 retire.js 或 Dependency-Check）；使用者提供輸出後再逐項判定。
 清單本身沒有問題的專案，列在 `findings.md` 開頭的「待使用者執行」，**不要判通過**。
