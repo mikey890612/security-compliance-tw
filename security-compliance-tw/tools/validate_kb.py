@@ -197,6 +197,19 @@ def parse_checks(checks_dir):
     return sorted(checks, key=lambda c: c.id)
 
 
+# 判定只有四類（真漏洞／改寫即過／誤判／不適用），合格寫「通過」。
+# 舊用詞曾讓 agent 分不清「可接受」是合格還是誤判，一律擋下。
+RETIRED_JUDGMENT_RE = re.compile(r"真問題|真缺口|^可接受：", re.M)
+
+
+def validate_judgment_terms(check):
+    where = f"{check.source} / {check.id}"
+    return [
+        f"{where}: 舊判定用詞「{m.group(0)}」——改用 真漏洞／改寫即過／誤判／不適用／通過"
+        for m in RETIRED_JUDGMENT_RE.finditer(check.body)
+    ]
+
+
 def validate_checks(checks, mapping_rows=None):
     """回傳錯誤訊息清單。空清單代表通過。"""
     errors = []
@@ -243,6 +256,7 @@ def validate_checks(checks, mapping_rows=None):
 
         errors.extend(validate_scanner_tables(c))
         errors.extend(validate_config_fences(c))
+        errors.extend(validate_judgment_terms(c))
 
     return errors
 

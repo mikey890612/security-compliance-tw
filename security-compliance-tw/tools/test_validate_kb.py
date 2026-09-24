@@ -635,6 +635,24 @@ class TestRootSections(unittest.TestCase):
         self.assertTrue(any("skills/b/SKILL.md" in e and "缺少" in e for e in errors), errors)
 
 
+class TestJudgmentTerms(unittest.TestCase):
+    def _check(self, criteria):
+        body = "\n### 判定準則\n" + criteria
+        return validate_kb.Check(id="DAST-HDR-001", title="demo", body=body, source="d.md")
+
+    def test_retired_terms_error(self):
+        for text in ("真問題：缺 CSP。\n", "灰色地帶——一律當真缺口修。\n", "可接受：CSP 完整。\n"):
+            errors = validate_kb.validate_judgment_terms(self._check(text))
+            self.assertEqual(len(errors), 1, (text, errors))
+
+    def test_current_terms_and_prose_pass(self):
+        text = (
+            "真漏洞：缺 CSP。\n改寫即過：寫法會被標。\n誤判：有佐證。\n通過：CSP 完整。\n"
+            "- 「只在內網」不是可接受的控管。\n"
+        )
+        self.assertEqual(validate_kb.validate_judgment_terms(self._check(text)), [])
+
+
 class TestVersion(unittest.TestCase):
     """內容一變就必須是未發布的新版本，且 CHANGELOG 有對應的一節。"""
 

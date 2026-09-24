@@ -25,6 +25,20 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 不採用單純遮蔽結果讓紅字消失的做法——
 附表十每項的查核方式都同時要求自動化工具檢測**與**人工審查，遮蔽會在人工審查破功。
 
+## 判定分類與優先序
+
+每個發現歸入下列一類，**不要自創分類**。check 檔裡的「通過」代表合格、不構成發現。
+
+| 判定 | 意思 | 優先序 |
+|---|---|---|
+| **真漏洞** | 風險存在。灰色地帶一律歸此 | P0／P1，見 `profile.md` |
+| **改寫即過** | 實質安全，但寫法會被標，且有掃描器認得的寫法可直接替換。check 的處置寫了改寫方式（「改寫比寫誤判說明省事」）的情況一律歸此，**不要判誤判** | P2 |
+| **誤判** | 符合上方兩點，且不需要改程式碼 | 不排序，列為送掃前要備妥的佐證 |
+| **不適用** | 該 check 的前提不成立（例如沒有對外 TLS） | 不列 |
+
+優先序排的是**不修會不會被驗收退件**，不是掃描器等級——規則見 `{ROOT}/references/profile.md` 的「優先序」。
+**人工審查才抓得到的真漏洞（例如完全沒有授權檢查）照樣排 P0**，它們最容易被忽略。
+
 ## 兩個模式
 
 **使用者提供了掃描報告檔案 → 模式 2。沒有 → 模式 1。情境不明就直接問。**
@@ -41,9 +55,10 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
    另勾「**將送 F 類加測**」才載入 `checks/mast-resilience.md`；
    勾「**有 EMM／MDM／MAM**」→ 載入 `checks/mdm-controls.md`（含 LOCK／JAIL／PATCH／VPN／MTD；規則見 `profile.md`，勿複製 check 全文）
 4. **樣式比對**——用 check 檔內「壞味道」區塊的樣式在 codebase 搜尋
-5. **逐項判定**——每個命中歸為：真漏洞 / 誤判 / 不適用，各自記錄理由
+5. **逐項判定**——每個命中歸入上方四類之一，記錄理由；依 `profile.md` 的「優先序」排序，
+   需要讀 `{ROOT}/references/mapping.md` 的分級欄
 6. **修補**——**先列出待修清單與影響檔案數，取得使用者確認後才動手**。
-   依 check 檔的「過關寫法」修改。優先序見 `profile.md` 的優先序表
+   依 check 檔的「過關寫法」修改
 7. **產出**——見下方
 
 ## 模式 2：拿到掃描報告之後
@@ -55,8 +70,9 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
    （`Weak Cryptographic Hash: Insecure PBE Iteration Count` 不等於 `Weak Cryptographic Hash`）。
    找不到對應的 check 時，明確標示「本知識庫尚未涵蓋」，**不要猜測**。
    若命中列的「狀態」為 `unverified`，在 findings 註明「規則名待真實報告確認」
-4. **優先序用報告上的等級**，不用表上的「預設等級」——Fortify 的等級是逐項計算的，
-   同一規則在不同位置等級可以不同（見 `{ROOT}/references/scanners.md`）
+4. **優先序依 `profile.md` 的「優先序」**；其中「掃描器等級」一律用**報告上的等級**，
+   不用表上的「預設等級」——Fortify 的等級是逐項計算的，同一規則在不同位置等級可以不同
+   （見 `{ROOT}/references/scanners.md`）
 5. 依該 check 的「判定準則」逐項判定。發生在第三方套件（`vendor/` 等）的項目，
    依 `scanners.md` 的「第三方程式碼的發現」處置，**不要直接改套件檔**
 6. 真漏洞依「過關寫法」修補；誤判產出佐證。
@@ -73,8 +89,9 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 寫入專案根目錄的 `security-audit/`：
 
-- `findings.md`——逐項：check-id / 檔案位置 / 判定 / 處置
-- `false-positives.md`——誤判清單與佐證，供複掃與人工審查使用
+- `findings.md`——逐項：check-id / 檔案位置 / 判定（四類之一）/ 優先序 / 預期或實際的掃描器規則 / 處置。
+  依 P0、P1、P2 排列；人工審查項也排進去，不另立「表外」
+- `false-positives.md`——判定為誤判的項目與佐證，供複掃與人工審查使用
 
 **本 skill 不產交付文件。** 使用者要附表十勾稽表、源碼安全查檢表、
 安全測試報告、威脅建模、RTM 或委外 RFP 時，改用 `sec-deliverables`
@@ -111,7 +128,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | `profile.md` | 步驟 1 與 3，一定要讀 |
 | `checks/*.md` | 依 profile 選取，只讀需要的 |
 | `scanners.md` | 判讀報告或處理誤判時 |
-| `mapping.md` | 需要在報告中標註附表十、檢測基準（`MAS` 欄）或 OWASP 編號時才讀 |
+| `mapping.md` | 排優先序時（看分級欄與附表十欄）；需要標註附表十、檢測基準（`MAS` 欄）或 OWASP 編號時 |
 | `scanner-verification-log.md` | 需要說明某條掃描器對照的驗證依據時 |
 
 `controls-appendix10.md`、`controls-mas-v4.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
@@ -127,6 +144,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 2. **`unverified` = 宣稱對照、尚未校準**——可當提示用，不可當成已實測的規則 ID
 3. **禁止捏造** Fortify、Checkmarx、AWVS、WebInspect、Nessus 等商用規則 ID；表上沒有就寫「知識庫尚無已驗證對照」
 4. 模式 2 命中 `unverified` 列時，findings 必須註明「**規則名待真實報告確認**」
+5. **`unverified` 列的等級不參與優先序**——寫成「可能被標，等級待確認」
 
 操作與回填流程：
 

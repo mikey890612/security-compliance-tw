@@ -102,7 +102,7 @@ Go 的規則，編輯 `.py` 就載入 Python 的。這是所有目標裡唯一�
 這四個檔可能你原本就有東西。它用標記區塊包住自己的內容：
 
 ```markdown
-<!-- BEGIN sec-harden v0.2.0 — 由 quick-patterns.md 產生。
+<!-- BEGIN sec-harden v{版本} — 由 quick-patterns.md 產生。
      請勿直接編輯本區塊內容，重跑安裝器即可更新。 -->
 ...
 <!-- END sec-harden -->

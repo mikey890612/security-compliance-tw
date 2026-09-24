@@ -329,7 +329,7 @@ iOS 側對應的是 `Podfile.lock` 與 `Package.resolved` 納入版控，
   （例如在應用層阻擋觸發該漏洞的輸入），並列出追蹤的上游 issue。
 
 - **傳遞相依（transitive）帶進舊版本。**
-  處置：這是真問題。用 `resolutionStrategy.force` 或 `constraints`
+  處置：這是真漏洞。用 `resolutionStrategy.force` 或 `constraints`
   強制版本，並確認強制後的相容性。
 
 ### 判定準則

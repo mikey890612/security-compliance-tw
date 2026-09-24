@@ -117,12 +117,12 @@ app.use(session({
 
 ### 判定準則
 
-真問題：任何以 HTTPS 提供的路徑，其 `Set-Cookie` 缺少 `Secure`。
+真漏洞：任何以 HTTPS 提供的路徑，其 `Set-Cookie` 缺少 `Secure`。
 
-真問題：`Secure` 由執行期旗標或環境變數決定，存在會產生無 `Secure`
+真漏洞：`Secure` 由執行期旗標或環境變數決定，存在會產生無 `Secure`
 回應的分支。
 
-可接受：服務僅在封閉內網以 HTTP 提供，且無任何對外路徑，
+不適用：服務僅在封閉內網以 HTTP 提供，且無任何對外路徑，
 部署範圍已記錄在案。
 
 ---
@@ -217,12 +217,12 @@ Cookie 保持 `HttpOnly`，前端拿到的是資料而非憑證。
 
 ### 判定準則
 
-真問題：承載身分或工作階段狀態的 Cookie（session id、認證 token、
+真漏洞：承載身分或工作階段狀態的 Cookie（session id、認證 token、
 記住我）缺少 `HttpOnly`。
 
-真問題：框架設定中出現明確的 `HttpOnly = False` / `httpOnly: false`。
+真漏洞：框架設定中出現明確的 `HttpOnly = False` / `httpOnly: false`。
 
-可接受：該 Cookie 依設計需由前端 JS 讀取（CSRF double-submit token），
+誤判：該 Cookie 依設計需由前端 JS 讀取（CSRF double-submit token），
 且不含身分憑證，用途已記錄在案。
 
 ---
@@ -360,12 +360,12 @@ Cookie，否則選 `Lax`。
 
 ### 判定準則
 
-真問題：承載工作階段狀態的 Cookie，其 `Set-Cookie` 未輸出 `SameSite` 屬性。
+真漏洞：承載工作階段狀態的 Cookie，其 `Set-Cookie` 未輸出 `SameSite` 屬性。
 
-真問題：`SameSite=None` 但同一條 Cookie 沒有 `Secure`——
+真漏洞：`SameSite=None` 但同一條 Cookie 沒有 `Secure`——
 此時瀏覽器會丟棄，屬於必修的功能性兼安全性缺陷。
 
-可接受：明確輸出 `SameSite=Lax` 或 `Strict`；或輸出 `None` 且同時有
+通過：明確輸出 `SameSite=Lax` 或 `Strict`；或輸出 `None` 且同時有
 `Secure`，且跨站需求已記錄在案。
 
 ---
@@ -539,16 +539,16 @@ ssl_prefer_server_ciphers on;
 
 ### 判定準則
 
-真問題：任何對外可達的 TLS 埠接受 SSL 3.0、TLS 1.0 或 TLS 1.1 交握。
+真漏洞：任何對外可達的 TLS 埠接受 SSL 3.0、TLS 1.0 或 TLS 1.1 交握。
 
-真問題：可協商出含 RC4、3DES、NULL、EXPORT 或匿名（aNULL / ADH）
+真漏洞：可協商出含 RC4、3DES、NULL、EXPORT 或匿名（aNULL / ADH）
 的加密套件。
 
-真問題：加密套件以 `ALL`、`HIGH`、`DEFAULT` 等集合名稱設定，
+真漏洞：加密套件以 `ALL`、`HIGH`、`DEFAULT` 等集合名稱設定，
 未明列允許值——即使當下掃描結果乾淨，也視為未通過。
 
-真問題：程式碼中出現 `InsecureSkipVerify: true` 或等效的憑證驗證關閉，
+真漏洞：程式碼中出現 `InsecureSkipVerify: true` 或等效的憑證驗證關閉，
 且該路徑會用於正式環境的對外連線。
 
-可接受：僅開放 TLS 1.2 與 1.3、加密套件為明列的 AEAD 套件；
+通過：僅開放 TLS 1.2 與 1.3、加密套件為明列的 AEAD 套件；
 舊協定若因裝置相容性保留，已限縮在獨立端點且有汰換期限記錄在案。
