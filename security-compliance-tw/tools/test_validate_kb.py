@@ -1,3 +1,4 @@
+import json
 import unittest
 import tempfile
 import pathlib
@@ -632,6 +633,86 @@ class TestRootSections(unittest.TestCase):
         d = self._skills({"a": self.BODY, "b": None})
         errors = validate_kb.validate_root_sections(d)
         self.assertTrue(any("skills/b/SKILL.md" in e and "缺少" in e for e in errors), errors)
+
+
+class TestVersion(unittest.TestCase):
+    """內容一變就必須是未發布的新版本，且 CHANGELOG 有對應的一節。"""
+
+    LOCK = {"version": "0.2.0", "fingerprint": "sha256:old"}
+
+    def _errors(self, version, fingerprint, changelog):
+        return validate_kb.validate_version(version, self.LOCK, fingerprint, changelog)
+
+    def test_released_and_unchanged_passes(self):
+        self.assertEqual(self._errors("0.2.0", "sha256:old", {"0.2.0": "2026-09-24"}), [])
+
+    def test_content_changed_without_bump_errors(self):
+        errors = self._errors("0.2.0", "sha256:new", {"0.2.0": "2026-09-24"})
+        self.assertTrue(any("調升" in e for e in errors), errors)
+
+    def test_bumped_with_unreleased_entry_passes(self):
+        self.assertEqual(self._errors("0.3.0", "sha256:new", {"0.3.0": "未發布"}), [])
+
+    def test_bumped_without_changelog_entry_errors(self):
+        errors = self._errors("0.3.0", "sha256:new", {"0.2.0": "2026-09-24"})
+        self.assertTrue(any("## 0.3.0" in e for e in errors), errors)
+
+    def test_version_older_than_release_errors(self):
+        errors = self._errors("0.1.9", "sha256:old", {"0.1.9": "未發布"})
+        self.assertTrue(any("舊" in e for e in errors), errors)
+
+    def test_released_version_still_marked_unreleased_errors(self):
+        errors = self._errors("0.2.0", "sha256:old", {"0.2.0": "未發布"})
+        self.assertTrue(any("未發布" in e for e in errors), errors)
+
+    def test_bad_version_format_errors(self):
+        errors = self._errors("0.2", "sha256:old", {})
+        self.assertTrue(any("X.Y.Z" in e for e in errors), errors)
+
+
+class TestFingerprint(unittest.TestCase):
+    def _plugin(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "skills" / "a").mkdir(parents=True)
+        (d / "references").mkdir()
+        (d / "tools").mkdir()
+        (d / "skills" / "a" / "SKILL.md").write_bytes(b"line1\nline2\n")
+        (d / "references" / "x.md").write_bytes(b"x\n")
+        return d
+
+    def test_changes_when_content_changes(self):
+        d = self._plugin()
+        before = validate_kb.content_fingerprint(d)
+        (d / "references" / "x.md").write_bytes(b"y\n")
+        self.assertNotEqual(before, validate_kb.content_fingerprint(d))
+
+    def test_ignores_crlf_and_files_outside_kb(self):
+        d = self._plugin()
+        before = validate_kb.content_fingerprint(d)
+        (d / "skills" / "a" / "SKILL.md").write_bytes(b"line1\r\nline2\r\n")
+        (d / "tools" / "validate_kb.py").write_text("changed", encoding="utf-8")
+        self.assertEqual(before, validate_kb.content_fingerprint(d))
+
+    def test_release_requires_dated_changelog_entry(self):
+        d = self._plugin()
+        (d / ".claude-plugin").mkdir()
+        (d / ".claude-plugin" / "plugin.json").write_text('{"version": "0.3.0"}', encoding="utf-8")
+        (d / "CHANGELOG.md").write_text("## 0.3.0（未發布）\n", encoding="utf-8")
+        self.assertTrue(validate_kb.release(d))
+        self.assertFalse((d / "tools" / "release-lock.json").exists())
+
+        (d / "CHANGELOG.md").write_text("## 0.3.0（2026-10-01）\n", encoding="utf-8")
+        self.assertEqual(validate_kb.release(d), [])
+        lock = json.loads((d / "tools" / "release-lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(lock["version"], "0.3.0")
+        self.assertEqual(lock["fingerprint"], validate_kb.content_fingerprint(d))
+
+    def test_stale_marker_example_in_docs_errors(self):
+        d = self._plugin()
+        doc = d / "doc.md"
+        doc.write_text("<!-- BEGIN sec-harden v0.1.0 — ... -->\n", encoding="utf-8")
+        errors = validate_kb.validate_version_mentions([doc], "0.2.0")
+        self.assertTrue(any("v0.1.0" in e for e in errors), errors)
 
 
 if __name__ == "__main__":

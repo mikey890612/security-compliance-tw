@@ -138,6 +138,22 @@ MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對�
 依 check-id 組織。修改後需重跑 `sec-harden` 安裝，各專案的規則檔才會更新。
 兩者不一致時以 `checks/` 為準。
 
+## 版本與發布
+
+版本號只有一個來源：`.claude-plugin/plugin.json`。patch／minor／major 的區分見
+`../CHANGELOG.md` 開頭。
+
+`skills/` 或 `references/` 有任何變更時：
+
+1. `plugin.json` 的版本若已發布（等於 `../tools/release-lock.json` 的 `version`），
+   先調升版本，並在 `CHANGELOG.md` 加一節「## 新版本（未發布）」
+2. 同一版本發布前的後續變更，都記在同一節
+3. 合併進 main 之前：把「未發布」改成日期，執行
+   `python3 tools/validate_kb.py --release`，一併提交更新後的 `tools/release-lock.json`
+
+驗證器會擋下：內容變了但版本仍是已發布的那一版、`CHANGELOG.md` 缺少目前版本、
+已發布的版本仍標「未發布」、文件裡的 `sec-harden vX.Y.Z` 範例與目前版本不符。
+
 ## 新增 check 的流程
 
 1. 在對應的 `checks/*.md` 加一則，嚴格照五小節格式

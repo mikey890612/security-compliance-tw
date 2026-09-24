@@ -117,7 +117,7 @@ AGENTS.md                              附加區塊
 用下列標記包住，重跑安裝時只替換區塊內容：
 
 ```markdown
-<!-- BEGIN sec-harden v0.1.0 — 由 security-compliance-tw 的 quick-patterns.md 產生。
+<!-- BEGIN sec-harden v{版本} — 由 security-compliance-tw 的 quick-patterns.md 產生。
      請勿直接編輯本區塊內容，重跑安裝器即可更新。 -->
 
 ## 安全撰寫規範
@@ -127,8 +127,11 @@ AGENTS.md                              附加區塊
 <!-- END sec-harden -->
 ```
 
-已存在同名區塊時：**只替換區塊內部**，區塊外的內容一字不動。
-檔案不存在時才建立新檔。
+`{版本}` 取自 `{ROOT}/.claude-plugin/plugin.json` 的 `version`，**不要照抄上面範例或舊區塊裡的版本號**——
+專案裡的規則檔靠這個版本號判斷是否過期。
+
+已存在區塊時（以 `<!-- BEGIN sec-harden v` 開頭，不論版本號）：**只替換區塊內部**，
+區塊外的內容一字不動。檔案不存在時才建立新檔。
 
 ⚠ **用正規表示式替換區塊時，替換字串必須走替換函式。**
 規則內容含 `\n`、`\r`、`\x1b` 等字面反斜線（日誌轉義那節），
@@ -156,9 +159,12 @@ description: 掃描器認得的安全寫法（Go）。撰寫或修改 Go 程式�
 globs: **/*.go
 alwaysApply: false
 ---
+<!-- sec-harden v{版本} — 由 security-compliance-tw 的 quick-patterns.md 產生，重跑安裝器即可更新。 -->
 
 （此處放 quick-patterns.md 的內容，只保留 Go 的 API 名稱）
 ```
+
+`{版本}` 同上，取自 `plugin.json`。
 
 各語言的 `globs`：
 
@@ -178,7 +184,9 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 
 ### 步驟 4：回報
 
-列出實際寫了哪些檔、每個檔是新建還是更新區塊。
+列出實際寫了哪些檔、每個檔是新建還是更新區塊。更新時寫出版本變化
+（例如「`AGENTS.md`：v0.1.0 → v0.2.0」），讓使用者知道這次重裝帶來了什麼；
+變化內容查 `{ROOT}/CHANGELOG.md`。
 
 ---
 

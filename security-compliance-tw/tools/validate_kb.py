@@ -2,6 +2,8 @@
 
 import collections
 import dataclasses
+import hashlib
+import json
 import os
 import pathlib
 import re
@@ -635,8 +637,114 @@ def validate_root_sections(skills_dir):
     return errors
 
 
+# ── 版本 ─────────────────────────────────────────────────────────
+# 版本號只有一個來源：.claude-plugin/plugin.json。skill 與知識庫的內容一變，
+# 使用者就該被告知有新版——但人會忘記調升版本號。release-lock.json 記錄
+# 上次發布的版本與內容指紋：內容變了、版本卻還是已發布的那一版，就擋下來。
+
+FINGERPRINT_DIRS = ("skills", "references")
+SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+CHANGELOG_HEADING_RE = re.compile(r"^## (\d+\.\d+\.\d+)(?:（(.+?)）)?\s*$", re.M)
+UNRELEASED = "未發布"
+
+
+def content_fingerprint(plugin_dir):
+    """skills/ 與 references/ 的內容指紋。換行統一成 LF，Windows checkout 不會誤判。"""
+    plugin_dir = pathlib.Path(plugin_dir)
+    digest = hashlib.sha256()
+    for top in FINGERPRINT_DIRS:
+        for path in sorted((plugin_dir / top).rglob("*")):
+            if not path.is_file() or "__pycache__" in path.parts or path.name == ".DS_Store":
+                continue
+            digest.update(path.relative_to(plugin_dir).as_posix().encode("utf-8") + b"\0")
+            digest.update(path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    return "sha256:" + digest.hexdigest()
+
+
+def _semver(text):
+    m = SEMVER_RE.match(text or "")
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def changelog_entries(path):
+    """CHANGELOG.md → {版本: 標題括號內的文字（日期或「未發布」）}。"""
+    path = pathlib.Path(path)
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    return {m.group(1): (m.group(2) or "") for m in CHANGELOG_HEADING_RE.finditer(text)}
+
+
+def validate_version(version, lock, fingerprint, changelog):
+    """內容一變就必須是未發布的新版本，且 CHANGELOG 有對應的一節。"""
+    errors = []
+    current, released = _semver(version), _semver(lock.get("version"))
+    if current is None:
+        return [f"plugin.json 的 version {version!r} 不是 X.Y.Z 格式"]
+    if released is None:
+        return [f"release-lock.json 的 version {lock.get('version')!r} 不是 X.Y.Z 格式"]
+
+    if current < released:
+        errors.append(f"plugin.json 的 version {version} 比已發布的 {lock['version']} 舊")
+    elif current == released and fingerprint != lock.get("fingerprint"):
+        errors.append(
+            f"skills/ 或 references/ 的內容已變更，但版本仍是已發布的 {version}："
+            "調升 .claude-plugin/plugin.json 的 version，並在 CHANGELOG.md 加一節"
+            f"「## 新版本（{UNRELEASED}）」"
+        )
+
+    if version not in changelog:
+        errors.append(f"CHANGELOG.md 沒有「## {version}」這一節")
+    elif current == released and changelog[version] == UNRELEASED:
+        errors.append(
+            f"CHANGELOG.md 的 {version} 仍標「{UNRELEASED}」，但它已經發布——改成發布日期"
+        )
+    return errors
+
+
+VERSION_MENTION_RE = re.compile(r"sec-harden v(\d+\.\d+\.\d+)")
+
+
+def validate_version_mentions(doc_paths, version, base=None):
+    """說明文件裡的標記範例（sec-harden vX.Y.Z）必須是目前版本。"""
+    errors = []
+    for path in doc_paths:
+        text = pathlib.Path(path).read_text(encoding="utf-8")
+        name = _display(path, base) if base else pathlib.Path(path).name
+        for m in VERSION_MENTION_RE.finditer(text):
+            if m.group(1) != version:
+                errors.append(
+                    f"{name}:{_line_of(text, m.start())}: 寫「{m.group(0)}」，目前版本是 {version}"
+                )
+    return errors
+
+
+def release(plugin_dir):
+    """把目前版本標為已發布：寫入 release-lock.json。回傳錯誤清單。"""
+    plugin_dir = pathlib.Path(plugin_dir)
+    version = json.loads((plugin_dir / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
+    entries = changelog_entries(plugin_dir / "CHANGELOG.md")
+    if version not in entries:
+        return [f"CHANGELOG.md 沒有「## {version}」這一節，先補上再發布"]
+    if entries[version] == UNRELEASED:
+        return [f"CHANGELOG.md 的 {version} 仍標「{UNRELEASED}」，先改成發布日期再發布"]
+    lock = {"version": version, "fingerprint": content_fingerprint(plugin_dir)}
+    (plugin_dir / "tools" / "release-lock.json").write_text(
+        json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return []
+
+
 def main():
     plugin = pathlib.Path(__file__).resolve().parent.parent
+    if "--release" in sys.argv[1:]:
+        release_errors = release(plugin)
+        if release_errors:
+            for e in release_errors:
+                print(f"發布失敗：{e}")
+            return 1
+        print("已寫入 tools/release-lock.json")
+
     root = plugin / "references"
     checks = parse_checks(root / "checks")
 
@@ -654,6 +762,22 @@ def main():
     )
     errors += validate_references(plugin)
     errors += validate_root_sections(plugin / "skills")
+
+    manifest = plugin / ".claude-plugin" / "plugin.json"
+    lock_path = plugin / "tools" / "release-lock.json"
+    if not lock_path.exists():
+        errors.append("tools/release-lock.json 不存在")
+    else:
+        version = json.loads(manifest.read_text(encoding="utf-8"))["version"]
+        errors += validate_version(
+            version,
+            json.loads(lock_path.read_text(encoding="utf-8")),
+            content_fingerprint(plugin),
+            changelog_entries(plugin / "CHANGELOG.md"),
+        )
+        errors += validate_version_mentions(
+            runtime_docs(plugin) + repo_docs(plugin), version, base=plugin
+        )
     errors += validate_doc_counts(
         runtime_docs(plugin) + repo_docs(plugin),
         kb_facts(root, checks, mapping_rows),
