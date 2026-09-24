@@ -635,6 +635,148 @@ class TestRootSections(unittest.TestCase):
         self.assertTrue(any("skills/b/SKILL.md" in e and "缺少" in e for e in errors), errors)
 
 
+class TestGradesVsAppendix10(unittest.TestCase):
+    APPENDIX = (
+        "## 4.1 存取控制\n\n"
+        "### 4.1.2 最小權限\n\n"
+        "| 實作項目 | 普 | 中 | 高 |\n|---|:-:|:-:|:-:|\n"
+        "| 最低權限 | | ◎ | ◎ |\n\n"
+        "### 4.1.3 遠端存取\n\n"
+        "| 實作項目 | 普 | 中 | 高 |\n|---|:-:|:-:|:-:|\n"
+        "| 集中授權 | ◎ | ◎ | ◎ |\n\n"
+        "## 內文與查檢表的收錄範圍\n\n| x | ◎ | ◎ | ◎ |\n"
+    )
+
+    def _sections(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "a10.md").write_text(self.APPENDIX, encoding="utf-8")
+        return validate_kb.parse_appendix10_grades(d / "a10.md")
+
+    def _row(self, ref, pu="", zhong="◎", gao="◎"):
+        return {"_schema": "web", "附表十": ref, "普": pu, "中": zhong, "高": gao}
+
+    def test_parses_grade_union_per_item(self):
+        self.assertEqual(
+            self._sections(), {"4.1.2": {"中", "高"}, "4.1.3": {"普", "中", "高"}}
+        )
+
+    def test_grade_wider_than_appendix10_errors(self):
+        errors = validate_kb.validate_grades_vs_appendix10(
+            {"SAST-LLM-003": self._row("4.1.2", pu="◎")}, self._sections()
+        )
+        self.assertTrue(any("SAST-LLM-003" in e and "普" in e for e in errors), errors)
+
+    def test_grade_within_appendix10_passes(self):
+        rows = {
+            "SAST-AUTHZ-003": self._row("4.1.2"),
+            "SAST-AUTHZ-001": self._row("4.1.3", pu="◎"),
+        }
+        self.assertEqual(validate_kb.validate_grades_vs_appendix10(rows, self._sections()), [])
+
+    def test_section_level_and_finer_refs_resolve(self):
+        """mapping 用 4.1（整類）或 4.1.3.1（比附表十細）都要對得上。"""
+        rows = {
+            "SAST-INJ-003": self._row("4.1", pu="◎"),
+            "SAST-X-001": self._row("4.1.3.1", pu="◎"),
+        }
+        self.assertEqual(validate_kb.validate_grades_vs_appendix10(rows, self._sections()), [])
+
+    def test_unknown_ref_and_out_of_checklist_rows(self):
+        rows = {
+            "SAST-X-002": self._row("4.9.9"),
+            "SAST-SSRF-001": self._row("—（查檢表外）", pu="◎"),
+            "MAST-X-001": {"_schema": "mobile", "附表十": "4.1.2", "普": "◎"},
+        }
+        errors = validate_kb.validate_grades_vs_appendix10(rows, self._sections())
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("4.9.9", errors[0])
+
+
+class TestLoadRules(unittest.TestCase):
+    PROFILE = (
+        "## check 集合選取規則\n\n"
+        "| 條件 | 載入 |\n|---|---|\n"
+        "| 一律 | `checks/sast-a.md` |\n"
+        "| 分級 ≥ 中，或將面對 SAST | `checks/sast-b.md` |\n"
+        "| 有登入功能 | `checks/sast-session-auth.md` |\n\n"
+        "| 第 3 題勾選 | 將面對 |\n|---|---|\n| 商用 | `checks/sast-z.md` |\n\n"
+        "## 下一節\n\n| 條件 | 載入 |\n|---|---|\n| 一律 | `checks/sast-y.md` |\n"
+    )
+
+    def _table(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "profile.md").write_text(self.PROFILE, encoding="utf-8")
+        return validate_kb.parse_load_table(d / "profile.md")
+
+    def _checks(self, spec):
+        return [
+            validate_kb.Check(id=cid, title="", body="", source=src)
+            for src, ids in spec.items()
+            for cid in ids
+        ]
+
+    def _rows(self, grades):
+        return {
+            cid: {g: ("◎" if g in gs else "") for g in ("普", "中", "高")}
+            for cid, gs in grades.items()
+        }
+
+    def test_parses_only_the_load_table(self):
+        self.assertEqual(
+            self._table(),
+            {
+                "sast-a.md": ["一律"],
+                "sast-b.md": ["分級 ≥ 中，或將面對 SAST"],
+                "sast-session-auth.md": ["有登入功能"],
+            },
+        )
+
+    def test_consistent_rules_pass(self):
+        checks = self._checks({
+            "sast-a.md": ["A-1"], "sast-b.md": ["B-1"], "sast-session-auth.md": ["S-1"],
+        })
+        rows = self._rows({"A-1": "普中高", "B-1": "中高", "S-1": "普中高"})
+        self.assertEqual(validate_kb.validate_load_rules(self._table(), checks, rows), [])
+
+    def test_pu_graded_file_not_always_loaded_errors(self):
+        """0.3.0 以前的 sast-logging：普級必查，卻只在有個資時載入。"""
+        checks = self._checks({"sast-b.md": ["B-1", "B-2"]})
+        rows = self._rows({"B-1": "中高", "B-2": "普中高"})
+        errors = validate_kb.validate_load_rules(self._table(), checks, rows)
+        self.assertTrue(any("sast-b.md" in e and "B-2" in e and "普級" in e for e in errors), errors)
+
+    def test_zhong_graded_file_needs_grade_condition(self):
+        table = {"dast-h.md": ["對外服務"]}
+        checks = self._checks({"dast-h.md": ["H-1"]})
+        errors = validate_kb.validate_load_rules(table, checks, self._rows({"H-1": "中高"}))
+        self.assertTrue(any("dast-h.md" in e and "中級" in e for e in errors), errors)
+
+    def test_trait_gated_and_mobile_files_skip_grade_check(self):
+        table = {"sast-session-auth.md": ["有登入功能"], "mast-x.md": ["有行動 App"]}
+        checks = self._checks({"sast-session-auth.md": ["S-1"], "mast-x.md": ["M-1"]})
+        rows = self._rows({"S-1": "普中高", "M-1": ""})
+        self.assertEqual(validate_kb.validate_load_rules(table, checks, rows), [])
+
+    def test_file_missing_from_load_table_errors(self):
+        checks = self._checks({"sast-new.md": ["N-1"]})
+        errors = validate_kb.validate_load_rules(self._table(), checks, self._rows({"N-1": "高"}))
+        self.assertTrue(any("sast-new.md" in e and "未列在" in e for e in errors), errors)
+
+    def test_skill_coverage_column_must_match_always(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "SKILL.md").write_text(
+            "| 類別 | 檔案 | 載入條件 |\n|---|---|---|\n"
+            "| A | `sast-a.md` | 分級 ≥ 中 |\n"
+            "| B | `sast-b.md` | 一律 |\n"
+            "| S | `sast-session-auth.md` | 有登入功能 |\n",
+            encoding="utf-8",
+        )
+        errors = validate_kb.validate_skill_load_column(d / "SKILL.md", self._table())
+        self.assertEqual(len(errors), 2, errors)
+        self.assertTrue(any("sast-a.md" in e for e in errors))
+        self.assertTrue(any("sast-b.md" in e for e in errors))
+
+
 class TestJudgmentTerms(unittest.TestCase):
     def _check(self, criteria):
         body = "\n### 判定準則\n" + criteria

@@ -59,6 +59,7 @@
 - 處理個人資料或金流
 - 有行動 App（iOS／Android 原生）
 - 有 EMM／MDM／MAM
+- 行動 App 將送 F 類加測（逆向工程與竄改防護；由送檢單位決定，程式碼看不出來）
 
 **第 3 題 — 已知會面對哪些掃描器**（複選，可選「不知道」）
 
@@ -70,17 +71,29 @@
 
 ### 這幾題會影響什麼
 
-答案決定它載入哪些檢查項目。舉例：
+答案決定它載入哪些檢查項目。
 
-| 你的答案 | 載入 | 不載入 |
-|---|---|---|
-| 中 · 對外服務 · 無 API · 無 AI · 無個資 | 注入、錯誤處理、請求濫用（`sast-request-abuse`：CSRF／SSRF／UPLOAD）、存取控制、密碼學、三個 DAST 類 | API 授權、LLM、日誌稽核、MAST、MDM |
-| 中 · 對外服務 · 無 API · 無 AI · **有個資** | 上列 **＋ 日誌與稽核** | API 授權、LLM、MAST、MDM |
-| 中 · … · **有行動 App** | 上列適用項 **＋** `mast-storage-crypto`、`mast-network-ipc`、`mast-device-privacy` | （無 App 時不載入） |
-| 中 · … · **有 EMM／MDM／MAM** | 上列適用項 **＋** `mdm-controls`（含 LOCK／JAIL／PATCH／VPN／MTD） | （無 MDM 時不載入） |
+**一律載入七類**：注入、錯誤處理、請求濫用（CSRF／SSRF／UPLOAD）、存取控制、日誌與稽核、
+TLS 與 Cookie、資訊外洩——這七類都含普級就必查的項目，漏載等於漏查。其餘依答案：
 
-**第二列多出來的「日誌與稽核」在實測中抓到了一個沒有任何掃描器會報的問題**
-（稽核事件完全缺席）。少答一題就整類漏掉，所以照實回答。
+| 你的答案 | 另外載入 |
+|---|---|
+| 分級中或高、有個資或金流，或會面對 SAST | 密碼學 |
+| 分級中或高、對外服務，或會面對弱點掃描 | HTTP 安全標頭 |
+| 有登入功能（它從程式碼判定） | 身分鑑別與 Session |
+| 有 API 端點 | API 授權 |
+| 有 LLM／RAG／Agent | LLM |
+| 有行動 App | `mast-storage`、`mast-crypto`、`mast-network`、`mast-auth`、`mast-platform`、`mast-code` |
+| 行動 App 將送 F 類加測 | `mast-resilience` |
+| 有 EMM／MDM／MAM | `mdm-controls`（含 LOCK／JAIL／PATCH／VPN／MTD） |
+
+第 3 題勾「不知道」，視為各類掃描器都會面對——附表十普中高都要求弱點掃描。
+
+載入的類別裡，**你的分級沒要求的項目，只有在你會面對的掃描器會標時才查**。
+例如中級專案的 MD5：附表十只在高級要求，但 Fortify、gosec 都會標，所以照樣列出。
+
+日誌與稽核在實測中抓到過一個沒有任何掃描器會報的問題（稽核事件完全缺席）——
+人工審查會逐項查這類事，所以它一律載入，不看你有沒有個資。
 
 ---
 

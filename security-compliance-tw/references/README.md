@@ -83,6 +83,11 @@
   `skills/sec-audit/SKILL.md`，否則 agent 不會知道要載入它
 - **ROOT 段落**——三支 `SKILL.md` 必須逐字相同
 - **`MAS` 欄**——引用的條號必須存在於 `controls-mas-v4.md`
+- **分級欄照附表十原文**——Web 表的普／中／高不得比附表十該項次的分級寬。
+  掃描器不看分級照樣會標的情況，由 `profile.md` 的「逐則決定要不要查」處理，不靠放寬分級欄
+- **載入表與分級欄一致**——檔內有普級 ◎ 的 check，該檔在 `profile.md` 必須「一律」載入；
+  只有中／高級 ◎ 的，至少要有「分級 ≥ 中」。依特性載入的檔（登入、API、LLM、行動端、MDM）除外。
+  `skills/sec-audit/SKILL.md` 涵蓋範圍表的「一律」也要與 `profile.md` 相同
 
 ## 目前涵蓋範圍
 
@@ -162,7 +167,9 @@ CI（repo 的 `.github/workflows/validate.yml`）在每次 push 與 PR 於 Ubunt
 ## 新增 check 的流程
 
 1. 在對應的 `checks/*.md` 加一則，嚴格照五小節格式
-2. 在 `mapping.md` 對應的表加一列（Web 11 欄、行動端 12 欄、MDM 6 欄，缺一不可）
+2. 在 `mapping.md` 對應的表加一列（Web 11 欄、行動端 12 欄、MDM 6 欄，缺一不可）。
+   分級欄照附表十原文；查檢表外的 check 由本專案訂適用範圍。若新 check 讓所在檔多了
+   普級 ◎，`profile.md` 的載入條件要跟著改成「一律」——驗證器會提醒
 3. 新增的是**整個 check 檔**時，登錄到 `profile.md` 的選取規則、本檔的涵蓋範圍表與
    `skills/sec-audit/SKILL.md` 的涵蓋範圍表
 4. 跑 `python3 tools/validate_kb.py`——則數變了，它會列出每一處要跟著改的數字

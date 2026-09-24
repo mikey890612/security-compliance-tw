@@ -55,6 +55,8 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
    （例如有 `.js`／`.html` 但沒有 `package.json`）
 3. **選定 check 集合**——依 `profile.md` 的選取規則決定載入哪些 `checks/*.md`。
    **只載入需要的檔案**，這是控制 context 的關鍵。載入前先確認檔案存在。
+   載入的檔裡**逐則**依 `profile.md` 的「逐則決定要不要查」判斷：本分級沒要求、
+   使用者將面對的掃描器也不會標的，歸不適用。
    Profile 複選若勾「**有行動 App**」→ 載入 `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md`；
    另勾「**將送 F 類加測**」才載入 `checks/mast-resilience.md`；
    勾「**有 EMM／MDM／MAM**」→ 載入 `checks/mdm-controls.md`（含 LOCK／JAIL／PATCH／VPN／MTD；規則見 `profile.md`，勿複製 check 全文）
@@ -168,17 +170,17 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
 | 注入 | `sast-injection.md` | 一律 |
-| 存取控制 | `sast-authz.md` | 分級 ≥ 中 |
+| 存取控制 | `sast-authz.md` | 一律 |
 | 身分鑑別與 Session | `sast-session-auth.md` | 有登入功能 |
-| 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流 |
-| 日誌與稽核 | `sast-logging.md` | 有個資或金流 |
+| 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流／將面對 SAST |
+| 日誌與稽核 | `sast-logging.md` | 一律 |
 | 錯誤與例外 | `sast-errors.md` | 一律 |
 | 請求濫用（CSRF／SSRF／上傳） | `sast-request-abuse.md` | 一律 |
 | API 授權 | `sast-api-authz.md` | 有 API 端點 |
 | LLM / Agent | `sast-llm.md` | 有 LLM／RAG／Agent |
-| HTTP 安全標頭 | `dast-headers.md` | 對外服務 |
-| TLS 與 Cookie | `dast-tls-cookie.md` | 對外服務 |
-| 資訊外洩 | `dast-info-leak.md` | 對外服務 |
+| HTTP 安全標頭 | `dast-headers.md` | 分級 ≥ 中／對外服務／將面對 DAST |
+| TLS 與 Cookie | `dast-tls-cookie.md` | 一律 |
+| 資訊外洩 | `dast-info-leak.md` | 一律 |
 | MAST 本機儲存／日誌／備份 | `mast-storage.md` | **有行動 App** |
 | MAST 密碼學 | `mast-crypto.md` | **有行動 App** |
 | MAST 網路與憑證釘選 | `mast-network.md` | **有行動 App** |
