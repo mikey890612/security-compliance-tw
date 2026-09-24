@@ -173,9 +173,12 @@ app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 
 真漏洞：服務以 HTTPS 提供（不論對外或內網），但回應缺少 HSTS 或 `max-age` 小於 31536000。
 
+真漏洞：對外服務只以 HTTP 提供——HSTS 無從設定。先改 HTTPS 再設 HSTS；明文傳輸本身見 `DAST-TLS-001`。
+
 誤判：HSTS 由終結 TLS 的代理或 LB 加上，應用程式看不到——佐證附該處設定。
 
-不適用：服務完全以 HTTP 提供，沒有任何 HTTPS 路徑（此時先處理 `DAST-TLS-001` 與 `DAST-COOKIE-001`）。
+誤判：服務只在內網以 HTTP 提供、沒有任何對外路徑——HSTS 在 HTTP 回應中無效，掃描器仍可能標；
+佐證寫明部署範圍。內網明文傳輸是否可接受，另依 `DAST-TLS-001` 判定。
 
 TLS 在 repo 以外終結、又看不到代理設定時，列入 `findings.md` 的「待使用者執行」，
 請使用者以 `curl -sI https://<主機>/` 確認回應標頭。

@@ -83,11 +83,18 @@
   `skills/sec-audit/SKILL.md`，否則 agent 不會知道要載入它
 - **ROOT 段落**——三支 `SKILL.md` 必須逐字相同
 - **`MAS` 欄**——引用的條號必須存在於 `controls-mas-v4.md`
-- **分級欄照附表十原文**——Web 表的普／中／高不得比附表十該項次的分級寬。
+- **分級欄照附表十原文**——Web 表的普／中／高不得比附表十該項次的分級寬；
+  標「（內文）」的列比內文項目自己的分級（`controls-appendix10.md` 的「內文與查檢表的收錄範圍」）。
   掃描器不看分級照樣會標的情況，由 `profile.md` 的「逐則決定要不要查」處理，不靠放寬分級欄
-- **載入表與分級欄一致**——檔內有普級 ◎ 的 check，該檔在 `profile.md` 必須「一律」載入；
-  只有中／高級 ◎ 的，至少要有「分級 ≥ 中」。依特性載入的檔（登入、API、LLM、行動端、MDM）除外。
-  `skills/sec-audit/SKILL.md` 涵蓋範圍表的「一律」也要與 `profile.md` 相同
+- **載入表與分級欄、掃描器表一致**——檔內有普級 ◎ 的 check，該檔在 `profile.md` 必須「一律」載入；
+  只有中／高級 ◎ 的，至少要有「分級 ≥ 中」這個獨立的「或」條件（「且」組合的不算）；
+  檔內有 check 列了 SAST（DAST）工具，要有「一律」或「將面對 SAST」（「將面對 DAST」）。
+  只由前提特性（登入、API、LLM、行動端、MDM、F 類，見 `validate_kb.py` 的 `PREMISE_TRAITS`）
+  載入的檔免查——**所以特性檔只能放以該特性為前提的 check**，這一點驗證器看不出來，新增時要自己把關
+- **`sec-audit` 涵蓋範圍表**——每個 check 檔都要有一列，載入條件與 `profile.md` 逐字相同（不計粗體）
+- **範例語言的例外**——`SAST-` 類原則上要有 Go／Python／JavaScript 範例；
+  看 manifest 與 lockfile 的 `SAST-DEP-001` 只要求設定檔範例（`validate_kb.py` 的 `LANGS_BY_CHECK`），
+  理由與行動端「設定檔」類相同：硬塞程式碼範例只會產生變形內容
 
 ## 目前涵蓋範圍
 
@@ -125,7 +132,8 @@ MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對�
 |---|---|---|
 | `sast-injection.md` | 7 | SQL 注入 / OS 命令注入 / 路徑尋訪 / 跨站腳本攻擊 / XML 外部實體 / 不安全的反序列化 / HTTP 標頭注入 |
 | `sast-authz.md` | 4 | 未執行授權檢查 / 水平越權 / 垂直越權 / 未以最小權限執行 |
-| `sast-session-auth.md` | 4 | 硬編碼憑證 / Session 固定 / 逾時與登出 / 鎖定與密碼強度 |
+| `sast-secrets.md` | 1 | 硬編碼帳號密碼與金鑰（一律載入，與登入無關） |
+| `sast-session-auth.md` | 3 | Session 固定 / 逾時與登出 / 鎖定與密碼強度 |
 | `sast-crypto.md` | 4 | 已破解演算法 / 未用 KDF / 不安全亂數 / TLS 驗證關閉 |
 | `sast-logging.md` | 4 | 日誌注入 / 敏感資訊入日誌 / 缺稽核事件 / 日誌權限過寬 |
 | `sast-errors.md` | 4 | 訊息外洩 / 回傳值未檢查 / 資源未釋放 / 例外捕捉過廣 |
@@ -170,7 +178,8 @@ CI（repo 的 `.github/workflows/validate.yml`）在每次 push 與 PR 於 Ubunt
 1. 在對應的 `checks/*.md` 加一則，嚴格照五小節格式
 2. 在 `mapping.md` 對應的表加一列（Web 11 欄、行動端 12 欄、MDM 6 欄，缺一不可）。
    分級欄照附表十原文；查檢表外的 check 由本專案訂適用範圍。若新 check 讓所在檔多了
-   普級 ◎，`profile.md` 的載入條件要跟著改成「一律」——驗證器會提醒
+   普級 ◎，`profile.md` 的載入條件要跟著改成「一律」——驗證器會提醒。
+   **不要把與特性無關的 check 放進特性檔**（例如硬編碼憑證放進只在有登入時才載入的檔）
 3. 新增的是**整個 check 檔**時，登錄到 `profile.md` 的選取規則、本檔的涵蓋範圍表與
    `skills/sec-audit/SKILL.md` 的涵蓋範圍表
 4. 跑 `python3 tools/validate_kb.py`——則數變了，它會列出每一處要跟著改的數字

@@ -80,9 +80,11 @@
 
 ## check 集合選取規則
 
-**本表由 `mapping.md` 的分級欄推導**：檔內只要有一則在某分級標 ◎，該分級就要載入這個檔——
-那一則是查檢表必查，漏載等於漏查。依專案特性才成立的檔（登入、API、LLM、行動端、MDM）
-看特性，不看分級。驗證器會檢查本表與分級欄一致。
+**本表由 `mapping.md` 的分級欄與各 check 的掃描器表推導**：檔內只要有一則在某分級標 ◎，
+該分級就要載入這個檔——那一則是查檢表必查，漏載等於漏查；檔內只要有一則列了 SAST（或 DAST）
+工具，將面對該類掃描器時就要載入。依專案特性才成立的檔（登入、API、LLM、行動端、MDM）看特性，
+**檔內只能放以該特性為前提的 check**——與特性無關的 check 放進特性檔，沒有該特性的專案就會整則漏查
+（0.5.0 以前的 `SAST-AUTH-001` 就是如此）。驗證器會檢查本表與分級欄、掃描器表一致。
 
 | 條件 | 載入 |
 |---|---|
@@ -90,11 +92,12 @@
 | 一律 | `checks/sast-errors.md` |
 | 一律 | `checks/sast-request-abuse.md` |
 | 一律 | `checks/sast-dependencies.md` |
+| 一律 | `checks/sast-secrets.md` |
 | 一律 | `checks/sast-authz.md` |
 | 一律 | `checks/sast-logging.md` |
 | 一律 | `checks/dast-tls-cookie.md` |
 | 一律 | `checks/dast-info-leak.md` |
-| 分級 ≥ 中，或有個資或金流，或將面對 SAST | `checks/sast-crypto.md` |
+| 分級 ≥ 中，或有個資或金流，或將面對 SAST，或將面對 DAST | `checks/sast-crypto.md` |
 | 分級 ≥ 中，或對外服務，或將面對 DAST | `checks/dast-headers.md` |
 | 有登入功能 | `checks/sast-session-auth.md` |
 | 有 API 端點 | `checks/sast-api-authz.md` |

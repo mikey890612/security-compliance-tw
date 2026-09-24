@@ -28,6 +28,7 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 ## 判定分類與優先序
 
 每個發現歸入下列一類，**不要自創分類**。check 檔裡的「通過」代表合格、不構成發現。
+需要使用者先執行工具才能判定的，是「**尚未判定**」，不是第五類——列在 `findings.md` 的「待使用者執行」（見下方產出）。
 
 | 判定 | 意思 | 優先序 |
 |---|---|---|
@@ -171,21 +172,22 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-95 則 check，21 個檔：
+95 則 check，22 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
 | 注入（含 XXE、反序列化、標頭注入） | `sast-injection.md` | 一律 |
 | 存取控制 | `sast-authz.md` | 一律 |
+| 硬編碼憑證與金鑰 | `sast-secrets.md` | 一律 |
 | 身分鑑別與 Session | `sast-session-auth.md` | 有登入功能 |
-| 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流／將面對 SAST |
+| 密碼學 | `sast-crypto.md` | 分級 ≥ 中，或有個資或金流，或將面對 SAST，或將面對 DAST |
 | 日誌與稽核 | `sast-logging.md` | 一律 |
 | 錯誤與例外 | `sast-errors.md` | 一律 |
 | 請求濫用（CSRF／SSRF／上傳／Open Redirect） | `sast-request-abuse.md` | 一律 |
 | 第三方元件（已知漏洞） | `sast-dependencies.md` | 一律 |
 | API 授權 | `sast-api-authz.md` | 有 API 端點 |
-| LLM / Agent | `sast-llm.md` | 有 LLM／RAG／Agent |
-| HTTP 安全標頭 | `dast-headers.md` | 分級 ≥ 中／對外服務／將面對 DAST |
+| LLM / Agent | `sast-llm.md` | 有 LLM / RAG / Agent |
+| HTTP 安全標頭 | `dast-headers.md` | 分級 ≥ 中，或對外服務，或將面對 DAST |
 | TLS 與 Cookie | `dast-tls-cookie.md` | 一律 |
 | 資訊外洩 | `dast-info-leak.md` | 一律 |
 | MAST 本機儲存／日誌／備份 | `mast-storage.md` | **有行動 App** |
@@ -194,7 +196,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | MAST 身分鑑別與生物辨識 | `mast-auth.md` | **有行動 App** |
 | MAST 平台介面（IPC／WebView／剪貼簿／螢幕） | `mast-platform.md` | **有行動 App** |
 | MAST 輸入驗證與注入防護 | `mast-code.md` | **有行動 App** |
-| MAST 抗逆向與竄改（F 類） | `mast-resilience.md` | **有行動 App 且勾選 F 類加測** |
+| MAST 抗逆向與竄改（F 類） | `mast-resilience.md` | 行動 App **且**勾選 F 類加測 |
 | MDM／EMM／MAM 控制 | `mdm-controls.md` | **有 EMM／MDM／MAM** |
 
 行動端 36 則分於七個依 MASVS 類別命名的檔案；MDM 8 則獨立一檔（規格外的延伸）。

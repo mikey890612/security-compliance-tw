@@ -7,11 +7,16 @@ app.use(express.text({ type: "*/*", limit: "1mb" }));
 const ALLOWED_THEMES = new Set(["light", "dark"]);
 
 function safeNext(raw) {
-  if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
+  if (typeof raw !== "string" || !raw.startsWith("/")) {
     return "/";
   }
-  const u = new URL(raw, "http://placeholder.invalid");
-  return u.origin === "http://placeholder.invalid" ? u.pathname + u.search : "/";
+  const base = "http://placeholder.invalid";
+  const u = new URL(raw, base);
+  const next = u.pathname + u.search;
+  if (u.origin !== base || next.startsWith("//") || next.includes("\\")) {
+    return "/";
+  }
+  return next;
 }
 
 app.get("/v2/login/done", function (req, res) {

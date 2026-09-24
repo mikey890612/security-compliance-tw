@@ -692,6 +692,26 @@ class TestGradesVsAppendix10(unittest.TestCase):
         }
         self.assertEqual(validate_kb.validate_grades_vs_appendix10(rows, self._sections()), [])
 
+    def test_in_text_rows_use_in_text_grades(self):
+        """4.5.3.4 是內文項目（中高）；用 4.5.3 查檢表的聯集（含普）會放過錯誤。"""
+        in_text = {"4.5.3.4": {"中", "高"}}
+        ok = {"DAST-HDR-001": self._row("4.5.3.4（內文）")}
+        self.assertEqual(validate_kb.validate_grades_vs_appendix10(ok, self._sections(), in_text), [])
+        wide = {"DAST-HDR-001": self._row("4.5.3.4（內文）", pu="◎")}
+        errors = validate_kb.validate_grades_vs_appendix10(wide, self._sections(), in_text)
+        self.assertTrue(any("DAST-HDR-001" in e and "普" in e for e in errors), errors)
+        missing = {"DAST-HDR-009": self._row("4.9.9（內文）")}
+        errors = validate_kb.validate_grades_vs_appendix10(missing, self._sections(), in_text)
+        self.assertTrue(any("內文" in e for e in errors), errors)
+
+    def test_parses_in_text_items(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "a10.md").write_text(
+            "## 內文與查檢表的收錄範圍\n\n**4.5.3.4 HTTP 安全標頭防護與設定**（V3.2 新增，適用分級 中◎ 高◎）\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(validate_kb.parse_appendix10_in_text(d / "a10.md"), {"4.5.3.4": {"中", "高"}})
+
     def test_unknown_ref_and_out_of_checklist_rows(self):
         rows = {
             "SAST-X-002": self._row("4.9.9"),
@@ -713,15 +733,23 @@ class TestLoadRules(unittest.TestCase):
         "| 第 3 題勾選 | 將面對 |\n|---|---|\n| 商用 | `checks/sast-z.md` |\n\n"
         "## 下一節\n\n| 條件 | 載入 |\n|---|---|\n| 一律 | `checks/sast-y.md` |\n"
     )
+    SAST_TABLE = (
+        "### 掃描器怎麼標\n\n| 工具 | 規則 | 預設等級 | 狀態 | 證據 |\n|---|---|---|---|---|\n"
+        "| Fortify | X | High | unverified | — |\n"
+    )
+    DAST_TABLE = (
+        "### 掃描器怎麼標\n\n| 工具 | 規則 | 預設等級 | 狀態 | 證據 |\n|---|---|---|---|---|\n"
+        "| Nessus | X | High | unverified | — |\n"
+    )
 
     def _table(self):
         d = pathlib.Path(tempfile.mkdtemp())
         (d / "profile.md").write_text(self.PROFILE, encoding="utf-8")
         return validate_kb.parse_load_table(d / "profile.md")
 
-    def _checks(self, spec):
+    def _checks(self, spec, body=""):
         return [
-            validate_kb.Check(id=cid, title="", body="", source=src)
+            validate_kb.Check(id=cid, title="", body=body, source=src)
             for src, ids in spec.items()
             for cid in ids
         ]
@@ -745,7 +773,7 @@ class TestLoadRules(unittest.TestCase):
     def test_consistent_rules_pass(self):
         checks = self._checks({
             "sast-a.md": ["A-1"], "sast-b.md": ["B-1"], "sast-session-auth.md": ["S-1"],
-        })
+        }, body=self.SAST_TABLE)
         rows = self._rows({"A-1": "普中高", "B-1": "中高", "S-1": "普中高"})
         self.assertEqual(validate_kb.validate_load_rules(self._table(), checks, rows), [])
 
@@ -757,15 +785,47 @@ class TestLoadRules(unittest.TestCase):
         self.assertTrue(any("sast-b.md" in e and "B-2" in e and "普級" in e for e in errors), errors)
 
     def test_zhong_graded_file_needs_grade_condition(self):
+        """「對外服務」不是前提特性——只靠它載入的檔照樣要涵蓋分級。"""
         table = {"dast-h.md": ["對外服務"]}
         checks = self._checks({"dast-h.md": ["H-1"]})
         errors = validate_kb.validate_load_rules(table, checks, self._rows({"H-1": "中高"}))
         self.assertTrue(any("dast-h.md" in e and "中級" in e for e in errors), errors)
 
-    def test_trait_gated_and_mobile_files_skip_grade_check(self):
-        table = {"sast-session-auth.md": ["有登入功能"], "mast-x.md": ["有行動 App"]}
-        checks = self._checks({"sast-session-auth.md": ["S-1"], "mast-x.md": ["M-1"]})
-        rows = self._rows({"S-1": "普中高", "M-1": ""})
+    def test_conjunctive_condition_does_not_cover_grade(self):
+        """「分級 ≥ 中 且 對外服務」會讓內部的中級專案漏載，不能算涵蓋中級。"""
+        table = {"dast-h.md": ["分級 ≥ 中 **且**對外服務"]}
+        checks = self._checks({"dast-h.md": ["H-1"]})
+        errors = validate_kb.validate_load_rules(table, checks, self._rows({"H-1": "中高"}))
+        self.assertTrue(any("dast-h.md" in e and "且" in e for e in errors), errors)
+
+    def test_gao_only_file_message_lists_accepted_conditions(self):
+        table = {"sast-g.md": ["對外服務"]}
+        checks = self._checks({"sast-g.md": ["G-1"]})
+        errors = validate_kb.validate_load_rules(table, checks, self._rows({"G-1": "高"}))
+        self.assertTrue(any("分級 = 高" in e for e in errors), errors)
+        table = {"sast-g.md": ["分級 = 高"]}
+        self.assertEqual(validate_kb.validate_load_rules(table, checks, self._rows({"G-1": "高"})), [])
+
+    def test_scanner_table_drives_loading(self):
+        """0.4.0 的 sast-crypto：CRYPTO-004 列了 Nessus，只面對弱掃的專案卻不載入。"""
+        table = {"sast-c.md": ["分級 ≥ 中，或將面對 SAST"]}
+        checks = self._checks({"sast-c.md": ["C-1"]}, body=self.DAST_TABLE)
+        errors = validate_kb.validate_load_rules(table, checks, self._rows({"C-1": "中高"}))
+        self.assertTrue(any("sast-c.md" in e and "將面對 DAST" in e for e in errors), errors)
+        table = {"sast-c.md": ["分級 ≥ 中，或將面對 SAST，或將面對 DAST"]}
+        self.assertEqual(validate_kb.validate_load_rules(table, checks, self._rows({"C-1": "中高"})), [])
+
+    def test_premise_trait_files_skip_grade_and_scanner_checks(self):
+        """前提特性由 profile 條件推導，不靠寫死的檔名——新的特性檔不必改驗證器。"""
+        table = {
+            "sast-session-auth.md": ["有登入功能"],
+            "sast-graphql.md": ["有 API 端點"],
+            "mast-x.md": ["有行動 App"],
+        }
+        checks = self._checks({
+            "sast-session-auth.md": ["S-1"], "sast-graphql.md": ["Q-1"], "mast-x.md": ["M-1"],
+        }, body=self.SAST_TABLE + self.DAST_TABLE)
+        rows = self._rows({"S-1": "普中高", "Q-1": "普中高", "M-1": ""})
         self.assertEqual(validate_kb.validate_load_rules(table, checks, rows), [])
 
     def test_file_missing_from_load_table_errors(self):
@@ -773,19 +833,37 @@ class TestLoadRules(unittest.TestCase):
         errors = validate_kb.validate_load_rules(self._table(), checks, self._rows({"N-1": "高"}))
         self.assertTrue(any("sast-new.md" in e and "未列在" in e for e in errors), errors)
 
-    def test_skill_coverage_column_must_match_always(self):
+    def _skill(self, rows):
         d = pathlib.Path(tempfile.mkdtemp())
         (d / "SKILL.md").write_text(
-            "| 類別 | 檔案 | 載入條件 |\n|---|---|---|\n"
-            "| A | `sast-a.md` | 分級 ≥ 中 |\n"
-            "| B | `sast-b.md` | 一律 |\n"
-            "| S | `sast-session-auth.md` | 有登入功能 |\n",
+            "## 目前涵蓋範圍\n\n| 類別 | 檔案 | 載入條件 |\n|---|---|---|\n" + rows + "\n## 下一節\n",
             encoding="utf-8",
         )
-        errors = validate_kb.validate_skill_load_column(d / "SKILL.md", self._table())
-        self.assertEqual(len(errors), 2, errors)
-        self.assertTrue(any("sast-a.md" in e for e in errors))
-        self.assertTrue(any("sast-b.md" in e for e in errors))
+        return d / "SKILL.md"
+
+    def test_skill_coverage_must_match_profile_verbatim(self):
+        files = {"sast-a.md", "sast-b.md", "sast-session-auth.md"}
+        ok = self._skill(
+            "| A | `sast-a.md` | 一律 |\n"
+            "| B | `sast-b.md` | 分級 ≥ 中，或將面對 SAST |\n"
+            "| S | `sast-session-auth.md` | **有登入功能** |\n"
+        )
+        self.assertEqual(validate_kb.validate_skill_load_column(ok, self._table(), files), [])
+        drift = self._skill(
+            "| A | `sast-a.md` | 一律 |\n"
+            "| B | `sast-b.md` | 分級 ≥ 中／對外服務 |\n"
+            "| S | `sast-session-auth.md` | 有登入功能 |\n"
+        )
+        errors = validate_kb.validate_skill_load_column(drift, self._table(), files)
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("sast-b.md", errors[0])
+
+    def test_skill_coverage_rows_with_several_files_and_missing_rows(self):
+        files = {"sast-a.md", "sast-b.md", "sast-session-auth.md"}
+        merged = self._skill("| A+B | `sast-a.md`、`sast-b.md` | 一律 |\n")
+        errors = validate_kb.validate_skill_load_column(merged, self._table(), files)
+        self.assertTrue(any("sast-b.md" in e and "分級 ≥ 中" in e for e in errors), errors)
+        self.assertTrue(any("sast-session-auth.md" in e and "沒有列在" in e for e in errors), errors)
 
 
 class TestJudgmentTerms(unittest.TestCase):

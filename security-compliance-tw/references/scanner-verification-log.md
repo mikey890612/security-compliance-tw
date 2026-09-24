@@ -7,7 +7,8 @@
 | 2026-09-05 | semgrep | 1.176.1 | sast-injection (INJ-001 string-formatted-query, INJ-002 dangerous-exec-command, INJ-004 xss ResponseWriter) | sample-go+sample-multi: 8 findings; verified 3 rows; artifact `testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json` | 埕碩 許 |
 | 2026-09-07 | mobsfscan | 1.0.0（規則集內含 semgrep 66 檔） | mast-storage（STORAGE-002/003/004）、mast-crypto（CRYPTO-001/002）、mast-network（NETWORK-001/002）、mast-platform（PLATFORM-002/004/006/007/009）、mast-code（CODE-002）、mast-resilience（RESILIENCE-001/002/003） | sample-android：14 條 semgrep 命中 + 11 條 manifest／best-practice；sample-ios：5 + 6。verified 16 列。artifact `testdata/scan-artifacts/open-source/20260907T001858Z/` | 埕碩 許 |
 | 2026-09-24 | Fortify SCA | 26.1.0.0059（Rulepacks 2026.1.1.0001） | sast-request-abuse（UPLOAD-001、CSRF-001）、sast-errors（ERR-001）、sast-crypto（CRYPTO-001/002）、sast-injection（INJ-001）、sast-api-authz（API-002）、dast-tls-cookie（COOKIE-002） | 真實專案的內部報告（檢測日 2026-04-24；報告、路徑與程式碼不入庫）：Go／HTML／JS 專案 27 項 4 類、C# 專案 15 項 7 類。verified 4 列、partial 6 列。模式 2 反查模擬：校準前 42 項只精確對到 12 項，校準後 42 項全對到 | 埕碩 許 |
-| 2026-09-24 | semgrep／bandit／npm audit／pip-audit | semgrep 1.178.0（規則取自 GitHub semgrep-rules a84ff9c）；bandit 1.9.4；npm 10.9.7；pip-audit 2.10.1 | sast-injection（INJ-005/006）、sast-request-abuse（REDIRECT-001）、sast-dependencies（DEP-001） | sample-untrusted-data：semgrep 對 vulnerable.* 命中 12 項（另 1 項為無關的 CSRF 提示）、bandit 5 項；fixed.* 只剩 Go 的 open-redirect（污點規則認不得自寫檢查）。INJ-007 兩工具皆無規則命中。verified 12 列；artifact `testdata/scan-artifacts/open-source/20260924T115741Z/` | 埕碩 許 |
+| 2026-09-24 | semgrep／bandit／npm audit／pip-audit | semgrep 1.178.0（規則取自 GitHub semgrep-rules a84ff9c）；bandit 1.9.4；npm 10.9.7；pip-audit 2.10.1 | sast-injection（INJ-005/006）、sast-request-abuse（REDIRECT-001）、sast-dependencies（DEP-001） | sample-untrusted-data：semgrep 對 vulnerable.* 命中 12 項（另 1 項為無關的 CSRF 提示）、bandit 5 項；fixed.* 與本批相關的命中只剩 Go 的 open-redirect（污點規則認不得自寫檢查），另有 2 項無關提示（`use-tls`、`express-check-csurf-middleware-usage`）。INJ-007 兩工具皆無規則命中。verified 12 列；artifact `testdata/scan-artifacts/open-source/20260924T115741Z/` | 埕碩 許 |
+| 2026-09-24 | semgrep／bandit；Go 1.24、Node 22＋Express 4.22、Flask 3.1 | 同上；Go 1.24.7、Node 22.22.2、Express 4.22.3、Flask 3.1.3／Werkzeug 3.1.8 | sast-request-abuse（REDIRECT-001 過關寫法修正） | 0.4.0 的 Go 與 JS `safeNext` 可被繞過（Go 2 項、JS 3 項導到外站）。修正後三語言的寫法取自知識庫原文，經框架產生 `Location` 再以 WHATWG URL 解析，20 個輸入 0 項離站；fixture 重掃結果與前一批相同。artifact `testdata/scan-artifacts/open-source/20260924T132523Z/` | 埕碩 許 |
 
 ## 行動端驗證的執行方式與限制
 
@@ -98,3 +99,19 @@ semgrep --metrics=off --json -o semgrep.json \
 `govulncheck` 的漏洞資料庫（vuln.go.dev）在本次環境連不上，維持 `unverified`。
 
 商用工具的新增列一律 `unverified`；Checkmarx 只收有把握存在的名稱，沒把握的不列。
+
+### Open Redirect 過關寫法的繞過與修正（0.5.0）
+
+0.4.0 的 `safeNext` 檢查的是**原始輸入**，但送出的是解析函式**正規化或重新編碼之後**的字串：
+
+| 語言 | 繞過輸入 | 0.4.0 送出的 `Location` |
+|---|---|---|
+| Go | `/%2Fevil.example/{`（`{` 讓 `RawPath` 失效，`RequestURI()` 從解碼後的路徑重新編碼） | `//evil.example/%7B` |
+| JS | `/.//evil.example`、`/..//evil.example`、`/a/..//evil.example`（`URL` 正規化點區段） | `//evil.example` |
+
+修正：三種語言都改成**檢查最後要送出的字串**。驗證方式：從 `sast-request-abuse.md` 抽出程式碼區塊，
+放進真的框架（Go `http.Redirect`、Express `res.redirect`、Flask `redirect`）取得 `Location`，
+再以 Node 的 WHATWG `URL` 對 `https://app.example.gov.tw/login/done` 解析、比對主機。
+測試輸入 20 個：兩個正常站內路徑，以及協定相對、反斜線、`https://`、`@`、`javascript:`、
+點區段、`%2F`、`%09`、`%5C`、tab、換行等繞過。正常路徑照常導回，繞過輸入 0 項離站。
+Python 的舊寫法沒有被繞過（Werkzeug 與 `urlsplit` 已處理 tab 與換行），一併改成同樣的原則。

@@ -114,7 +114,7 @@ Web21 A03 + Web25 A05 + LLM05 + CWE-89）。若在每則 check 內嵌編號，
 
 ### 涵蓋範圍（95 則）
 
-注入（含 XSS、XXE、反序列化、標頭注入）· 存取控制 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
+注入（含 XSS、XXE、反序列化、標頭注入）· 存取控制 · 硬編碼憑證與金鑰 · 身分鑑別與 Session · 密碼學 · 日誌與稽核 ·
 錯誤與例外 · **請求濫用**（`sast-request-abuse.md`：CSRF／SSRF／UPLOAD／Open Redirect）·
 **第三方元件**（`sast-dependencies.md`：已知漏洞元件）·
 API 授權 · LLM / Agent · HTTP 安全標頭 · TLS 與 Cookie · 資訊外洩 ·

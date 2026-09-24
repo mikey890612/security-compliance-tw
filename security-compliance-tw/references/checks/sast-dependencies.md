@@ -76,10 +76,26 @@ replace github.com/some/lib => ./third_party/lib-fork
 版本鎖定、lockfile 進版控、建置時固定比對一次：
 
 ```text
-# requirements.txt——由 pip-compile 或 uv 產生，版本全部鎖定
+# requirements.txt——由 `pip-compile requirements.in` 產生，間接相依也全部鎖定
+blinker==1.9.0
+    # via flask
+click==8.4.2
+    # via flask
 flask==3.1.3
-pyyaml==6.0.2
+    # via -r requirements.in
+itsdangerous==2.2.0
+    # via flask
+jinja2==3.1.6
+    # via flask
+markupsafe==3.0.3
+    # via flask, jinja2, werkzeug
+pyyaml==6.0.3
+    # via -r requirements.in
+werkzeug==3.1.8
+    # via flask
 ```
+
+手寫的 `requirements.txt` 只鎖頂層套件不算鎖定——Werkzeug、Jinja2 這些間接相依每次安裝仍會浮動。
 
 ```yaml
 # CI：每次建置都比對；有 high 以上就失敗
@@ -127,7 +143,10 @@ static/vendor/README.md
 真漏洞：工具輸出或掃描報告指出正式環境使用的元件版本有已知漏洞，且尚未升級到修補版本。
 
 真漏洞：無從評估——相依沒有鎖定版本（沒有 lockfile、manifest 只寫套件名），
-內附的第三方檔查不出名稱與版本，或頁面引用的第三方檔不在 repo 裡。
+內附的第三方檔查不出名稱與版本，或頁面引用的第三方檔在 repo 裡找不到、網址也看不出版本
+（本站路徑的檔不存在，或 CDN 網址沒有鎖版本，例如 `@latest` 或不帶版本號）。
+CDN 網址已鎖版本（例如 `…/jquery@3.7.1/…`）時版本已知，照一般元件比對，不屬此條；
+建議另加 SRI（`integrity` 屬性），確保取回的內容就是那一版。
 定期評估更新的前提是知道自己用了什麼版本。
 
 誤判：受影響的只有開發相依且正式建置不含；Go 專案經 govulncheck 確認沒有呼叫到受影響函式；
