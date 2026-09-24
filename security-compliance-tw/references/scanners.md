@@ -20,7 +20,8 @@
   只比對冒號前的主類別會錯對到弱雜湊那則
 - 掃描範圍：HTML 模板與前端 JS 都會掃，含 `vendor/` 下的第三方套件
 - 習性：偏保守，寧可多報。自訂的消毒函式（custom sanitizer）追不出來，
-  除非在 Fortify 的 rulepack 中註冊為 cleanse rule
+  除非在 Fortify 的 rulepack 中註冊為 cleanse rule——這要能改掃描設定，
+  見下方「需要改掃描器設定的處置」
 - 誤判處置：在 Audit Workbench 中標記為 Not an Issue 並填寫理由，
   該判定會寫入 `.fpr`，複掃時保留。分析標籤另有 Reliability Issue、
   Bad Practice、Suspicious、Exploitable
@@ -68,6 +69,14 @@ DAST 完全看不到源碼，只看執行期表現。因此 DAST 家族的 check
 2. **有具體佐證**可寫入 `false-positives.md`：檔案位置與行號——資料來源、消毒點或控制所在
 
 缺一即視為真漏洞處理。「應該沒事」「只在內網」不是佐證。
+
+## 需要改掃描器設定的處置
+
+本知識庫**預設掃描由第三方執行**（政府驗收常見），開發團隊碰不到規則庫與掃描設定。
+因此註冊 cleanse rule、調整規則等級、排除路徑這類處置一律標「選配」，只在你們自己執行掃描時適用。
+
+主路徑一律是程式碼做得到的事：照各 check 的過關寫法改；改完仍會被標的，判誤判，
+佐證（含實際輸出樣本）寫進 `false-positives.md`，交給掃描方或審查者判讀。
 
 ## 第三方程式碼的發現
 

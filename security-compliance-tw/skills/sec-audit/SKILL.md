@@ -32,9 +32,12 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 | 判定 | 意思 | 優先序 |
 |---|---|---|
 | **真漏洞** | 風險存在。灰色地帶一律歸此 | P0／P1，見 `profile.md` |
-| **改寫即過** | 實質安全，但寫法會被標，且有掃描器認得的寫法可直接替換。check 的處置寫了改寫方式（「改寫比寫誤判說明省事」）的情況一律歸此，**不要判誤判** | P2 |
+| **改寫即過** | 實質安全，但寫法會被標，且**換成掃描器認得的寫法後就不再被標**。check 的處置寫了改寫方式（「改寫比寫誤判說明省事」）的情況一律歸此，**不要判誤判**。改完仍會被標的（例如自訂的消毒函式），判誤判 | P2 |
 | **誤判** | 符合上方兩點，且不需要改程式碼 | 不排序，列為送掃前要備妥的佐證 |
 | **不適用** | 該 check 的前提不成立（例如沒有對外 TLS） | 不列 |
+
+第三方套件（`vendor/` 等）的發現同樣歸入這四類：風險已被接收端或伺服器端的控制消除的，判誤判；
+風險真實存在的，判真漏洞，修法依 `{ROOT}/references/scanners.md` 的「第三方程式碼的發現」（升級或設定覆寫，不改套件檔）。
 
 優先序排的是**不修會不會被驗收退件**，不是掃描器等級——規則見 `{ROOT}/references/profile.md` 的「優先序」。
 **人工審查才抓得到的真漏洞（例如完全沒有授權檢查）照樣排 P0**，它們最容易被忽略。
@@ -48,7 +51,8 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 1. **建立 profile**——讀 `{ROOT}/references/profile.md`，照其問答腳本**一次問完**。
    腳本用 multiSelect 把六個資料點壓成三題，**剛好在 AskUserQuestion 的四題上限內**。
    不要拆成兩輪問，拆輪等於逐題往返
-2. **偵測技術棧**——讀 `go.mod` / `requirements.txt` / `pyproject.toml` / `package.json`
+2. **偵測技術棧**——依 `profile.md` 的「語言對應」：manifest 檔之外，也看實際存在的原始檔
+   （例如有 `.js`／`.html` 但沒有 `package.json`）
 3. **選定 check 集合**——依 `profile.md` 的選取規則決定載入哪些 `checks/*.md`。
    **只載入需要的檔案**，這是控制 context 的關鍵。載入前先確認檔案存在。
    Profile 複選若勾「**有行動 App**」→ 載入 `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md`；

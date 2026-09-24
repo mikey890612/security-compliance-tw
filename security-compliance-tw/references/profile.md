@@ -40,8 +40,8 @@
 - 不知道
 
 另需判定「**是否有登入功能**」（決定是否載入 `sast-session-auth.md`）。
-這一項**不要問**——從程式碼判定即可：是否有 session / cookie / JWT / 密碼
-相關的處理。判不出來時才問，且併入上面三題一起問。
+這一項**不要問**——從程式碼判定即可：是否有**用來辨識使用者身分**的 session／cookie／JWT／密碼
+處理。CSRF token、語系偏好這類不帶身分的 cookie 不算。判不出來時才問，且併入上面三題一起問。
 
 ## 分級的實質差異
 
@@ -93,6 +93,18 @@
 | 有行動 App | `checks/mast-storage.md`、`checks/mast-crypto.md`、`checks/mast-network.md`、`checks/mast-auth.md`、`checks/mast-platform.md`、`checks/mast-code.md` |
 | 有 EMM／MDM／MAM | `checks/mdm-controls.md` |
 | 行動 App **且**勾選 F 類加測 | `checks/mast-resilience.md` |
+| 將面對商用 SAST（Fortify／Checkmarx） | `checks/dast-tls-cookie.md`——Cookie 屬性寫在原始碼裡，SAST 不管服務是否對外都會標 |
+
+**程式碼看得出來的特性，以較寬的一方為準。** 使用者答「否」、但程式碼明顯具備時照樣載入，
+並在 `findings.md` 開頭寫明「使用者答否，但程式碼可見 X（位置），因此載入 Y」：
+
+| 特性 | 程式碼裡的跡象 |
+|---|---|
+| 有 API 端點 | handler 回傳 JSON（`application/json`、`json.NewEncoder(w)`、`jsonify`、`res.json`），或供 XHR／fetch 呼叫的路由 |
+| 有 LLM／RAG／Agent | 相依或呼叫 LLM SDK（`openai`、`anthropic`、`langchain` 等） |
+| 有行動 App | 見下方「語言對應」的 Android／iOS 檔案 |
+
+「對外服務」「處理個資或金流」「EMM／MDM／MAM」「F 類加測」程式碼看不出來，**照使用者的答案**。
 
 **載入前先確認檔案存在。** 知識庫仍在擴充中，規則表可能列出尚未建立的檔案。
 遇到不存在的檔案時，在報告中註明「該類別尚未涵蓋」，**不要憑印象生成內容**。
@@ -131,7 +143,10 @@ L1 / L2 / L3 **不要問，從既有資料點推導**：
 | `build.gradle` / `build.gradle.kts` / `settings.gradle` | Kotlin / Java（Android） | ` ```kotlin ` |
 | `Podfile` / `Package.swift` / `*.xcodeproj` / `*.xcworkspace` | Swift（iOS） | ` ```swift ` |
 | `AndroidManifest.xml` / `Info.plist` | 設定檔 | ` ```xml ` / ` ```plist ` |
+| 沒有 `package.json`，但有 `*.js`／`*.ts`／`*.html`（伺服器端模板、前端靜態檔） | JavaScript | ` ```javascript ` |
 
+manifest 只是捷徑：**專案裡有該語言的原始檔就算**，掃描器會掃到它們——包括 `vendor/`
+下的第三方檔案（處置見 `scanners.md` 的「第三方程式碼的發現」）。
 多語言專案全部載入。找不到任何一種時，詢問使用者。
 
 **行動專案的伺服器端仍走既有的 `sast-*` 與 `dast-*`**——
@@ -144,7 +159,7 @@ L1 / L2 / L3 **不要問，從既有資料點推導**：
 
 | 優先序 | 條件 |
 |---|---|
-| **P0** | 真漏洞，且符合任一：① 查檢表必查——`mapping.md` 該 check 的附表十欄有項次（不是「查檢表外」），且本專案分級欄標 ◎；行動端看推導出的 L1／L2／L3 欄，勾了 F 類加測再看 F 欄 ② 掃描器確定會標為 Critical／High——模式 2 看**報告上的等級**；模式 1 只看 **`verified` 列**的等級 |
+| **P0** | 真漏洞，且符合任一：① 查檢表必查——`mapping.md` 該 check 的附表十欄有項次（不是「查檢表外」），且本專案分級欄標 ◎（列在 `mapping.md`「刻意放寬分級之處」的 check，改以該節的附表十原文分級判斷——放寬只為了載入，不代表查檢表必查）；行動端看推導出的 L1／L2／L3 欄，勾了 F 類加測再看 F 欄 ② 掃描器確定會標為 Critical／High——模式 2 看**報告上的等級**；模式 1 只看 **`verified` 列**的等級 |
 | **P1** | 其他真漏洞 |
 | **P2** | 改寫即過 |
 | — | 誤判：不排序，列為「送掃前備妥的佐證」。不適用：不列 |

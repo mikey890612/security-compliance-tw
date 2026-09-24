@@ -96,15 +96,19 @@ logger.info({
 }, "auth failed");
 ```
 
-若使用 Fortify 或 Checkmarx，把 `sanitizeForLog` 註冊為 cleanse rule / sanitizer，
-之後所有經過它的路徑就會自動消音，不必逐筆寫誤判說明。
+Fortify、Checkmarx 多半仍會沿污點路徑報——它們認不得自訂的 `sanitizeForLog`。
+這時判為**誤判**：佐證附上 `sanitizeForLog` 的位置與一筆實際輸出樣本（換行已被轉義），
+寫進 `false-positives.md` 交給掃描方或審查者。
+
+**選配（只在你們自己執行掃描時）：** 把 `sanitizeForLog` 註冊為 cleanse rule／sanitizer，
+之後經過它的路徑就不再報。由第三方執行掃描時碰不到規則庫，不要把這當成修法。
 
 ### 常見誤判與處置
 
 - **已用 JSON 結構化編碼器，換行實際上已被轉義**——zap、slog 的 JSON handler、
   pino 都會把 `\n` 轉成 `\\n`，日誌行無法被撐開，但 Fortify 仍沿污點路徑報。
-  處置：優先把 encoder 或 sanitize helper 註冊為 cleanse rule；
-  來不及調規則就標記誤判，佐證附上實際輸出樣本，顯示換行已被轉義。
+  處置：標記誤判，佐證附上實際輸出樣本，顯示換行已被轉義。
+  自己執行掃描時，可另把 encoder 或 sanitize helper 註冊為 cleanse rule（選配）。
 
 - **記錄的值不是字串型別**——例如 `int64` 主鍵、已驗證過的列舉常數、
   框架產生的 UUID。Checkmarx 型別推導不足時仍會標。
@@ -251,8 +255,8 @@ logger.info({ event: "DATA_CHANGE", userId: actor.internalId, resource: "PUT /me
 
 - **記的是雜湊或遮罩後的值，但引擎仍追到原始變數**——常見於
   `log.Printf("pwd hash=%s", sha256Hex(password))`。
-  處置：把遮罩／雜湊函式註冊為 cleanse rule；或先指派新變數再記錄，
-  佐證附上遮罩函式實作與輸出樣本。
+  處置：標記誤判，佐證附上遮罩函式實作與輸出樣本。
+  自己執行掃描時，可另把遮罩函式註冊為 cleanse rule（選配）。
 
 ### 判定準則
 
