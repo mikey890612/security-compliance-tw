@@ -13,7 +13,7 @@
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | Fortify | System Information Leak: External（實測標在前端 JS：錯誤物件寫進 DOM 或 `alert`） | Medium | verified | internal-verified:2026-04-24 |
-| Fortify | System Information Leak（實測觸發點是日誌工具類，與本則「外洩到回應」不完全吻合） | Low | partial | internal-verified:2026-04-24（C#） |
+| Fortify | System Information Leak（實測觸發點是日誌工具類，與本則「外洩到回應」不完全吻合；模式 1 不據此預測） | Low | partial | internal-verified:2026-04-24（C#） |
 | Checkmarx | Information_Exposure_Through_an_Error_Message | Medium | unverified | — |
 | Semgrep | `*.security.*.stack-trace-exposure*` / `python.flask.security.audit.debug-enabled` | ERROR | unverified | — |
 | SonarQube | S4507（上線仍啟用除錯功能）/ S1989（例外由 servlet 方法逸出） | Security Hotspot / — | unverified | — |
@@ -112,8 +112,10 @@ app.use((err, req, res, next) => {
   處置看 `err` 的來源，修法都是畫面只顯示常數訊息、`err` 交給 `console.error` 或前端錯誤回報：
   - 只來自瀏覽器 API（剪貼簿、檔案讀取、表單驗證等），不含伺服器回應——**改寫即過**：
     使用者看到的是自己瀏覽器的錯誤，沒有系統資訊外洩
-  - 帶伺服器回應內容（`xhr.responseText`、`fetch` 讀出的錯誤本體），且無法確認伺服器錯誤回應
-    皆為常數——真漏洞，根本修法在伺服器端（見過關寫法）
+  - 帶伺服器回應內容（`xhr.responseText`、`fetch` 讀出的錯誤本體），且**應用程式本身**的錯誤回應
+    不全是常數——真漏洞，根本修法在伺服器端（見過關寫法）
+  - 應用程式的錯誤回應全是常數，但代理或 LB 的錯誤頁（413、502、504 等）在 repo 以外看不到——
+    列入「待使用者執行」，請使用者提供代理的錯誤頁設定；確認後依下一條判定
   - 帶伺服器回應內容，但伺服器錯誤回應（含代理、LB 的錯誤頁）確定皆為常數——
     自家程式碼判**改寫即過**；第三方套件改不了寫法，判**誤判**，見 `../scanners.md` 的「第三方程式碼的發現」
 

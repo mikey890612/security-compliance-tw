@@ -158,3 +158,7 @@ CDN 網址已鎖版本（例如 `…/jquery@3.7.1/…`）時版本已知，照�
 附上各生態系的比對指令請使用者執行（npm／pip／Go 用上方 CI 範例；沒有 manifest 的內附 JS
 用 retire.js 或 Dependency-Check）；使用者提供輸出後再逐項判定。
 清單本身沒有問題的專案，列在 `findings.md` 開頭的「待使用者執行」，**不要判通過**。
+逐個元件判斷：無從評估的元件列為發現（真漏洞），其他元件列在待使用者執行——同一個 check-id 可以兩處都有。
+
+Go 專案只用標準函式庫（`go.mod` 沒有 `require`）時，要比對的是**建置用的 toolchain**：
+`go.mod` 的 `go 1.22` 只是語言版本，請使用者提供 `go version`，`govulncheck` 會一併比對標準函式庫。
