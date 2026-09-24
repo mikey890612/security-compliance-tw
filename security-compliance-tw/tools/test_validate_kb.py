@@ -665,6 +665,13 @@ class TestVersion(unittest.TestCase):
         errors = self._errors("0.2.0", "sha256:old", {"0.2.0": "未發布"})
         self.assertTrue(any("未發布" in e for e in errors), errors)
 
+    def test_require_released_rejects_pending_version(self):
+        errors = validate_kb.validate_released("0.3.0", self.LOCK)
+        self.assertTrue(any("--release" in e for e in errors), errors)
+
+    def test_require_released_accepts_released_version(self):
+        self.assertEqual(validate_kb.validate_released("0.2.0", self.LOCK), [])
+
     def test_bad_version_format_errors(self):
         errors = self._errors("0.2", "sha256:old", {})
         self.assertTrue(any("X.Y.Z" in e for e in errors), errors)

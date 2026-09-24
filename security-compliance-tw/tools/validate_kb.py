@@ -702,6 +702,17 @@ def validate_version(version, lock, fingerprint, changelog):
     return errors
 
 
+def validate_released(version, lock):
+    """--require-released：合併進 main 的版本必須已標記發布。"""
+    if version != lock.get("version"):
+        return [
+            f"版本 {version} 尚未發布（release-lock.json 是 {lock.get('version')}）："
+            f"把 CHANGELOG.md 的「{UNRELEASED}」改成日期，執行 "
+            "python3 tools/validate_kb.py --release，並提交 tools/release-lock.json"
+        ]
+    return []
+
+
 VERSION_MENTION_RE = re.compile(r"sec-harden v(\d+\.\d+\.\d+)")
 
 
@@ -769,12 +780,15 @@ def main():
         errors.append("tools/release-lock.json 不存在")
     else:
         version = json.loads(manifest.read_text(encoding="utf-8"))["version"]
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
         errors += validate_version(
             version,
-            json.loads(lock_path.read_text(encoding="utf-8")),
+            lock,
             content_fingerprint(plugin),
             changelog_entries(plugin / "CHANGELOG.md"),
         )
+        if "--require-released" in sys.argv[1:]:
+            errors += validate_released(version, lock)
         errors += validate_version_mentions(
             runtime_docs(plugin) + repo_docs(plugin), version, base=plugin
         )

@@ -1,0 +1,55 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Knowledge base and documents
+        run: python3 security-compliance-tw/tools/validate_kb.py
+
+      - name: Validator unit tests
+        working-directory: security-compliance-tw/tools
+        run: python3 -m unittest test_validate_kb
+
+      # macOS 的 /bin/bash 是 3.2：install.sh 必須在上面跑得動
+      - name: Installer tests
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            export PATH="/bin:$PATH"
+          fi
+          bash --version | head -n 1
+          bash install/test_install.sh
+
+  # 只在目標是 main 時檢查：合併進 main 的版本必須已執行 --release。
+  # 開發中的 PR 這一項會是紅的，代表「還不能合併」，validate 仍是綠的。
+  release-ready:
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Version is released
+        run: python3 security-compliance-tw/tools/validate_kb.py --require-released

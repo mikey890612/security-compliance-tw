@@ -154,6 +154,11 @@ MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對�
 驗證器會擋下：內容變了但版本仍是已發布的那一版、`CHANGELOG.md` 缺少目前版本、
 已發布的版本仍標「未發布」、文件裡的 `sec-harden vX.Y.Z` 範例與目前版本不符。
 
+CI（repo 的 `.github/workflows/validate.yml`）在每次 push 與 PR 於 Ubuntu 與 macOS
+執行驗證器、單元測試與安裝測試（macOS 用 `/bin/bash` 3.2）。
+目標是 main 時另有 `release-ready`：版本尚未 `--release` 就亮紅燈——
+開發中的 PR 這一項是紅的屬正常，代表「還不能合併」。
+
 ## 新增 check 的流程
 
 1. 在對應的 `checks/*.md` 加一則，嚴格照五小節格式
