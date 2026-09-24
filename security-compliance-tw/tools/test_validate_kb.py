@@ -1,3 +1,4 @@
+import json
 import unittest
 import tempfile
 import pathlib
@@ -412,6 +413,313 @@ class TestThreeSchemas(unittest.TestCase):
         }
         errors = validate_kb.cross_validate(["MAST-STORAGE-001"], rows)
         self.assertTrue(any("平台" in e for e in errors), errors)
+
+
+MAS_ITEMS_MD = (
+    "| 條號 | 分類 | 條目標題 |\n"
+    "|---|---|---|\n"
+    "| 4.1.1.1.1 | 參考項目 | 參考 |\n"
+    "| 4.1.1.1.2 | L1、L2、L3 | 必要 |\n"
+    "| 4.1.1.1.3 | F | 加測 |\n"
+)
+
+
+class TestMasRefs(unittest.TestCase):
+    def _items(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "controls-mas-v4.md").write_text(MAS_ITEMS_MD, encoding="utf-8")
+        return validate_kb.parse_mas_items(d / "controls-mas-v4.md")
+
+    def test_parses_item_numbers_and_classes(self):
+        self.assertEqual(
+            self._items(),
+            {"4.1.1.1.1": "參考項目", "4.1.1.1.2": "L1、L2、L3", "4.1.1.1.3": "F"},
+        )
+
+    def test_unknown_mas_ref_errors(self):
+        rows = {"MAST-STORAGE-001": {"MAS": "MAS 4.1.1.1.2、MAS 4.9.9.9.9"}}
+        errors = validate_kb.validate_mas_refs(rows, self._items())
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("4.9.9.9.9", errors[0])
+
+    def test_missing_items_file_is_empty(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        self.assertEqual(validate_kb.parse_mas_items(d / "nope.md"), {})
+
+
+def _check_md(check_id, status="unverified", tool="mobsfscan"):
+    evidence = "fixture.json#rule=x" if status == "verified" else "—"
+    return (
+        f"## {check_id} · demo\n\n"
+        "### 掃描器怎麼標\n\n"
+        "| 工具 | 規則 | 預設等級 | 狀態 | 證據 |\n"
+        "|---|---|---|---|---|\n"
+        f"| {tool} | demo | HIGH | {status} | {evidence} |\n\n"
+        "### 壞味道\nx\n\n### 過關寫法\nx\n\n### 常見誤判與處置\nx\n\n### 判定準則\nx\n\n"
+    )
+
+
+class TestKbFacts(unittest.TestCase):
+    def test_counts_come_from_the_kb(self):
+        refs = pathlib.Path(tempfile.mkdtemp())
+        (refs / "checks").mkdir()
+        (refs / "checks" / "sast-demo.md").write_text(
+            _check_md("SAST-INJ-001", "partial", tool="Fortify") + _check_md("DAST-HDR-001"),
+            encoding="utf-8",
+        )
+        (refs / "checks" / "mast-demo.md").write_text(
+            _check_md("MAST-STORAGE-001", "verified") + _check_md("MDM-ENROLL-001"),
+            encoding="utf-8",
+        )
+        (refs / "controls-mas-v4.md").write_text(MAS_ITEMS_MD, encoding="utf-8")
+        (refs / "quick-patterns.md").write_text(
+            "**✅** a\n**❌** b\n\n**✅** c\n", encoding="utf-8"
+        )
+        checks = validate_kb.parse_checks(refs / "checks")
+        rows = {"MAST-STORAGE-001": {"MAS": "MAS 4.1.1.1.1"}}
+
+        facts = validate_kb.kb_facts(refs, checks, rows)
+
+        self.assertEqual(facts["checks"], 4)
+        self.assertEqual(facts["web"], 2)
+        self.assertEqual(facts["mobile"], 1)
+        self.assertEqual(facts["mdm"], 1)
+        self.assertEqual(facts["check_files"], 2)
+        self.assertEqual(facts["checks_per_file"]["sast-demo.md"], 2)
+        self.assertEqual(facts["mas_total"], 3)
+        self.assertEqual(facts["mas_covered"], 1)
+        self.assertEqual(facts["mas_uncovered"], 2)
+        # 未涵蓋的是 L1、L2、L3 與 F；F 是加測，不算必要
+        self.assertEqual(facts["mas_uncovered_mandatory"], 1)
+        self.assertEqual(facts["mas_uncovered_by_class"]["F"], 1)
+        self.assertEqual(facts["mobile_verified_rows"], 1)
+        self.assertEqual(facts["quick_patterns"], 2)
+        # 商用列只算 Fortify 那一列；mobsfscan 的 verified 不算商用
+        self.assertEqual(facts["commercial_verified_rows"], 0)
+        self.assertEqual(facts["commercial_partial_rows"], 1)
+
+
+class TestDocCounts(unittest.TestCase):
+    FACTS = {
+        "checks": 90,
+        "mobile": 36,
+        "checks_per_file": {"sast-injection.md": 4},
+        "mas_uncovered_mandatory": 14,
+    }
+
+    def _doc(self, text):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "doc.md").write_text(text, encoding="utf-8")
+        return d / "doc.md"
+
+    def test_stale_number_reported_with_line(self):
+        doc = self._doc("標題\n\n它讀的不是完整的 43 則。\n")
+        errors = validate_kb.validate_doc_counts([doc], self.FACTS)
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("doc.md:3", errors[0])
+        self.assertIn("完整的 43 則", errors[0])
+        self.assertIn("90", errors[0])
+
+    def test_correct_numbers_pass(self):
+        doc = self._doc("知識庫共 90 則，行動端 36 則。其中 14 條屬必要檢測項目。\n")
+        self.assertEqual(validate_kb.validate_doc_counts([doc], self.FACTS), [])
+
+    def test_per_file_table_row_checked(self):
+        doc = self._doc("| 檔 | 則數 |\n|---|---|\n| `sast-injection.md` | 5 | 注入 |\n")
+        errors = validate_kb.validate_doc_counts([doc], self.FACTS)
+        self.assertTrue(any("sast-injection.md" in e for e in errors), errors)
+
+    def test_per_file_table_row_for_unknown_file_expects_zero(self):
+        doc = self._doc("| `sast-gone.md` | 3 | 已刪除 |\n")
+        errors = validate_kb.validate_doc_counts([doc], self.FACTS)
+        self.assertTrue(any("sast-gone.md" in e for e in errors), errors)
+
+
+class TestReferences(unittest.TestCase):
+    """執行期文件的路徑必須存在，且不得跑出 plugin 目錄。"""
+
+    def _plugin(self, skill_text, profile_text="`checks/sast-demo.md`\n"):
+        repo = pathlib.Path(tempfile.mkdtemp())
+        plugin = repo / "plugin"
+        (plugin / "references" / "checks").mkdir(parents=True)
+        (plugin / "references" / "templates").mkdir()
+        (plugin / "skills" / "sec-audit").mkdir(parents=True)
+        (plugin / "tools").mkdir()
+        (plugin / "references" / "checks" / "sast-demo.md").write_text("x", encoding="utf-8")
+        (plugin / "references" / "templates" / "rtm.md").write_text("x", encoding="utf-8")
+        (plugin / "references" / "profile.md").write_text(profile_text, encoding="utf-8")
+        (plugin / "references" / "README.md").write_text("`sast-demo.md`\n", encoding="utf-8")
+        (plugin / "tools" / "verify_scanners.md").write_text("x", encoding="utf-8")
+        (plugin / "skills" / "sec-audit" / "SKILL.md").write_text(
+            "`sast-demo.md`\n" + skill_text, encoding="utf-8"
+        )
+        return plugin
+
+    def test_valid_references_pass(self):
+        plugin = self._plugin(
+            "讀 `{ROOT}/references/profile.md`、`{ROOT}/references/…`、"
+            "`{ROOT}/tools/verify_scanners.md`、`checks/sast-demo.md`、"
+            "`templates/rtm.md`、`../../references/profile.md`\n"
+        )
+        self.assertEqual(validate_kb.validate_references(plugin), [])
+
+    def test_path_escaping_plugin_errors(self):
+        plugin = self._plugin("見 `../../../docs/usage/scanner-verification.md`\n")
+        errors = validate_kb.validate_references(plugin)
+        self.assertTrue(any("plugin 目錄之外" in e for e in errors), errors)
+
+    def test_missing_root_path_errors(self):
+        plugin = self._plugin("讀 `{ROOT}/references/gone.md`\n")
+        errors = validate_kb.validate_references(plugin)
+        self.assertTrue(any("gone.md" in e and "不存在" in e for e in errors), errors)
+
+    def test_root_path_followed_by_chinese_is_not_swallowed(self):
+        plugin = self._plugin("讀{ROOT}/references/profile.md之後\n")
+        self.assertEqual(validate_kb.validate_references(plugin), [])
+
+    def test_missing_check_file_errors(self):
+        plugin = self._plugin("改讀 `checks/mast-gone.md`\n")
+        errors = validate_kb.validate_references(plugin)
+        self.assertTrue(any("mast-gone.md" in e for e in errors), errors)
+
+    def test_missing_template_errors(self):
+        plugin = self._plugin("讀 `templates/gone.md`\n")
+        errors = validate_kb.validate_references(plugin)
+        self.assertTrue(any("templates/gone.md" in e for e in errors), errors)
+
+    def test_check_file_not_registered_in_profile_errors(self):
+        plugin = self._plugin("", profile_text="（沒有列任何 check 檔）\n")
+        errors = validate_kb.validate_references(plugin)
+        self.assertTrue(
+            any("profile.md" in e and "sast-demo.md" in e for e in errors), errors
+        )
+
+    def test_installed_snapshot_has_no_repo_docs(self):
+        plugin = self._plugin("")
+        self.assertEqual(validate_kb.repo_docs(plugin), [])
+        (plugin.parent / "install.sh").write_text("", encoding="utf-8")
+        (plugin.parent / "README.md").write_text("", encoding="utf-8")
+        self.assertEqual(
+            [p.name for p in validate_kb.repo_docs(plugin)], ["README.md"]
+        )
+
+
+class TestRootSections(unittest.TestCase):
+    BODY = "\n1. 環境變數\n2. 指標檔\n3. fallback\n\n"
+
+    def _skills(self, bodies):
+        d = pathlib.Path(tempfile.mkdtemp())
+        for name, body in bodies.items():
+            (d / name).mkdir()
+            text = "# x\n\n" if body is None else f"# x\n\n## 知識庫根目錄（ROOT）{body}---\n\n## 其他\n"
+            (d / name / "SKILL.md").write_text(text, encoding="utf-8")
+        return d
+
+    def test_identical_sections_pass(self):
+        d = self._skills({"a": self.BODY, "b": self.BODY})
+        self.assertEqual(validate_kb.validate_root_sections(d), [])
+
+    def test_heading_suffix_is_allowed(self):
+        """sec-harden 的標題多了「（先讀這段）」；只比內文。"""
+        d = self._skills({"a": self.BODY, "b": "（先讀這段）" + self.BODY})
+        self.assertEqual(validate_kb.validate_root_sections(d), [])
+
+    def test_diverging_section_errors(self):
+        d = self._skills({"a": self.BODY, "b": self.BODY + "多一行\n"})
+        errors = validate_kb.validate_root_sections(d)
+        self.assertTrue(any("skills/b/SKILL.md" in e and "不一致" in e for e in errors), errors)
+
+    def test_missing_section_errors(self):
+        d = self._skills({"a": self.BODY, "b": None})
+        errors = validate_kb.validate_root_sections(d)
+        self.assertTrue(any("skills/b/SKILL.md" in e and "缺少" in e for e in errors), errors)
+
+
+class TestVersion(unittest.TestCase):
+    """內容一變就必須是未發布的新版本，且 CHANGELOG 有對應的一節。"""
+
+    LOCK = {"version": "0.2.0", "fingerprint": "sha256:old"}
+
+    def _errors(self, version, fingerprint, changelog):
+        return validate_kb.validate_version(version, self.LOCK, fingerprint, changelog)
+
+    def test_released_and_unchanged_passes(self):
+        self.assertEqual(self._errors("0.2.0", "sha256:old", {"0.2.0": "2026-09-24"}), [])
+
+    def test_content_changed_without_bump_errors(self):
+        errors = self._errors("0.2.0", "sha256:new", {"0.2.0": "2026-09-24"})
+        self.assertTrue(any("調升" in e for e in errors), errors)
+
+    def test_bumped_with_unreleased_entry_passes(self):
+        self.assertEqual(self._errors("0.3.0", "sha256:new", {"0.3.0": "未發布"}), [])
+
+    def test_bumped_without_changelog_entry_errors(self):
+        errors = self._errors("0.3.0", "sha256:new", {"0.2.0": "2026-09-24"})
+        self.assertTrue(any("## 0.3.0" in e for e in errors), errors)
+
+    def test_version_older_than_release_errors(self):
+        errors = self._errors("0.1.9", "sha256:old", {"0.1.9": "未發布"})
+        self.assertTrue(any("舊" in e for e in errors), errors)
+
+    def test_released_version_still_marked_unreleased_errors(self):
+        errors = self._errors("0.2.0", "sha256:old", {"0.2.0": "未發布"})
+        self.assertTrue(any("未發布" in e for e in errors), errors)
+
+    def test_require_released_rejects_pending_version(self):
+        errors = validate_kb.validate_released("0.3.0", self.LOCK)
+        self.assertTrue(any("--release" in e for e in errors), errors)
+
+    def test_require_released_accepts_released_version(self):
+        self.assertEqual(validate_kb.validate_released("0.2.0", self.LOCK), [])
+
+    def test_bad_version_format_errors(self):
+        errors = self._errors("0.2", "sha256:old", {})
+        self.assertTrue(any("X.Y.Z" in e for e in errors), errors)
+
+
+class TestFingerprint(unittest.TestCase):
+    def _plugin(self):
+        d = pathlib.Path(tempfile.mkdtemp())
+        (d / "skills" / "a").mkdir(parents=True)
+        (d / "references").mkdir()
+        (d / "tools").mkdir()
+        (d / "skills" / "a" / "SKILL.md").write_bytes(b"line1\nline2\n")
+        (d / "references" / "x.md").write_bytes(b"x\n")
+        return d
+
+    def test_changes_when_content_changes(self):
+        d = self._plugin()
+        before = validate_kb.content_fingerprint(d)
+        (d / "references" / "x.md").write_bytes(b"y\n")
+        self.assertNotEqual(before, validate_kb.content_fingerprint(d))
+
+    def test_ignores_crlf_and_files_outside_kb(self):
+        d = self._plugin()
+        before = validate_kb.content_fingerprint(d)
+        (d / "skills" / "a" / "SKILL.md").write_bytes(b"line1\r\nline2\r\n")
+        (d / "tools" / "validate_kb.py").write_text("changed", encoding="utf-8")
+        self.assertEqual(before, validate_kb.content_fingerprint(d))
+
+    def test_release_requires_dated_changelog_entry(self):
+        d = self._plugin()
+        (d / ".claude-plugin").mkdir()
+        (d / ".claude-plugin" / "plugin.json").write_text('{"version": "0.3.0"}', encoding="utf-8")
+        (d / "CHANGELOG.md").write_text("## 0.3.0（未發布）\n", encoding="utf-8")
+        self.assertTrue(validate_kb.release(d))
+        self.assertFalse((d / "tools" / "release-lock.json").exists())
+
+        (d / "CHANGELOG.md").write_text("## 0.3.0（2026-10-01）\n", encoding="utf-8")
+        self.assertEqual(validate_kb.release(d), [])
+        lock = json.loads((d / "tools" / "release-lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(lock["version"], "0.3.0")
+        self.assertEqual(lock["fingerprint"], validate_kb.content_fingerprint(d))
+
+    def test_stale_marker_example_in_docs_errors(self):
+        d = self._plugin()
+        doc = d / "doc.md"
+        doc.write_text("<!-- BEGIN sec-harden v0.1.0 — ... -->\n", encoding="utf-8")
+        errors = validate_kb.validate_version_mentions([doc], "0.2.0")
+        self.assertTrue(any("v0.1.0" in e for e in errors), errors)
 
 
 if __name__ == "__main__":

@@ -18,5 +18,5 @@
 ## 相關文件
 
 - 開源驗證流程：`../../tools/verify_scanners.md`
-- 商用延後驗證：`../../../docs/usage/scanner-verification.md`
+- 商用延後驗證：`../../tools/verify_commercial.md`
 - 驗證紀錄 stub：`../../references/scanner-verification-log.md`

@@ -2,8 +2,6 @@
 
 本文件說明如何用本機安裝的開源掃描器，對現有 fixture 實跑，並把命中結果回填到知識庫掃描器表的 `狀態`／`證據` 欄。
 
-> **注意：** `tools/run_open_scanners.sh` 由 Task 4 提供。本文件先描述預期用法；腳本尚未合併前請依下列步驟手動等價執行，或等 Task 4 完成後再跑腳本。
-
 ## 1. 前置條件
 
 請安裝下列 CLI（缺哪個就跳過哪個；整輪驗證不因缺工具而失敗）：
@@ -24,7 +22,7 @@ semgrep --version
 
 工作目錄請設在 plugin 根：`security-compliance-tw/`。
 
-## 2. 執行 runner（Task 4）
+## 2. 執行 runner
 
 ```bash
 cd security-compliance-tw
@@ -39,7 +37,7 @@ bash tools/run_open_scanners.sh
 4. 印出路徑與 finding 筆數；有 finding 仍 exit 0（本流程把 finding 當成功訊號）
 5. 工具未安裝時印 skip 訊息並繼續，整體仍 exit 0
 
-手動等價（腳本尚未就緒時）：
+手動等價（不用腳本時）：
 
 ```bash
 OUT=testdata/scan-artifacts/open-source/$(date -u +%Y%m%dT%H%M%SZ)
@@ -82,7 +80,7 @@ testdata/scan-artifacts/open-source/<run-id>/
    必須通過；`verified`／`partial` 列不得把證據留成 `—`
 5. **記 log**：在 `references/scanner-verification-log.md` 追加一列（日期、工具、版本、對應 checks、結果摘要、操作者）
 
-未命中的列維持 `unverified`。商用工具列請走 `docs/usage/scanner-verification.md`，本文件不涵蓋。
+未命中的列維持 `unverified`。商用工具列請走同目錄的 `verify_commercial.md`，本文件不涵蓋。
 
 ## 相關路徑
 
@@ -91,5 +89,5 @@ testdata/scan-artifacts/open-source/<run-id>/
 | Fixtures | `testdata/sample-go`、`testdata/sample-multi` |
 | Artifacts | `testdata/scan-artifacts/` |
 | 驗證紀錄 | `references/scanner-verification-log.md` |
-| 商用延後流程 | `../../docs/usage/scanner-verification.md` |
+| 商用延後流程 | `tools/verify_commercial.md` |
 | KB validator | `tools/validate_kb.py` |

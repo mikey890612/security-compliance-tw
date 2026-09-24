@@ -1,6 +1,6 @@
 # 知識庫導覽
 
-本目錄由 `skills/` 下的各 skill 共用。路徑相對於 skill 目錄為 `../../references/`。
+本目錄由 `skills/` 下的各 skill 共用，skill 內一律寫成 `{ROOT}/references/…`（ROOT 的解析方式見下）。
 
 | 要做什麼 | 讀哪個檔 | 使用者 |
 |---|---|---|
@@ -18,12 +18,21 @@
 
 ## 路徑注意事項
 
-skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
-**用 Read 工具讀 `../../references/…` 會正確解析**（syscall 先解 symlink，
-`..` 才套用到真實父目錄）。
+`install.sh` 會把**整個 plugin 目錄**複製到 `~/.security-compliance-tw/plugin`，
+並把三支 skill **各自複製**到 `~/.claude/skills/` 等目錄——安裝後的 skill 目錄
+底下沒有 `references/`，不能再用相對路徑找知識庫。
 
-**但不要用 shell 的 `cd ../..` 導航到這裡**——`cd` 用邏輯解析，
-會跑到 `~/.claude/` 而不是 plugin 根目錄。要在 shell 操作請用絕對路徑。
+因此三支 `SKILL.md` 都有一段相同的「知識庫根目錄（ROOT）」：依序看環境變數
+`SECURITY_COMPLIANCE_TW_ROOT`、`~/.security-compliance-tw/root` 指標檔，
+最後才 fallback 到 `SKILL.md` 的 `../..`（只在 clone 裡開發時成立）。
+這段在三個檔案裡必須逐字相同，由 `../tools/validate_kb.py` 檢查。
+
+連帶的約束：**skill 執行期會讀到的檔案**（`skills/`、`references/`、`tools/*.md`）
+不得用相對路徑指向 plugin 目錄之外——repo 根目錄的 `docs/`、`README.md`
+不會隨安裝複製，連結在安裝後必定失效。
+
+**不要用 shell 的 `cd ../..` 導航**——`cd` 用邏輯解析，在 symlink 下會跑錯地方。
+要在 shell 操作請先解析 ROOT，再用絕對路徑。
 
 ## 設計約束
 
@@ -62,6 +71,19 @@ skill 目錄在本機是以 symlink 掛進 `~/.claude/skills/` 的。
 驗證器同時檢查 `checks/` 與 `mapping.md` 的**雙向對應**——
 有 check 沒 mapping、或有 mapping 沒 check，都會報錯。
 
+另外檢查說明文件與知識庫是否脫節：
+
+- **寫死的數字**——各 `SKILL.md`、本檔、`templates/`、repo 的 `README.md` 與
+  `docs/usage/` 裡的則數、條數、涵蓋率、verified 列數，必須等於從知識庫算出的值。
+  比對規則在 `validate_kb.py` 的 `DOC_COUNT_CLAIMS`；**新增含數字的句子時要同步那張表**，
+  否則那句不受檢查
+- **路徑**——`{ROOT}/…`、`checks/…`、`templates/…` 與 `../` 相對路徑必須存在，
+  且不得指向 plugin 目錄之外（見上方「路徑注意事項」）
+- **check 檔登錄**——每個 `checks/*.md` 都必須出現在 `profile.md`、本檔與
+  `skills/sec-audit/SKILL.md`，否則 agent 不會知道要載入它
+- **ROOT 段落**——三支 `SKILL.md` 必須逐字相同
+- **`MAS` 欄**——引用的條號必須存在於 `controls-mas-v4.md`
+
 ## 目前涵蓋範圍
 
 共 90 則 check：伺服器與 Web 46 則、行動端 36 則、MDM 8 則。
@@ -89,7 +111,7 @@ Swift 無官方混淆方案，本知識庫不提供廠商建議。
 MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對應的應用程式層項目。
 
 `controls-mas-v4.md` 收錄該基準全部 65 條的條號與標題，**僅在產出勾稽表時讀取**。
-其中多數條目目前尚無對應 check，產出時會落在「非程式碼可判定，需人工確認」
+其中 26 條目前尚無對應 check（全部是流程／營運類），產出時會落在「非程式碼可判定，需人工確認」
 或「本知識庫尚未涵蓋」。
 
 ### 伺服器與 Web
@@ -112,13 +134,35 @@ MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對�
 `controls-appendix10.md` 收錄附表十查檢表全文與分級，僅在產出 `checklist.md` 時讀取。
 
 `quick-patterns.md` 是 `sec-harden` 的內容來源——從既有 check 萃取出
-「寫的當下能預防」的約 20 則，依情境（寫查詢 / 寫 handler / 處理路徑…）而非
+「寫的當下能預防」的 43 則，依情境（寫查詢 / 寫 handler / 處理路徑…）而非
 依 check-id 組織。修改後需重跑 `sec-harden` 安裝，各專案的規則檔才會更新。
 兩者不一致時以 `checks/` 為準。
+
+## 版本與發布
+
+版本號只有一個來源：`.claude-plugin/plugin.json`。patch／minor／major 的區分見
+`../CHANGELOG.md` 開頭。
+
+`skills/` 或 `references/` 有任何變更時：
+
+1. `plugin.json` 的版本若已發布（等於 `../tools/release-lock.json` 的 `version`），
+   先調升版本，並在 `CHANGELOG.md` 加一節「## 新版本（未發布）」
+2. 同一版本發布前的後續變更，都記在同一節
+3. 合併進 main 之前：把「未發布」改成日期，執行
+   `python3 tools/validate_kb.py --release`，一併提交更新後的 `tools/release-lock.json`
+
+驗證器會擋下：內容變了但版本仍是已發布的那一版、`CHANGELOG.md` 缺少目前版本、
+已發布的版本仍標「未發布」、文件裡的 `sec-harden vX.Y.Z` 範例與目前版本不符。
+
+CI（repo 的 `.github/workflows/validate.yml`）在每次 push 與 PR 於 Ubuntu 與 macOS
+執行驗證器、單元測試與安裝測試（macOS 用 `/bin/bash` 3.2）。
+目標是 main 時另有 `release-ready`：版本尚未 `--release` 就亮紅燈——
+開發中的 PR 這一項是紅的屬正常，代表「還不能合併」。
 
 ## 新增 check 的流程
 
 1. 在對應的 `checks/*.md` 加一則，嚴格照五小節格式
-2. 在 `mapping.md` 加一列（12 欄，缺一不可）
-3. 跑 `python3 tools/validate_kb.py` 確認通過
-4. 更新本檔的涵蓋範圍表與 `skills/sec-audit/SKILL.md` 的涵蓋範圍段落
+2. 在 `mapping.md` 對應的表加一列（Web 11 欄、行動端 12 欄、MDM 6 欄，缺一不可）
+3. 新增的是**整個 check 檔**時，登錄到 `profile.md` 的選取規則、本檔的涵蓋範圍表與
+   `skills/sec-audit/SKILL.md` 的涵蓋範圍表
+4. 跑 `python3 tools/validate_kb.py`——則數變了，它會列出每一處要跟著改的數字

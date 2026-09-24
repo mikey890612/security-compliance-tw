@@ -175,6 +175,65 @@ else
   fail "missing source skill should exit non-zero"
 fi
 
+echo "== Update check: install record and --check =="
+
+record="${HOME}/.security-compliance-tw/installed.json"
+clone_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+  "${REPO_ROOT}/security-compliance-tw/.claude-plugin/plugin.json" | head -n 1)"
+
+if [[ -f "$record" ]] && grep -q "\"version\": \"${clone_version}\"" "$record" \
+   && grep -q '"checked_at"' "$record"; then
+  pass "install wrote installed.json with version ${clone_version}"
+else
+  fail "installed.json missing or without version/checked_at"
+fi
+
+check_out="$(./install.sh --check --offline)"
+if printf '%s\n' "$check_out" | grep -q "已是最新（${clone_version}）"; then
+  pass "--check reports up to date right after install"
+else
+  fail "--check should report up to date after install"
+fi
+
+# 模擬舊版安裝：快照版本退回 0.0.1、上次檢查是很久以前
+sed "s/\"version\": \"${clone_version}\"/\"version\": \"0.0.1\"/" \
+  "${HOME}/.security-compliance-tw/plugin/.claude-plugin/plugin.json" >"${record}.plugin.tmp"
+mv "${record}.plugin.tmp" "${HOME}/.security-compliance-tw/plugin/.claude-plugin/plugin.json"
+sed 's/"checked_at": "[^"]*"/"checked_at": "2000-01-01"/' "$record" >"${record}.tmp"
+mv "${record}.tmp" "$record"
+
+PROJ_DIR="$(mktemp -d "${TMPDIR:-/tmp}/a2-install-proj.XXXXXX")"
+printf '# own notes\n<!-- BEGIN sec-harden v0.0.1 — x -->\nrules\n<!-- END sec-harden -->\n' >"${PROJ_DIR}/AGENTS.md"
+
+stale_out="$(./install.sh --check --offline "$PROJ_DIR")"
+if printf '%s\n' "$stale_out" | grep -q "有新版 ${clone_version}（已安裝 0.0.1）" \
+   && printf '%s\n' "$stale_out" | grep -q "## ${clone_version}"; then
+  pass "--check reports the newer version and its CHANGELOG section"
+else
+  fail "--check should list the newer version with its CHANGELOG section"
+fi
+if printf '%s\n' "$stale_out" | grep -q "AGENTS.md：v0.0.1 → 可更新到 v${clone_version}"; then
+  pass "--check flags stale project rule files"
+else
+  fail "--check should flag the project's stale AGENTS.md"
+fi
+if grep -q '"checked_at": "2000-01-01"' "$record"; then
+  fail "--check should refresh checked_at"
+else
+  pass "--check refreshed checked_at"
+fi
+rm -rf "$PROJ_DIR"
+
+set +e
+./install.sh /tmp >/dev/null 2>&1
+dir_rc=$?
+set -e
+if [[ "$dir_rc" -ne 0 ]]; then
+  pass "directory argument without --check is rejected"
+else
+  fail "directory argument without --check should be rejected"
+fi
+
 if [[ "$FAIL" -ne 0 ]]; then
   echo "RESULT: FAIL"
   exit 1

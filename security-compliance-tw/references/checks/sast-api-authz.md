@@ -227,6 +227,7 @@ if (orders.length !== req.body.ids.length) {
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
 | Fortify | Mass Assignment: Insecure Binder Configuration（主要涵蓋 Java / .NET binder，Go 不觸發） | High | unverified | — |
+| Fortify | Mass Assignment: Request Parameters Bound via Input Formatter（ASP.NET Core 的 `[FromBody]`） | Medium | partial | internal-verified:2026-04-24（C#） |
 | Checkmarx | Mass_Assignment（框架相依，Go / FastAPI 覆蓋不完整） | Medium | unverified | — |
 | Semgrep | Rails / Django 有大量賦值規則；Go 與 Node 手寫 binder **無對應規則** | WARNING | unverified | — |
 | SonarQube | S4684（持久化實體不應直接作為請求繫結目標，僅 Java） | Major | unverified | — |

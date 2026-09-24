@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="csrf-token" content="{{ .CSRFToken }}">
+  <title>個人資料</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <main class="container">
+    <h1>個人資料</h1>
+    <form method="post" action="/profile/avatar" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+      <label for="avatar" class="avatar-picker">
+        <img src="/static/img/avatar.png" alt="大頭貼">
+        <span>更換大頭貼</span>
+      </label>
+      <input type="file" id="avatar" name="avatar" accept="image/png,image/jpeg" class="d-none">
+      <button type="submit" class="btn">儲存</button>
+    </form>
+    <p class="invite">
+      <input id="invite-link" value="https://example.com/invite/team" readonly>
+      <button type="button" class="btn" data-copy="#invite-link">複製邀請連結</button>
+    </p>
+    <div id="notice" class="alert d-none"><span></span></div>
+  </main>
+  <script src="/static/vendor/jquery/jquery.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

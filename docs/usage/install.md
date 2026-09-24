@@ -22,6 +22,8 @@ macOS／Linux，需要 `bash`。`python3` 建議有（缺則跳過知識庫驗�
 | `--no-backup` | 覆蓋前不備份既有 plugin／skill |
 | `--only a,b` | 只處理列出的 target id（**不**略過 plugin 同步與 root 寫入） |
 | `--list` | 印出 manifest（id／enabled／mode／dest）後退出 |
+| `--check [專案目錄]` | 檢查更新，不安裝任何東西（見下方「檢查更新」） |
+| `--offline` | 搭配 `--check`：不連 GitHub，只比對已安裝版本與本機 clone |
 | `-h`, `--help` | 顯示用法 |
 
 範例：
@@ -31,6 +33,7 @@ macOS／Linux，需要 `bash`。`python3` 建議有（缺則跳過知識庫驗�
 ./install.sh --list
 ./install.sh --only claude,cursor
 ./install.sh --no-backup
+./install.sh --check ~/work/my-project
 ```
 
 ---
@@ -117,6 +120,26 @@ test -f "$(cat ~/.security-compliance-tw/root)/references/profile.md" && echo "R
 ```bash
 python3 security-compliance-tw/tools/validate_kb.py
 ```
+
+---
+
+## 檢查更新
+
+```bash
+./install.sh --check                      # 已安裝版本 vs 本機 clone vs GitHub
+./install.sh --check ~/work/my-project    # 另外檢查該專案的 sec-harden 規則檔
+./install.sh --check --offline            # 不連網
+```
+
+它會列出三個版本，有新版時印出中間各版的 CHANGELOG——每版都寫了**是否建議更新**與原因——
+並告訴你該執行 `git pull && ./install.sh` 還是只要 `./install.sh`。
+帶專案目錄時，逐檔列出 `AGENTS.md`、`.cursor/rules/sec-harden-*.mdc` 等規則檔的版本，
+舊的要到專案裡重跑一次 `sec-harden` 安裝。
+
+安裝時會寫入 `~/.security-compliance-tw/installed.json`（版本、安裝日、來源 clone、commit），
+並記錄最後一次安裝或檢查的日期 `checked_at`。**三支 skill 發現 `checked_at` 超過 30 天時，
+會在回覆開頭提醒一句**要不要跑 `--check`；跑過一次（不論有沒有新版）就重新計算 30 天。
+skill 本身不連網，這個提醒只看日期。
 
 ---
 

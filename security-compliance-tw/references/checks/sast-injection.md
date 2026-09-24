@@ -8,7 +8,7 @@
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| Fortify | SQL Injection | Critical | unverified | — |
+| Fortify | SQL Injection（等級依資料來源浮動，實測一例為 Low） | Critical | partial | internal-verified:2026-04-24（C#） |
 | Checkmarx | SQL_Injection | High | unverified | — |
 | Semgrep | `*.security.*.string-formatted-query` / `*.sql-injection*` | ERROR | verified | testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json#rule=go.lang.security.audit.database.string-formatted-query.string-formatted-query（見 `references/scanner-verification-log.md`） |
 | SonarQube | S3649 | Blocker | unverified | — |

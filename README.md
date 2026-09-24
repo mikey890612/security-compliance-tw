@@ -74,6 +74,8 @@ cd security-compliance-tw
 
 一鍵安裝會同步 plugin 快照、寫入 root 指標，並把三支 skill 複製到 Claude／Cursor／agents-hub 的全域目錄。完整 flags、路徑、備份、doc-only 代理與驗證步驟見 **[安裝說明](docs/usage/install.md)**。
 
+目前版本與各版的變更見 **[CHANGELOG](security-compliance-tw/CHANGELOG.md)**。要知道自己該不該更新，執行 `./install.sh --check`（詳見 [檢查更新](docs/usage/install.md#檢查更新)）；安裝超過 30 天沒檢查，skill 也會提醒。
+
 可選：驗證知識庫完整性（需要 Python 3，無外部相依；`install.sh` 結束時也會嘗試執行）：
 
 ```bash
@@ -165,8 +167,9 @@ OWASP MASVS 控制項編號與 Mobile Top 10。
 - 自動判斷處標示信心度，低信心的寫明依據什麼假設
 - 附表十查檢表未收錄的風險，標為「查檢表外」，不硬湊章節號
 
-誤判標記須同時滿足三要件：資料實際不可控、路徑上確有消毒只是工具追不到、
-有具體佐證。三者缺一即當真漏洞修。
+誤判標記須同時滿足兩點：**風險實際已被消除**——來源不可控、路徑上有有效消毒，
+或要求的控制確實存在於工具看不到的地方，三者任一——以及**有具體佐證**（檔案位置與行號）。
+缺一即當真漏洞修；「應該沒事」「只在內網」不是佐證。
 
 不採用「遮蔽掃描結果讓紅字消失」的做法——附表十每項的查核方式
 都同時要求**自動化工具檢測**與**人工審查**，遮蔽會在人工審查那關破功。
@@ -178,12 +181,16 @@ OWASP MASVS 控制項編號與 Mobile Top 10。
 誠實列出，請據此判斷可信度：
 
 1. **掃描器對照的驗證狀態不一**——開源工具（gosec、bandit、Semgrep 等）
-   可透過 fixture 實跑做到**部分** `verified`；商用掃描器（Fortify、Checkmarx、
-   AWVS、WebInspect、Nessus 等）對照在提供redacted 報告前一律維持 `unverified`
+   可透過 fixture 實跑做到**部分** `verified`。商用掃描器中，Fortify 已用一份
+   真實專案的內部報告校準：4 列商用對照已 verified、6 列 partial
+   （只在 C# 專案觀察到的標 partial——本知識庫的範例語言不含 C#）。
+   證據欄只寫 `internal-verified:日期`，報告本身不入庫。
+   Fortify 其餘列與 Checkmarx、AWVS、WebInspect、Nessus 仍一律 `unverified`
    （宣稱對照、尚未校準）。不得捏造商用規則 ID。
    詳見 [開源驗證操作](security-compliance-tw/tools/verify_scanners.md) 與
-   [商用驗證流程](docs/usage/scanner-verification.md)。
-2. **僅對測試 fixture 驗證過**，尚未在真實專案上跑過。
+   [商用驗證流程](security-compliance-tw/tools/verify_commercial.md)。
+2. **尚未在真實專案的原始碼上跑過完整流程**——上述 Fortify 報告只拿來校準規則名稱與等級，
+   沒有對照原始碼逐項判定；模式 1 的預判準確度仍未知。
 3. **OWASP Top 10:2025 的定稿狀態**需自行至 owasp.org/Top10 核對。
    `mapping.md` 的 Web25 欄依 2025 版排序。
 4. **樣式比對無法取代污點分析**——不安全操作被包進多層 helper、

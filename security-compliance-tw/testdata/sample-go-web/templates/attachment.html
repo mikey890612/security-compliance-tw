@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="csrf-token" content="{{ .CSRFToken }}">
+  <title>附件與說明</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <main class="container">
+    <h1>附件與說明</h1>
+    <form method="post" action="/attachments" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+      <label for="attachment">附件（PDF 或圖片，10 MB 以內）</label>
+      <input type="file" id="attachment" name="attachment">
+      <button type="submit" class="btn">上傳</button>
+    </form>
+    <section class="editor">
+      <label for="body">說明</label>
+      <textarea id="body" rows="8"></textarea>
+      <label for="body-image" class="btn">插入圖片</label>
+      <input type="file" id="body-image" accept="image/*" class="d-none">
+    </section>
+    <div id="notice" class="alert d-none"><span></span></div>
+  </main>
+  <script src="/static/vendor/jquery/jquery.min.js"></script>
+  <script src="/static/vendor/richedit/richedit.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

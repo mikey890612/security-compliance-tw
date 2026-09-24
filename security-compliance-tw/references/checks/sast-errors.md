@@ -12,7 +12,8 @@
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| Fortify | System Information Leak / System Information Leak: External | High | unverified | — |
+| Fortify | System Information Leak: External（實測標在前端 JS：錯誤物件寫進 DOM 或 `alert`） | Medium | verified | internal-verified:2026-04-24 |
+| Fortify | System Information Leak（實測觸發點是日誌工具類，與本則「外洩到回應」不完全吻合） | Low | partial | internal-verified:2026-04-24（C#） |
 | Checkmarx | Information_Exposure_Through_an_Error_Message | Medium | unverified | — |
 | Semgrep | `*.security.*.stack-trace-exposure*` / `python.flask.security.audit.debug-enabled` | ERROR | unverified | — |
 | SonarQube | S4507（上線仍啟用除錯功能）/ S1989（例外由 servlet 方法逸出） | Security Hotspot / — | unverified | — |
@@ -105,6 +106,13 @@ app.use((err, req, res, next) => {
 
 - **錯誤訊息寫進管理後台頁面**——內部人員看得到堆疊。
   處置：這不是誤判。內部介面同樣要走關聯 ID，堆疊只留在日誌系統。
+
+- **前端 JS 把錯誤物件寫進頁面**——Fortify 的 System Information Leak: External
+  也標前端：Promise 或 callback 拿到的 `err` 流進 `.text()`、`.val()`、`alert()` 就報。
+  處置：依判定準則這是真漏洞（例外字串進入前端可見頁面），但修法很便宜——
+  畫面只顯示常數訊息，`err` 交給 `console.error` 或前端錯誤回報。
+  若 `err` 其實是伺服器回應的錯誤文字，根本修法在伺服器端（見過關寫法）。
+  發生在第三方套件時見 `../scanners.md` 的「第三方程式碼的發現」。
 
 ### 判定準則
 
