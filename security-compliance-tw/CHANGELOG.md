@@ -8,7 +8,7 @@
 - **minor**（0.**x**.0）：新增或更正 check、掃描器對照、skill 的流程——判定結果可能改變，建議更新
 - **major**（**x**.0.0）：check-id 異動或移除——舊的 `findings.md`、`false-positives.md` 可能對不上
 
-## 0.4.0（未發布）
+## 0.4.0（2026-09-24）
 
 **建議更新**：`sec-audit` 載入的 check 變多——普級、無個資或內部系統的專案，
 `findings.md` 會多出之前整類漏查的項目；另新增 5 則 check。
