@@ -13,7 +13,7 @@
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| Fortify | Cross-Site Request Forgery | High | unverified | — |
+| Fortify | Cross-Site Request Forgery（實測標在前端 JS 帶憑證的 `XMLHttpRequest` POST） | Low | verified | internal-verified:2026-04-24 |
 | Checkmarx | CSRF | Medium | unverified | — |
 | Semgrep | `*.security.*.csrf*` / framework CSRF middleware 缺失規則 | ERROR | unverified | — |
 | SonarQube | S4502（Spring CSRF 關閉）等框架規則 | Blocker | unverified | — |
@@ -125,6 +125,12 @@ API 若全面改用自訂 header 承載的 bearer token（且不以 Cookie 當�
 
 - **WebSocket／純 JSON API 被標**——部分工具對非表單 POST 也報。
   處置：若已驗證自訂 CSRF header 或非 Cookie 憑證，標記誤判並註明驗證位置。
+
+- **前端 JS 的 `XMLHttpRequest`／`fetch` POST 被標**——Fortify 看到帶憑證的 POST 就報，
+  它不知道接收端有沒有驗 token。
+  處置：修補點在接收端——確認該 URL 的 handler 已驗 CSRF token 或 `Origin`，
+  前端以自訂 header 帶 token；佐證寫 handler 的驗證位置後標 Not an Issue。
+  接收端沒驗就是真漏洞。發生在第三方套件時見 `../scanners.md` 的「第三方程式碼的發現」。
 
 ### 判定準則
 
@@ -312,7 +318,8 @@ app.get("/preview", async (req, res) => {
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| Fortify | Unrestricted File Upload / Path Manipulation（寫入） | Critical | unverified | — |
+| Fortify | Often Misused: File Upload（標的是 HTML 表單的 `<input type="file">`，不是伺服器端 handler） | Low | verified | internal-verified:2026-04-24 |
+| Fortify | Path Manipulation（上傳檔名進入寫入路徑時） | Critical | unverified | — |
 | Checkmarx | Unrestricted_File_Upload | High | unverified | — |
 | Semgrep | `*.security.*.file-upload*` / `*.arbitrary-file-write*` | ERROR | unverified | — |
 | SonarQube | S5679 等（覆蓋率因語言而異） | Blocker | unverified | — |
@@ -466,6 +473,17 @@ app.post("/upload", upload.single("file"), (req, res) => {
 ```
 
 ### 常見誤判與處置
+
+- **Fortify 對每個 `<input type="file">` 都報 Often Misused: File Upload**——
+  這是結構規則：HTML（含 Go `html/template` 等模板檔）出現檔案欄位就報，
+  有 `accept`、隱藏欄位、`capture` 一律照報，也不追伺服器端怎麼處理。
+  一個專案常一次報幾十項，每個上傳欄位一項。
+  處置：逐一找出接收該表單的 handler，對照上方過關寫法（允許清單、內容驗證、
+  大小上限、系統產生檔名＋固定存放根目錄）。都做到了即符合誤判三要件——
+  資料已通過允許清單驗證、工具追不到 handler、佐證寫得出 handler 位置與各項驗證行號——
+  在 Audit Workbench 標 Not an Issue。沒做到就是真漏洞，**修的是 handler，不是 HTML**。
+  前端先用 `FileReader` 轉 base64、再以 JSON 送出的，一樣要在伺服器端驗證解碼後的內容。
+  `accept` 屬性只影響檔案選擇視窗，不是安全控制。
 
 - **內部匯入工具、檔名由系統產生**——無使用者可控路徑與類型。
   處置：佐證寫明檔名產生方式後標記誤判。

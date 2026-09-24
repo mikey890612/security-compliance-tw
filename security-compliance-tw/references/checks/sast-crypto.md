@@ -16,7 +16,9 @@
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| Fortify | Weak Cryptographic Hash / Weak Encryption / Weak Encryption: Insecure Mode of Operation | Critical–High | unverified | — |
+| Fortify | Weak Cryptographic Hash（不看用途：Go `md5.Sum` 算資料校驗碼也報） | Low | verified | internal-verified:2026-04-24 |
+| Fortify | Weak Encryption: Insecure Mode of Operation（ECB／CBC） | High | partial | internal-verified:2026-04-24（C#） |
+| Fortify | Weak Encryption | Critical–High | unverified | — |
 | Checkmarx | Use_of_Broken_or_Risky_Cryptographic_Algorithm | High | unverified | — |
 | Semgrep | `*.security.*.use-of-md5*` / `*.security.*.use-of-weak-crypto*` / `*.security.*.insecure-cipher-mode*` | ERROR–WARNING | unverified | — |
 | SonarQube | S4790（弱雜湊）/ S5547（弱加密演算法）/ S5542（不安全模式與填充） | Critical–Major | unverified | — |
@@ -131,7 +133,8 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 ### 常見誤判與處置
 
 - **MD5 用於非安全用途**——快取鍵、檔案去重、ETag、分片雜湊、
-  第三方 API 要求的簽章格式。gosec G401 與 bandit B303/B324 不看用途，一律報。
+  第三方 API 要求的簽章格式。gosec G401、bandit B303/B324 與 Fortify 的
+  Weak Cryptographic Hash 都不看用途，一律報。
   處置：**優先改寫**。Go 換 `hash/fnv` 或 `maphash`，Python 換
   `hashlib.blake2b`，JavaScript 換 SHA-256 截短——換掉比申報誤判快。
   Python 若因相容性必須留 MD5，加 `hashlib.md5(data, usedforsecurity=False)`
@@ -173,7 +176,8 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 
 | 工具 | 規則 | 預設等級 | 狀態 | 證據 |
 |---|---|---|---|---|
-| Fortify | Weak Cryptographic Hash: Insecure PBKDF2 Iteration Count / Weak Cryptographic Hash: Hardcoded Salt | Critical–High | unverified | — |
+| Fortify | Weak Cryptographic Hash: Insecure PBE Iteration Count（PBKDF2 等金鑰推導的迭代數不足） | Low | partial | internal-verified:2026-04-24（C#） |
+| Fortify | Weak Cryptographic Hash: Hardcoded Salt | Critical–High | unverified | — |
 | Checkmarx | Reversible_One_Way_Hash / Use_of_Hard_coded_Cryptographic_Key | High | unverified | — |
 | Semgrep | `*.security.*.md5-used-as-password*` / `*.security.*.insecure-hash-function*` | ERROR | unverified | — |
 | SonarQube | S5344（以快速雜湊儲存密碼）/ S2053（雜湊未使用不可預測的 salt） | Blocker–Critical | unverified | — |

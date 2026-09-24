@@ -46,14 +46,19 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 ## 模式 2：拿到掃描報告之後
 
 1. 讀取使用者提供的報告檔（csv / txt 優先支援；html / pdf 盡力解析）
-2. 取出每項發現的規則名稱、等級、檔案位置
-3. 以各 check 的「掃描器怎麼標」表格反查 check-id。
+2. 取出每項發現的規則名稱、等級、檔案位置。**先依規則名稱分組**——
+   同一規則常一次報幾十項（例如每個檔案上傳欄位各一項），逐組判讀、逐項佐證
+3. 以各 check 的「掃描器怎麼標」表格反查 check-id，**用規則全名比對，含冒號後的子類別**
+   （`Weak Cryptographic Hash: Insecure PBE Iteration Count` 不等於 `Weak Cryptographic Hash`）。
    找不到對應的 check 時，明確標示「本知識庫尚未涵蓋」，**不要猜測**。
    若命中列的「狀態」為 `unverified`，在 findings 註明「規則名待真實報告確認」
-4. 依該 check 的「判定準則」逐項判定
-5. 真漏洞依「過關寫法」修補；誤判產出佐證。
+4. **優先序用報告上的等級**，不用表上的「預設等級」——Fortify 的等級是逐項計算的，
+   同一規則在不同位置等級可以不同（見 `{ROOT}/references/scanners.md`）
+5. 依該 check 的「判定準則」逐項判定。發生在第三方套件（`vendor/` 等）的項目，
+   依 `scanners.md` 的「第三方程式碼的發現」處置，**不要直接改套件檔**
+6. 真漏洞依「過關寫法」修補；誤判產出佐證。
    誤判的標記方式（`#nosec`、Not an Issue 等）查 `{ROOT}/references/scanners.md`
-6. **產出**——見下方
+7. **產出**——見下方
 
 ## DAST 家族的處理方式
 

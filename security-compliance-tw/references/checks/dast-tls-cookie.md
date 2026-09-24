@@ -137,6 +137,7 @@ app.use(session({
 | ZAP | Cookie No HttpOnly Flag（pscan 10010） | Low | unverified | — |
 | Nessus | Web Application Cookies Are Not Marked HttpOnly | Medium | unverified | — |
 | WebInspect | Cookie Security: HTTPOnly not Set | Medium | unverified | — |
+| Fortify（SAST） | Cookie Security: HTTPOnly not Set on Application Cookie（.NET 的 `Web.config`） | Low | partial | internal-verified:2026-04-24（C#） |
 
 ### 壞味道
 

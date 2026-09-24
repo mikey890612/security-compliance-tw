@@ -389,6 +389,13 @@ def kb_facts(references_dir, checks, mapping_rows):
         for row in table["rows"]
         if row.get("狀態") == "verified"
     )
+    commercial = collections.Counter(
+        row.get("狀態")
+        for c in checks
+        for table in parse_scanner_tables(c.body)
+        for row in table["rows"]
+        if _is_commercial_tool_cell(row.get("工具", ""))
+    )
     quick = references_dir / "quick-patterns.md"
     return {
         "checks": len(checks),
@@ -404,6 +411,8 @@ def kb_facts(references_dir, checks, mapping_rows):
         "mas_uncovered_mandatory": sum(1 for cls in uncovered if cls.startswith("L")),
         "mas_uncovered_by_class": collections.Counter(uncovered),
         "mobile_verified_rows": mobile_verified,
+        "commercial_verified_rows": commercial["verified"],
+        "commercial_partial_rows": commercial["partial"],
         "quick_patterns": (
             quick.read_text(encoding="utf-8").count("**✅**") if quick.exists() else 0
         ),
@@ -441,6 +450,8 @@ DOC_COUNT_CLAIMS = [
     (r"其中 (\d+) 條屬必要檢測項目", "mas_uncovered_mandatory"),
     (r"^\| (L1、L2、L3|L1、L2|L2、L3|L3|F|參考項目) \| (\d+) \|$", "mas_uncovered_by_class"),
     (r"(\d+) 列掃描器對照", "mobile_verified_rows"),
+    (r"(\d+) 列商用對照已 verified", "commercial_verified_rows"),
+    (r"已 verified、(\d+) 列 partial", "commercial_partial_rows"),
     (r"寫的當下能預防」的 (\d+) 則", "quick_patterns"),
     (r"濃縮速查（(\d+) 則）", "quick_patterns"),
 ]

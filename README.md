@@ -178,12 +178,16 @@ OWASP MASVS 控制項編號與 Mobile Top 10。
 誠實列出，請據此判斷可信度：
 
 1. **掃描器對照的驗證狀態不一**——開源工具（gosec、bandit、Semgrep 等）
-   可透過 fixture 實跑做到**部分** `verified`；商用掃描器（Fortify、Checkmarx、
-   AWVS、WebInspect、Nessus 等）對照在提供redacted 報告前一律維持 `unverified`
+   可透過 fixture 實跑做到**部分** `verified`。商用掃描器中，Fortify 已用一份
+   真實專案的內部報告校準：4 列商用對照已 verified、6 列 partial
+   （只在 C# 專案觀察到的標 partial——本知識庫的範例語言不含 C#）。
+   證據欄只寫 `internal-verified:日期`，報告本身不入庫。
+   Fortify 其餘列與 Checkmarx、AWVS、WebInspect、Nessus 仍一律 `unverified`
    （宣稱對照、尚未校準）。不得捏造商用規則 ID。
    詳見 [開源驗證操作](security-compliance-tw/tools/verify_scanners.md) 與
    [商用驗證流程](security-compliance-tw/tools/verify_commercial.md)。
-2. **僅對測試 fixture 驗證過**，尚未在真實專案上跑過。
+2. **尚未在真實專案的原始碼上跑過完整流程**——上述 Fortify 報告只拿來校準規則名稱與等級，
+   沒有對照原始碼逐項判定；模式 1 的預判準確度仍未知。
 3. **OWASP Top 10:2025 的定稿狀態**需自行至 owasp.org/Top10 核對。
    `mapping.md` 的 Web25 欄依 2025 版排序。
 4. **樣式比對無法取代污點分析**——不安全操作被包進多層 helper、

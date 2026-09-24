@@ -6,12 +6,24 @@
 ## 商用 SAST
 
 ### Fortify SCA
-- 判定方式：污點分析（taint analysis），追蹤資料從 source 流向 sink 的路徑
-- 等級：Critical / High / Medium / Low
+- 判定方式：污點分析（taint analysis），追蹤資料從 source 流向 sink 的路徑。
+  另有**不追資料流的結構規則**：`Often Misused: File Upload` 看到 HTML 檔案欄位就報、
+  `Weak Cryptographic Hash` 看到弱雜湊呼叫就報，都不看用途
+- 等級：Critical / High / Medium / Low，是**逐項計算**的 Fortify Priority
+  （衝擊 × 可能性），不是每條規則固定一個等級。結構規則的等級通常穩定；
+  污點規則依資料來源可信度浮動——實測 `SQL Injection` 也可以只有 Low。
+  各 check 表上的「預設等級」是典型值，**判讀報告時一律以報告上的等級為準**
+- 報告欄位：每項有 Category（規則名，例如 `System Information Leak: External`）與
+  Kingdom（例如 API Abuse、Encapsulation、Security Features）。
+  **反查 check 用 Category 全名，含冒號後的子類別**——
+  `Weak Cryptographic Hash: Insecure PBE Iteration Count` 屬金鑰推導，
+  只比對冒號前的主類別會錯對到弱雜湊那則
+- 掃描範圍：HTML 模板與前端 JS 都會掃，含 `vendor/` 下的第三方套件
 - 習性：偏保守，寧可多報。自訂的消毒函式（custom sanitizer）追不出來，
   除非在 Fortify 的 rulepack 中註冊為 cleanse rule
 - 誤判處置：在 Audit Workbench 中標記為 Not an Issue 並填寫理由，
-  該判定會寫入 `.fpr`，複掃時保留
+  該判定會寫入 `.fpr`，複掃時保留。分析標籤另有 Reliability Issue、
+  Bad Practice、Suspicious、Exploitable
 
 ### Checkmarx
 - 判定方式：以 CxQL 查詢語言對程式碼圖譜（AST + DFG）比對
@@ -54,6 +66,22 @@ DAST 完全看不到源碼，只看執行期表現。因此 DAST 家族的 check
 3. 有具體佐證可寫入 `false-positives.md`：檔案位置、資料來源、消毒點
 
 若三者無法同時滿足，視為真漏洞處理。
+
+## 第三方程式碼的發現
+
+SAST 會掃到專案內附的第三方套件（`vendor/`、`assets/vendor/`、`static/lib/` 等）。
+這些發現**不要直接改套件檔**——下次升級就被覆蓋，改過的地方也無從追蹤。
+
+處置順序：
+
+1. **升級套件**——新版可能已修，或提供設定關掉有問題的預設行為
+2. **用設定覆寫**——例如以自訂的上傳 handler 取代套件預設的 `XMLHttpRequest`，
+   sink 移進自己的程式碼，再照對應 check 的過關寫法寫
+3. 以上都不行才標記，佐證寫套件名稱、版本、觸發的預設行為與替代控制
+   （例如接收端已驗 CSRF token）
+
+**不要自行把 vendor 目錄排除在掃描範圍外。** 掃描範圍由驗收方決定；
+自行排除等同遮蔽結果，人工審查時會被追問。
 
 ## 各工具的誤判標記方式
 

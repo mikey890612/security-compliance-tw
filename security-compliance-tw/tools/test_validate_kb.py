@@ -446,14 +446,14 @@ class TestMasRefs(unittest.TestCase):
         self.assertEqual(validate_kb.parse_mas_items(d / "nope.md"), {})
 
 
-def _check_md(check_id, status="unverified"):
+def _check_md(check_id, status="unverified", tool="mobsfscan"):
     evidence = "fixture.json#rule=x" if status == "verified" else "—"
     return (
         f"## {check_id} · demo\n\n"
         "### 掃描器怎麼標\n\n"
         "| 工具 | 規則 | 預設等級 | 狀態 | 證據 |\n"
         "|---|---|---|---|---|\n"
-        f"| mobsfscan | demo | HIGH | {status} | {evidence} |\n\n"
+        f"| {tool} | demo | HIGH | {status} | {evidence} |\n\n"
         "### 壞味道\nx\n\n### 過關寫法\nx\n\n### 常見誤判與處置\nx\n\n### 判定準則\nx\n\n"
     )
 
@@ -463,7 +463,8 @@ class TestKbFacts(unittest.TestCase):
         refs = pathlib.Path(tempfile.mkdtemp())
         (refs / "checks").mkdir()
         (refs / "checks" / "sast-demo.md").write_text(
-            _check_md("SAST-INJ-001") + _check_md("DAST-HDR-001"), encoding="utf-8"
+            _check_md("SAST-INJ-001", "partial", tool="Fortify") + _check_md("DAST-HDR-001"),
+            encoding="utf-8",
         )
         (refs / "checks" / "mast-demo.md").write_text(
             _check_md("MAST-STORAGE-001", "verified") + _check_md("MDM-ENROLL-001"),
@@ -492,6 +493,9 @@ class TestKbFacts(unittest.TestCase):
         self.assertEqual(facts["mas_uncovered_by_class"]["F"], 1)
         self.assertEqual(facts["mobile_verified_rows"], 1)
         self.assertEqual(facts["quick_patterns"], 2)
+        # 商用列只算 Fortify 那一列；mobsfscan 的 verified 不算商用
+        self.assertEqual(facts["commercial_verified_rows"], 0)
+        self.assertEqual(facts["commercial_partial_rows"], 1)
 
 
 class TestDocCounts(unittest.TestCase):
