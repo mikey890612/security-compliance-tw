@@ -581,7 +581,7 @@ cfg = yaml.safe_load(request.get_data())
 
 ```javascript
 const state = JSON.parse(req.body);
-// js-yaml 4.x 的 load 預設即安全 schema
+// 須 js-yaml ≥ 4：4.x 的 load 預設即安全 schema。仍在 3.x 時改用 yaml.safeLoad(req.body)
 const cfg = yaml.load(req.body);
 ```
 
@@ -601,8 +601,13 @@ const cfg = yaml.load(req.body);
 ### 判定準則
 
 真漏洞：外部可控的資料進入會依內容建構任意物件或執行程式碼的反序列化器——
-`pickle`／`dill`／`shelve`、PyYAML 的 `Loader`／`UnsafeLoader`／`unsafe_load`、`node-serialize`、
-js-yaml 3.x 的 `load`；其他語言如 Java `ObjectInputStream`、.NET `BinaryFormatter`。
+`pickle`／`dill`／`shelve`、PyYAML 的 `Loader`／`UnsafeLoader`／`unsafe_load`、
+PyYAML 5.4 之前的 `FullLoader`／`full_load`（CVE-2020-1747、CVE-2020-14343）、
+PyYAML 5.1 之前未指定 `Loader` 的 `yaml.load`、`node-serialize`、js-yaml 3.x 的 `load`；
+其他語言如 Java `ObjectInputStream`、.NET `BinaryFormatter`。
+
+PyYAML 版本沒有鎖定、又用了 `FullLoader` 或未指定 `Loader` 時，照灰色地帶當真漏洞修——
+改成 `yaml.safe_load`。
 
 改寫即過：Go 解到 `interface{}` 被標——改解到具體 struct。
 

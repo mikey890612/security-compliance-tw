@@ -1,5 +1,5 @@
 import json
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 import defusedxml.ElementTree as DET
 import yaml
@@ -12,9 +12,10 @@ ALLOWED_THEMES = {"light", "dark"}
 
 def safe_next(raw):
     parts = urlsplit(raw or "")
-    if parts.scheme or parts.netloc or not parts.path.startswith("/") or raw.startswith("//") or "\\" in raw:
+    target = urlunsplit(("", "", parts.path, parts.query, ""))
+    if parts.scheme or parts.netloc or not target.startswith("/") or target.startswith("//") or "\\" in target:
         return "/"
-    return raw
+    return target
 
 
 @app.route("/v2/login/done")

@@ -8,14 +8,17 @@ import (
 	"strings"
 )
 
-// 只接受站內相對路徑；其餘一律導回首頁。
+// 只接受站內相對路徑；其餘一律導回首頁。檢查的是最後要送出的字串。
 func safeNext(raw string) string {
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "" || u.Host != "" ||
-		!strings.HasPrefix(u.Path, "/") || strings.HasPrefix(raw, "//") || strings.Contains(raw, "\\") {
+	if err != nil || u.Scheme != "" || u.Host != "" || u.User != nil {
 		return "/"
 	}
-	return u.RequestURI()
+	next := u.RequestURI()
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.Contains(next, `\`) {
+		return "/"
+	}
+	return next
 }
 
 func loginRedirectFixed(w http.ResponseWriter, r *http.Request) {

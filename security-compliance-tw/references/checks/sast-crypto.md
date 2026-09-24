@@ -132,7 +132,9 @@ Python 用 `hashlib.blake2b(digest_size=8)`；JavaScript 用 `crypto.createHash(
 
 ### 常見誤判與處置
 
-- **MD5 用於非安全用途**——快取鍵、檔案去重、ETag、分片雜湊。
+- **MD5 用於非安全用途**——快取鍵、檔案去重、ETag、分片雜湊，且輸出不參與任何完整性判斷。
+  雜湊值送往其他服務、讓對方用來比對資料一致性的，不屬此條，照判定準則的灰色地帶當真漏洞；
+  換演算法要對方同步時，改不了的部分走「已知風險接受」。
   （對方系統**規定**要 MD5 的，見下一條。）gosec G401、bandit B303/B324 與 Fortify 的
   Weak Cryptographic Hash 都不看用途，一律報。
   處置：**優先改寫**。Go 換 `hash/fnv` 或 `maphash`，Python 換

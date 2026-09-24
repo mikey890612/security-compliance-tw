@@ -19,7 +19,7 @@ fixture 不含該專案的任何程式碼或內容。
 | 3 | `templates/attachment.html:15` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上 |
 | 4 | `templates/attachment.html:22` | Often Misused: File Upload | Low | SAST-UPLOAD-001 | 同上（`/editor/images`） |
 | 5 | `static/js/app.js:7` | System Information Leak: External | Medium | SAST-ERR-001 | 0.4.0 起：改寫即過——錯誤來自瀏覽器剪貼簿 API，不含伺服器資訊；改顯示常數訊息（0.3.0 以前判真漏洞） |
-| 6 | `static/vendor/richedit/richedit.js:41` | System Information Leak: External | Medium | SAST-ERR-001 | 第三方。0.3.0 起：伺服器錯誤回應皆為常數，判誤判；可另以 `settings.uploader` 覆寫，不改套件檔 |
+| 6 | `static/vendor/richedit/richedit.js:41` | System Information Leak: External | Medium | SAST-ERR-001 | 第三方。應用程式錯誤回應皆為常數；0.5.0 起代理錯誤頁在 repo 外看不到時先列「待使用者執行」，確認後判誤判。可另以 `settings.uploader` 覆寫，不改套件檔 |
 | 7 | `static/vendor/richedit/richedit.js:12` | Cross-Site Request Forgery | Low | SAST-CSRF-001 | 誤判：接收端 `withCSRF` 驗 `X-CSRF-Token` |
 | 8 | `events.go:29` | Weak Cryptographic Hash | Low | SAST-CRYPTO-001 | 真漏洞：校驗碼離開行程，改 SHA-256 |
 
@@ -78,6 +78,22 @@ multipart 本體，使上傳 handler 的大小上限對表單路徑失效。
 （只來自瀏覽器 API 的改判改寫即過，#5 隨之改變）；`SAST-ERR-003` 的 Go panic 路徑改判改寫即過；
 請求解析產生的錯誤物件視為外部輸入；`SAST-DEP-001` 補上「頁面引用、repo 裡沒有」與 retire.js。
 另外 `sast-dependencies.md` 的範例曾用了與本 fixture 內附套件相同的名稱，已改成佔位符。
+
+### 0.5.0（code review 修正後的回歸）
+
+第六個全新子代理：**標準答案仍 8／8**。與 0.4.0 相比：
+
+- `DAST-HDR-001`／`003` 從 P0 降為 P1——`4.5.3.4` 標「（內文）」後不再觸發 P0 第 ① 條
+- #5 判改寫即過（P2）；`SAST-ERR-003` 的 Go panic 路徑判改寫即過（P2）
+- `sast-secrets.md` 一律載入，查核後「沒有硬編碼憑證」
+- #6 依新規則列入「待使用者執行」：應用程式的錯誤回應全是常數，但代理錯誤頁在 repo 外
+- 前一輪列為「可能被標」的 CSRF cookie（`SAST-INJ-007`）這輪沒有列——預先列出的門檻生效
+
+它回報的 12 點疑點中，規則互相矛盾或沒交代的都在發布前補上：「待使用者執行」的界線
+（程式碼看得出缺陷就照程式碼判）、`SAST-ERR-001` 與 `scanners.md` 對代理錯誤頁的處理一致、
+`partial` 的等級不參與優先序、`SAST-AUTHZ-001` 只併入授權類、`SAST-DEP-001` 逐元件判斷與
+只用標準函式庫的 Go 專案、`SAST-UPLOAD-001` 系統決定副檔名與 ZIP 容器、預期掃描器規則欄只寫
+將面對的工具。這些是文字澄清，發布前沒有再重跑一次。
 
 **限制：** fixture 與 0.2.0 的校準來自同一份報告，所以這證明的是「校準確實傳到了模式 1」，
 不是「模式 1 在任意專案上都準」。真實專案的盲測仍待做。

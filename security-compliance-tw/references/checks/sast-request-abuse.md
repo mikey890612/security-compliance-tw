@@ -479,7 +479,10 @@ app.post("/upload", upload.single("file"), (req, res) => {
   有 `accept`、隱藏欄位、`capture` 一律照報，也不追伺服器端怎麼處理。
   一個專案常一次報幾十項，每個上傳欄位一項。
   處置：逐一找出接收該表單的 handler，對照上方過關寫法（允許清單、內容驗證、
-  大小上限、系統產生檔名＋固定存放根目錄）。都做到了即符合誤判的兩點——
+  大小上限、系統產生檔名＋固定存放根目錄）。完全不看使用者檔名、副檔名由系統依內容判定並產生的，
+  等同通過允許清單那一步。ZIP 容器型格式（xlsx、docx）魔術位元只驗得到 ZIP——
+  伺服器之後要解析它時，解析前另驗內部結構並限制解壓大小（見 `sast-api-authz.md` 的資源消耗那則）；
+  只儲存、不解析也不提供下載時，不構成發現。都做到了即符合誤判的兩點——
   控制確實存在於工具看不到的 handler，且佐證寫得出 handler 位置與各項驗證行號——
   在 Audit Workbench 標 Not an Issue。沒做到就是真漏洞，**修的是 handler，不是 HTML**。
   前端先用 `FileReader` 轉 base64、再以 JSON 送出的，一樣要在伺服器端驗證解碼後的內容。
@@ -554,28 +557,38 @@ app.get("/login/done", function (req, res) {
 只接受**站內相對路徑**；其餘一律導回首頁。要導到外站時，用**代號對照表**，不要收 URL。
 注意 `//evil.example`（協定相對）與 `/\evil.example`（瀏覽器會把反斜線當成 `/`）都要擋。
 
+**檢查最後要送出的字串，不是原始輸入。** 解析函式會正規化或重新編碼：Go 的 `RequestURI()`
+會把 `/%2Fevil.example/{` 變成 `//evil.example/%7B`，JS 的 `URL` 會把 `/.//evil.example`
+正規化成 `//evil.example`——原始輸入每一項檢查都過，送出去卻是外站。
+
 ```go
 func safeNext(raw string) string {
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "" || u.Host != "" ||
-		!strings.HasPrefix(u.Path, "/") || strings.HasPrefix(raw, "//") || strings.Contains(raw, "\\") {
+	if err != nil || u.Scheme != "" || u.Host != "" || u.User != nil {
 		return "/"
 	}
-	return u.RequestURI()
+	// 檢查最後要送出的字串：RequestURI 會重新編碼路徑，
+	// "/%2Fevil.example/{" 過得了原始輸入的檢查，輸出卻是 "//evil.example/%7B"
+	next := u.RequestURI()
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.Contains(next, `\`) {
+		return "/"
+	}
+	return next
 }
 
 http.Redirect(w, r, safeNext(r.URL.Query().Get("next")), http.StatusFound)
 ```
 
 ```python
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 
 def safe_next(raw):
-    parts = urlsplit(raw or "")
-    if parts.scheme or parts.netloc or not parts.path.startswith("/") or raw.startswith("//") or "\\" in raw:
+    parts = urlsplit(raw or "")  # 會先去掉 tab 與換行，與瀏覽器一致
+    target = urlunsplit(("", "", parts.path, parts.query, ""))
+    if parts.scheme or parts.netloc or not target.startswith("/") or target.startswith("//") or "\\" in target:
         return "/"
-    return raw
+    return target
 
 
 @app.route("/login/done")
@@ -586,11 +599,17 @@ def login_done():
 
 ```javascript
 function safeNext(raw) {
-  if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
+  if (typeof raw !== "string" || !raw.startsWith("/")) {
     return "/";
   }
-  const u = new URL(raw, "http://placeholder.invalid");
-  return u.origin === "http://placeholder.invalid" ? u.pathname + u.search : "/";
+  const base = "http://placeholder.invalid";
+  const u = new URL(raw, base);
+  // 檢查正規化之後的字串："/.//evil.example" 會被正規化成 "//evil.example"
+  const next = u.pathname + u.search;
+  if (u.origin !== base || next.startsWith("//") || next.includes("\\")) {
+    return "/";
+  }
+  return next;
 }
 
 app.get("/login/done", function (req, res) {
@@ -598,14 +617,16 @@ app.get("/login/done", function (req, res) {
 });
 ```
 
-實測（見 `references/scanner-verification-log.md`）：Python 與 JS 的寫法 semgrep 都不再標；
+實測（見 `references/scanner-verification-log.md`）：三種寫法都經框架實際產生 `Location`、
+再以瀏覽器的 URL 規則解析，20 個繞過輸入都留在本站。semgrep 對 Python 與 JS 的寫法不再標；
 Go 的污點規則仍會標——見下方誤判處置。
 
 ### 常見誤判與處置
 
 - **已過站內路徑檢查，污點規則仍標**——semgrep 的 Go 規則與 Fortify 都追資料流，
   認不得自寫的檢查函式。處置：判誤判，佐證寫明檢查函式位置、拒絕分支，
-  最好附上對 `//evil.example`、`/\evil.example`、`https://evil.example` 都導回 `/` 的測試。
+  最好附上測試：`//evil.example`、`/\evil.example`、`https://evil.example`、`/.//evil.example`、
+  `/%2Fevil.example/{`、含 tab 的 `/\t/evil.example`，送出的 `Location` 都不能離開本站。
 
 - **semgrep 的 Go 規則對「固定網址前綴 + 輸入」不標**——例如
   `"https://app.example.gov.tw" + next`。**這不是過關寫法**：`next` 為 `@evil.example` 時，

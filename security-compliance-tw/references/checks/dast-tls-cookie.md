@@ -550,6 +550,10 @@ ssl_prefer_server_ciphers on;
 真漏洞：程式碼中出現 `InsecureSkipVerify: true` 或等效的憑證驗證關閉，
 且該路徑會用於正式環境的對外連線。
 
+真漏洞：傳輸身分鑑別資訊（登入表單、session cookie、API 金鑰）或機敏資料的服務**完全沒有 TLS**，
+不論對外或內網——身分鑑別資訊不以明文傳輸，普中高都要求。
+確認依據是程式碼只以 HTTP 監聽、且使用者確認前面沒有終結 TLS 的代理；無法確認時照下一段處理。
+
 TLS 在 repo 以外的 LB／CDN 終結、程式碼裡看不到組態時，不判通過也不判不適用：
 列入 `findings.md` 的「待使用者執行」，附 `testssl.sh https://<主機>` 或 `sslyze <主機>:443`。
 
