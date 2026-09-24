@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>批次匯入</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <main class="container">
+    <h1>批次匯入出貨單</h1>
+    <form method="post" action="/import" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+      <div class="row">
+        <div class="col-8">
+          <input class="form-control" type="file" name="sheet" accept=".xlsx" required>
+        </div>
+        <div class="col-4">
+          <button type="submit" class="btn">匯入</button>
+        </div>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
