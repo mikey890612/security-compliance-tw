@@ -74,7 +74,7 @@ cd security-compliance-tw
 
 一鍵安裝會同步 plugin 快照、寫入 root 指標，並把三支 skill 複製到 Claude／Cursor／agents-hub 的全域目錄。完整 flags、路徑、備份、doc-only 代理與驗證步驟見 **[安裝說明](docs/usage/install.md)**。
 
-目前版本與各版的變更見 **[CHANGELOG](security-compliance-tw/CHANGELOG.md)**。
+目前版本與各版的變更見 **[CHANGELOG](security-compliance-tw/CHANGELOG.md)**。要知道自己該不該更新，執行 `./install.sh --check`（詳見 [檢查更新](docs/usage/install.md#檢查更新)）；安裝超過 30 天沒檢查，skill 也會提醒。
 
 可選：驗證知識庫完整性（需要 Python 3，無外部相依；`install.sh` 結束時也會嘗試執行）：
 

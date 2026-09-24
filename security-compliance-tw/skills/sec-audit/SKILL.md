@@ -88,6 +88,11 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 三者都找不到 `references/` 時，停下來請使用者執行 repo 的 `install.sh`——
 **不要憑印象作答**，本 skill 的價值在於答案來自知識庫。
 
+解析出 ROOT 後，讀 `~/.security-compliance-tw/installed.json`；不存在就略過（例如直接在 clone 裡開發）。
+其中 `checked_at`（最後一次安裝或檢查更新的日期）距今超過 30 天時，在回覆開頭提醒一句：
+「知識庫是 v{version}，上次檢查更新是 {checked_at}；可在 repo 執行 `./install.sh --check` 看看有沒有新版。」
+只提醒這一句，接著照常做事。
+
 知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
 
 **不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
