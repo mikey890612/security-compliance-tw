@@ -635,6 +635,17 @@ class TestRootSections(unittest.TestCase):
         self.assertTrue(any("skills/b/SKILL.md" in e and "缺少" in e for e in errors), errors)
 
 
+class TestRequiredLangs(unittest.TestCase):
+    def test_sast_requires_three_languages(self):
+        self.assertEqual(
+            validate_kb.required_langs("SAST-INJ-005", None), ["go", "python", "javascript"]
+        )
+
+    def test_manifest_check_overrides_prefix(self):
+        """元件漏洞看 manifest，不要求程式碼範例。"""
+        self.assertEqual(validate_kb.required_langs("SAST-DEP-001", None), ["text"])
+
+
 class TestGradesVsAppendix10(unittest.TestCase):
     APPENDIX = (
         "## 4.1 存取控制\n\n"

@@ -36,8 +36,17 @@ LANGS_BY_PLATFORM = {
 }
 
 
+# 個別 check 的例外：看的是 manifest／lockfile 而不是程式碼。硬要求 go/python/javascript
+# 會逼出把 go.mod 塞進 go 區塊的變形內容——與 MAST 設定檔類同一個理由。
+LANGS_BY_CHECK = {
+    "SAST-DEP-001": ["text"],
+}
+
+
 def required_langs(check_id, platform):
     """回傳該 check 必須具備的程式碼圍籬語言清單。"""
+    if check_id in LANGS_BY_CHECK:
+        return LANGS_BY_CHECK[check_id]
     prefix = check_id.split("-", 1)[0]
     if prefix != "MAST":
         return LANGS_BY_PREFIX.get(prefix, [])

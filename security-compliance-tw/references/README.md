@@ -91,7 +91,7 @@
 
 ## 目前涵蓋範圍
 
-共 90 則 check：伺服器與 Web 46 則、行動端 36 則、MDM 8 則。
+共 95 則 check：伺服器與 Web 51 則、行動端 36 則、MDM 8 則。
 
 ### 行動端與 MDM
 
@@ -123,13 +123,14 @@ MDM 屬機關端裝置管理政策，不在其收錄範圍；附表十亦無對�
 
 | check 檔 | 則數 | 涵蓋 |
 |---|---|---|
-| `sast-injection.md` | 4 | SQL 注入 / OS 命令注入 / 路徑尋訪 / 跨站腳本攻擊 |
+| `sast-injection.md` | 7 | SQL 注入 / OS 命令注入 / 路徑尋訪 / 跨站腳本攻擊 / XML 外部實體 / 不安全的反序列化 / HTTP 標頭注入 |
 | `sast-authz.md` | 4 | 未執行授權檢查 / 水平越權 / 垂直越權 / 未以最小權限執行 |
 | `sast-session-auth.md` | 4 | 硬編碼憑證 / Session 固定 / 逾時與登出 / 鎖定與密碼強度 |
 | `sast-crypto.md` | 4 | 已破解演算法 / 未用 KDF / 不安全亂數 / TLS 驗證關閉 |
 | `sast-logging.md` | 4 | 日誌注入 / 敏感資訊入日誌 / 缺稽核事件 / 日誌權限過寬 |
 | `sast-errors.md` | 4 | 訊息外洩 / 回傳值未檢查 / 資源未釋放 / 例外捕捉過廣 |
-| `sast-request-abuse.md` | 3 | 跨站請求偽造 / 伺服器端請求偽造 / 檔案上傳 |
+| `sast-request-abuse.md` | 4 | 跨站請求偽造 / 伺服器端請求偽造 / 檔案上傳 / Open Redirect |
+| `sast-dependencies.md` | 1 | 已知漏洞的第三方元件（看 manifest 與 lockfile） |
 | `sast-api-authz.md` | 4 | 物件層級 / 屬性層級 / 功能層級授權失效 / 資源消耗無限制 |
 | `sast-llm.md` | 4 | 提示注入 / 輸出處理不當 / 過度代理權 / 系統提示放金鑰 |
 | `dast-headers.md` | 3 | CSP / HSTS / Clickjacking |

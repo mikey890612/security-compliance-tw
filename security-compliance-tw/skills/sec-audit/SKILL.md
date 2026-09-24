@@ -97,7 +97,9 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 寫入專案根目錄的 `security-audit/`：
 
 - `findings.md`——逐項：check-id / 檔案位置 / 判定（四類之一）/ 優先序 / 預期或實際的掃描器規則 / 處置。
-  依 P0、P1、P2 排列；人工審查項也排進去，不另立「表外」
+  依 P0、P1、P2 排列；人工審查項也排進去，不另立「表外」。
+  需要使用者先執行工具才能判定的（例如 `SAST-DEP-001` 的元件比對），不歸入四類，
+  列在開頭的「**待使用者執行**」，附要跑的指令；使用者提供輸出後再判定
 - `false-positives.md`——供複掃與人工審查使用，分兩段：
   - **誤判**：判定為誤判的項目與佐證。對照為 `unverified` 的規則也要預先列出「可能被標」的項目，註明規則名待確認
   - **已知風險接受**：判定仍是真漏洞、但受外部限制無法修的項目（例如對方系統只收 MD5），附限制的出處。
@@ -165,17 +167,18 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 
 ## 目前涵蓋範圍
 
-90 則 check，20 個檔：
+95 則 check，21 個檔：
 
 | 類別 | 檔案 | 載入條件（見 `profile.md`） |
 |---|---|---|
-| 注入 | `sast-injection.md` | 一律 |
+| 注入（含 XXE、反序列化、標頭注入） | `sast-injection.md` | 一律 |
 | 存取控制 | `sast-authz.md` | 一律 |
 | 身分鑑別與 Session | `sast-session-auth.md` | 有登入功能 |
 | 密碼學 | `sast-crypto.md` | 分級 ≥ 中／有個資或金流／將面對 SAST |
 | 日誌與稽核 | `sast-logging.md` | 一律 |
 | 錯誤與例外 | `sast-errors.md` | 一律 |
-| 請求濫用（CSRF／SSRF／上傳） | `sast-request-abuse.md` | 一律 |
+| 請求濫用（CSRF／SSRF／上傳／Open Redirect） | `sast-request-abuse.md` | 一律 |
+| 第三方元件（已知漏洞） | `sast-dependencies.md` | 一律 |
 | API 授權 | `sast-api-authz.md` | 有 API 端點 |
 | LLM / Agent | `sast-llm.md` | 有 LLM／RAG／Agent |
 | HTTP 安全標頭 | `dast-headers.md` | 分級 ≥ 中／對外服務／將面對 DAST |

@@ -89,6 +89,7 @@
 | 一律 | `checks/sast-injection.md` |
 | 一律 | `checks/sast-errors.md` |
 | 一律 | `checks/sast-request-abuse.md` |
+| 一律 | `checks/sast-dependencies.md` |
 | 一律 | `checks/sast-authz.md` |
 | 一律 | `checks/sast-logging.md` |
 | 一律 | `checks/dast-tls-cookie.md` |
