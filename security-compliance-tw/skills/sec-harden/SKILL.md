@@ -1,6 +1,6 @@
 ---
 name: sec-harden
-description: 在撰寫或修改程式碼時直接套用「掃描器認得的安全寫法」，讓程式碼一開始就不會被 Fortify / Checkmarx / Semgrep / gosec / bandit / AWVS 標紅字。也可把這套規則安裝進當前專案，產出 AGENTS.md、Cursor .mdc、Cline / Windsurf / Copilot 規則檔，讓 Cursor 或任何本機 agent 都能套用。Use when writing or modifying database queries, HTTP handlers, file path handling, subprocess calls, password or key handling, logging, error handling, TLS configuration, or LLM calls — and when the user asks to 安裝安全規則, 設定 coding 規範, 讓 Cursor 也能用, or mentions AGENTS.md / cursor rules for security.
+description: 在撰寫或修改程式碼時直接套用「掃描器認得的安全寫法」，讓程式碼一開始就不會被 Fortify / Checkmarx / Semgrep / gosec / bandit / MobSF / AWVS 標紅字。也可把這套規則安裝進當前專案，產出 AGENTS.md、Cursor .mdc、Cline / Windsurf / Copilot 規則檔，讓 Cursor 或任何本機 agent 都能套用。Use when writing or modifying database queries, HTTP handlers, file path handling, subprocess calls, password or key handling, logging, error handling, TLS configuration, LLM calls, or Android / iOS app code (local storage, network and ATS / certificate pinning, WebView, exported components, biometrics, AndroidManifest.xml, Info.plist) — and when the user asks to 安裝安全規則, 設定 coding 規範, 讓 Cursor 也能用, or mentions AGENTS.md / cursor rules for security.
 ---
 
 # sec-harden
@@ -24,6 +24,9 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
 3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
 
+三者都找不到 `references/` 時，停下來請使用者執行 repo 的 `install.sh`——
+**不要憑印象作答**，本 skill 的價值在於答案來自知識庫。
+
 知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
 
 **不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
@@ -37,7 +40,8 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 讀 `{ROOT}/references/quick-patterns.md`，依當下情境套用對應段落。
 
 段落依情境分：寫資料庫查詢 / 寫 HTTP handler / 處理檔案路徑 / 執行外部命令 /
-處理密碼與金鑰 / 寫日誌 / 錯誤處理 / 設定伺服器 / 呼叫 LLM。
+處理密碼與金鑰 / 寫日誌 / 錯誤處理 / 設定伺服器 / 呼叫 LLM /
+在行動端儲存資料 / 在行動端連線 / 處理行動端平台介面 / 做行動端身分鑑別。
 
 **只讀需要的段落。** 要更完整的說明（掃描器規則名稱、誤判處置、判定準則）
 再去 `{ROOT}/references/checks/`——但寫程式時通常不需要，速查就夠。
@@ -46,11 +50,18 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 `quick-patterns.md` 尚無 CSRF／SSRF／UPLOAD 速查——改讀
 `checks/sast-request-abuse.md`（一律；`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`；勿整份貼進規則檔）。
 
-撰寫 **iOS／Android 原生 App** 或 **EMM／MDM／MAM** 相關程式時，
-`quick-patterns.md` 尚無對應速查段落——改讀
-`mast-storage.md`、`mast-crypto.md`、`mast-network.md`、`mast-auth.md`、`mast-platform.md`、`mdm-controls.md`
-（MDM 含 LOCK／JAIL／PATCH／VPN／MTD；是否載入由 `profile.md` 的
-「有行動 App」「有 EMM／MDM／MAM」決定；勿整份貼進規則檔）。
+撰寫 **iOS／Android 原生 App** 時，先用 `quick-patterns.md` 的四個行動端段落
+（儲存資料 / 連線 / 平台介面 / 身分鑑別）。速查沒涵蓋的情境才讀完整 check：
+
+| 情境 | 讀 |
+|---|---|
+| 行動端加解密、亂數、金鑰與 IV | `checks/mast-crypto.md` |
+| 行動端輸入驗證、注入、第三方函式庫 | `checks/mast-code.md` |
+| 四段速查不夠細時（剪貼簿、工作堆疊劫持、網域宣告等） | 對應的 `checks/mast-storage.md`／`checks/mast-network.md`／`checks/mast-platform.md`／`checks/mast-auth.md` |
+| 撰寫 Root／越獄偵測、混淆、竄改偵測程式時（F 類） | `checks/mast-resilience.md` |
+| **EMM／MDM／MAM** 整合（LOCK／JAIL／PATCH／VPN／MTD） | `checks/mdm-controls.md` |
+
+勿整份貼進規則檔。
 
 ---
 
@@ -207,7 +218,7 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
    情境標題一律保留，只換 API 名稱。
 
 6. **控制長度，有具體上限。**
-   `quick-patterns.md` 原始長度約 170 行。產出時：
+   `quick-patterns.md` 全文超過 200 行（Web 九段加行動端四段）。產出時：
 
    | 目標 | 上限 | 理由 |
    |---|---|---|
@@ -249,7 +260,10 @@ Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔�
 | 讀 | `quick-patterns.md` | `checks/` + `mapping.md` |
 | 產出 | 專案的規則檔 | `security-audit/` 報告 |
 
-`quick-patterns.md` 是從 `checks/` 的 Web／API／LLM 則萃取出「寫的當下能預防」的約 20 則（MAST／MDM／裝置隱私／PIN／LOCK／請求濫用 等尚未收入速查）。
+`quick-patterns.md` 是從 `checks/` 萃取出「寫的當下能預防」的 43 則，
+Web／API／LLM 九段、行動端四段（儲存資料 / 連線 / 平台介面 / 身分鑑別）。
+尚未收入速查的：請求濫用（CSRF／SSRF／UPLOAD）、行動端密碼學與輸入驗證
+（`mast-crypto.md`、`mast-code.md`）、F 類（`mast-resilience.md`）、MDM（`mdm-controls.md`）。
 兩者內容不一致時，**以 `checks/` 為準**——那是完整版。
 
 ## 行動專案的產出邊界

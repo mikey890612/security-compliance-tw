@@ -182,7 +182,7 @@ OWASP MASVS 控制項編號與 Mobile Top 10。
    AWVS、WebInspect、Nessus 等）對照在提供redacted 報告前一律維持 `unverified`
    （宣稱對照、尚未校準）。不得捏造商用規則 ID。
    詳見 [開源驗證操作](security-compliance-tw/tools/verify_scanners.md) 與
-   [商用驗證流程](docs/usage/scanner-verification.md)。
+   [商用驗證流程](security-compliance-tw/tools/verify_commercial.md)。
 2. **僅對測試 fixture 驗證過**，尚未在真實專案上跑過。
 3. **OWASP Top 10:2025 的定稿狀態**需自行至 owasp.org/Top10 核對。
    `mapping.md` 的 Web25 欄依 2025 版排序。

@@ -1,6 +1,6 @@
 ---
 name: sec-audit
-description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top 10 檢視程式碼，讓專案通過源碼掃描（Fortify/Checkmarx/Semgrep/SonarQube/gosec/bandit）與弱點掃描（AWVS/Nessus/ZAP/WebInspect）。送掃之前用來預防被標紅字，拿到掃描報告之後用來逐項判定真漏洞或誤判並修補。Use when the user mentions 源碼掃描, 弱點掃描, 資安稽核, 附表十, 資通系統防護基準, OWASP, Fortify, Checkmarx, AWVS, 滲透測試, 驗收, or asks to make code pass a security scan.
+description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top 10 檢視程式碼，讓專案通過源碼掃描（Fortify/Checkmarx/Semgrep/SonarQube/gosec/bandit）與弱點掃描（AWVS/Nessus/ZAP/WebInspect）；Android／iOS App 另對照 OWASP MASVS 與《行動應用 App 基本資安檢測基準》（MobSF/mobsfscan）。送掃之前用來預防被標紅字，拿到掃描報告之後用來逐項判定真漏洞或誤判並修補。Use when the user mentions 源碼掃描, 弱點掃描, 資安稽核, 附表十, 資通系統防護基準, OWASP, MASVS, Fortify, Checkmarx, AWVS, MobSF, 滲透測試, 驗收, or asks to make code or a mobile app pass a security scan.
 ---
 
 # sec-audit
@@ -80,9 +80,14 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
 3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
 
+三者都找不到 `references/` 時，停下來請使用者執行 repo 的 `install.sh`——
+**不要憑印象作答**，本 skill 的價值在於答案來自知識庫。
+
 知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
 
 **不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
+
+要在 shell 操作時，先解析 ROOT 取得絕對路徑，再用絕對路徑操作。
 
 ## 知識庫
 
@@ -113,7 +118,9 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 操作與回填流程：
 
 - 開源 fixture 實跑：`{ROOT}/tools/verify_scanners.md`
-- 商用遮蔽（redacted）報告路徑：`../../../docs/usage/scanner-verification.md`
+- 商用遮蔽（redacted）報告路徑：`{ROOT}/tools/verify_commercial.md`
+
+回填改的是知識庫本身，要在 repo 的 clone 裡做；**不要改已安裝的快照**——重裝即被覆寫。
 
 ## 目前涵蓋範圍
 

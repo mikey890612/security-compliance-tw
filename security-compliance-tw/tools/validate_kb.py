@@ -1,6 +1,8 @@
 """知識庫結構與對應關係驗證器。純 stdlib，無外部相依。"""
 
+import collections
 import dataclasses
+import os
 import pathlib
 import re
 import sys
@@ -339,8 +341,292 @@ def cross_validate(check_ids, mapping_rows):
     return errors
 
 
+# ── 文件一致性 ───────────────────────────────────────────────────
+# 以下檢查的對象是 SKILL.md、README 等說明文件，不是 check 本身。
+# 知識庫每擴充一次，散在各檔的數字與路徑就有機會漏改；這些錯誤
+# 不會讓任何一則 check 壞掉，但會讓 agent 讀到錯的指示。
+
+MAS_ITEM_RE = re.compile(r"^\| (4(?:\.\d+){4}) \| ([^|]+?) \|", re.M)
+MAS_REF_RE = re.compile(r"MAS (4(?:\.\d+){4})")
+
+
+def parse_mas_items(path):
+    """controls-mas-v4.md → {條號: 分類}。檔案不存在時回傳空 dict。"""
+    path = pathlib.Path(path)
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    return {m.group(1): m.group(2).strip() for m in MAS_ITEM_RE.finditer(text)}
+
+
+def validate_mas_refs(mapping_rows, mas_items):
+    """mapping.md 的 MAS 欄引用的條號必須存在於 controls-mas-v4.md。"""
+    errors = []
+    for cid, row in mapping_rows.items():
+        for ref in MAS_REF_RE.findall(row.get("MAS", "")):
+            if ref not in mas_items:
+                errors.append(f"{cid}: MAS 欄的 {ref} 不在 controls-mas-v4.md")
+    return errors
+
+
+def kb_facts(references_dir, checks, mapping_rows):
+    """從知識庫本身算出文件會引用的數字。文件裡寫的數字一律以此為準。"""
+    references_dir = pathlib.Path(references_dir)
+    prefix = collections.Counter(c.id.split("-", 1)[0] for c in checks)
+    mas_items = parse_mas_items(references_dir / "controls-mas-v4.md")
+    covered = {
+        ref
+        for row in mapping_rows.values()
+        for ref in MAS_REF_RE.findall(row.get("MAS", ""))
+        if ref in mas_items
+    }
+    uncovered = [cls for num, cls in mas_items.items() if num not in covered]
+    mobile_verified = sum(
+        1
+        for c in checks
+        if c.id.startswith("MAST-")
+        for table in parse_scanner_tables(c.body)
+        for row in table["rows"]
+        if row.get("狀態") == "verified"
+    )
+    quick = references_dir / "quick-patterns.md"
+    return {
+        "checks": len(checks),
+        "web": prefix["SAST"] + prefix["DAST"],
+        "mobile": prefix["MAST"],
+        "mdm": prefix["MDM"],
+        "check_files": len(list((references_dir / "checks").glob("*.md"))),
+        "checks_per_file": collections.Counter(c.source for c in checks),
+        "mas_total": len(mas_items),
+        "mas_covered": len(covered),
+        "mas_uncovered": len(uncovered),
+        # L1／L2／L3 是必要檢測項目；F 是加測、參考項目非必要
+        "mas_uncovered_mandatory": sum(1 for cls in uncovered if cls.startswith("L")),
+        "mas_uncovered_by_class": collections.Counter(uncovered),
+        "mobile_verified_rows": mobile_verified,
+        "quick_patterns": (
+            quick.read_text(encoding="utf-8").count("**✅**") if quick.exists() else 0
+        ),
+    }
+
+
+# 文件裡寫死的數字：(regex, kb_facts 的鍵)。每個 match 的數字都必須等於實際值。
+# 一個群組 → 純量；兩個群組 → (鍵, 數字)，比對 kb_facts 裡的 Counter。
+# ⚠ 改寫句子讓 regex 對不上時不會報錯——新增或改寫含數字的句子，要同步這張表。
+DOC_COUNT_CLAIMS = [
+    (r"共 (\d+) 則", "checks"),
+    (r"(\d+) 則 check", "checks"),
+    (r"涵蓋範圍（(\d+) 則）", "checks"),
+    (r"checks/\s+(\d+) 則", "checks"),
+    (r"完整的 (\d+) 則", "checks"),
+    (r"目前 (\d+) 則檢查", "checks"),
+    (r"伺服器與 Web (\d+) 則", "web"),
+    (r"行動端 (\d+) 則", "mobile"),
+    (r"MDM[`*-]* (\d+) 則", "mdm"),
+    (r"這 (\d+) 則\*\*不計入", "mdm"),
+    (r"則 check，(\d+) 個檔", "check_files"),
+    (r"^\| `([a-z0-9-]+\.md)` \| (\d+) \|", "checks_per_file"),
+    (r"(\d+) 條的條號", "mas_total"),
+    (r"(\d+) 條條號", "mas_total"),
+    (r"標題（(\d+) 條）", "mas_total"),
+    (r"(\d+) 條中", "mas_total"),
+    (r"目前有 (\d+) 條", "mas_covered"),
+    (r"其餘 (\d+) 條沒有", "mas_uncovered"),
+    (r"未涵蓋的 (\d+) 條", "mas_uncovered"),
+    (r"(\d+) 條流程類", "mas_uncovered"),
+    (r"(\d+) 條源碼判不出來", "mas_uncovered"),
+    (r"那 (\d+) 條全部是", "mas_uncovered"),
+    (r"這 (\d+) 條本來就", "mas_uncovered"),
+    (r"其中 (\d+) 條目前尚無對應", "mas_uncovered"),
+    (r"其中 (\d+) 條屬必要檢測項目", "mas_uncovered_mandatory"),
+    (r"^\| (L1、L2、L3|L1、L2|L2、L3|L3|F|參考項目) \| (\d+) \|$", "mas_uncovered_by_class"),
+    (r"(\d+) 列掃描器對照", "mobile_verified_rows"),
+    (r"寫的當下能預防」的 (\d+) 則", "quick_patterns"),
+    (r"濃縮速查（(\d+) 則）", "quick_patterns"),
+]
+_DOC_COUNT_CLAIMS = [(re.compile(p, re.M), key) for p, key in DOC_COUNT_CLAIMS]
+
+# skill 執行期會讀到的文件，與只在 repo 裡存在的文件
+RUNTIME_DOC_GLOBS = (
+    "skills/*/SKILL.md",
+    "references/*.md",
+    "references/templates/*.md",
+    "tools/*.md",
+)
+REPO_DOC_GLOBS = ("README.md", "docs/usage/*.md")
+
+
+def _line_of(text, pos):
+    return text.count("\n", 0, pos) + 1
+
+
+def _display(path, base):
+    """相對於 plugin 目錄顯示；repo 根目錄的檔案會顯示成 ../README.md。"""
+    return os.path.relpath(path, base)
+
+
+def _inside(path, base):
+    """Path.is_relative_to 要 3.9 以上；這裡只要求 Python 3。"""
+    try:
+        pathlib.Path(path).relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def runtime_docs(plugin_dir):
+    plugin_dir = pathlib.Path(plugin_dir)
+    return [p for g in RUNTIME_DOC_GLOBS for p in sorted(plugin_dir.glob(g))]
+
+
+def repo_docs(plugin_dir):
+    """repo 根目錄的 README 與使用說明。已安裝的快照沒有 repo 根目錄，回傳空清單。"""
+    repo = pathlib.Path(plugin_dir).parent
+    if not (repo / "install.sh").exists():
+        return []
+    return [p for g in REPO_DOC_GLOBS for p in sorted(repo.glob(g))]
+
+
+def validate_doc_counts(doc_paths, facts, base=None):
+    """文件裡寫死的數字必須等於 kb_facts 算出的實際值。"""
+    errors = []
+    for path in doc_paths:
+        text = pathlib.Path(path).read_text(encoding="utf-8")
+        name = _display(path, base) if base else pathlib.Path(path).name
+        for regex, key in _DOC_COUNT_CLAIMS:
+            for m in regex.finditer(text):
+                if regex.groups == 2:
+                    label = f"{key}[{m.group(1)}]"
+                    expected = facts[key].get(m.group(1), 0)
+                    claimed = int(m.group(2))
+                else:
+                    label = key
+                    expected = facts[key]
+                    claimed = int(m.group(1))
+                if claimed != expected:
+                    errors.append(
+                        f"{name}:{_line_of(text, m.start())}: 寫「{m.group(0).strip()}」，"
+                        f"實際 {label} = {expected}"
+                    )
+    return errors
+
+
+# re.ASCII：\w 預設會吃進中文，路徑後面緊接中文字時會被算成路徑的一部分
+ROOT_PATH_RE = re.compile(r"\{ROOT\}/([\w./*-]*[\w*/-])", re.ASCII)
+CHECK_FILE_REF_RE = re.compile(r"`(?:checks/)?((?:sast|dast|mast|mdm)-[a-z0-9-]+\.md)`")
+TEMPLATE_REF_RE = re.compile(r"`templates/([a-z0-9-]+\.md)`")
+REL_PATH_RE = re.compile(r"(?<![\w/])((?:\.\./)+(?:[\w-]+/)*[\w-]+\.\w+)", re.ASCII)
+
+# 每個 check 檔都必須出現在這些檔案裡，否則 agent 不會知道要載入它
+CHECK_FILE_REGISTRIES = (
+    "references/profile.md",
+    "references/README.md",
+    "skills/sec-audit/SKILL.md",
+)
+
+
+def validate_references(plugin_dir):
+    """執行期文件裡的路徑必須存在，且不得指向 plugin 目錄之外。
+
+    install.sh 只複製 plugin 目錄；repo 根目錄的 docs/、README.md 不在
+    安裝後的快照裡，指過去的相對路徑安裝後必定失效。
+    """
+    plugin_dir = pathlib.Path(plugin_dir).resolve()
+    references = plugin_dir / "references"
+    errors = []
+
+    for path in runtime_docs(plugin_dir):
+        text = path.read_text(encoding="utf-8")
+        name = _display(path, plugin_dir)
+
+        for m in ROOT_PATH_RE.finditer(text):
+            rel = m.group(1).rstrip(".")
+            target = plugin_dir / rel
+            if "*" in rel:
+                ok = any(plugin_dir.glob(rel))
+            elif rel.endswith("/"):
+                ok = target.is_dir()
+            else:
+                ok = target.exists()
+            if not ok:
+                errors.append(f"{name}:{_line_of(text, m.start())}: {{ROOT}}/{rel} 不存在")
+
+        for m in CHECK_FILE_REF_RE.finditer(text):
+            if not (references / "checks" / m.group(1)).exists():
+                errors.append(
+                    f"{name}:{_line_of(text, m.start())}: checks/{m.group(1)} 不存在"
+                )
+
+        for m in TEMPLATE_REF_RE.finditer(text):
+            if not (references / "templates" / m.group(1)).exists():
+                errors.append(
+                    f"{name}:{_line_of(text, m.start())}: templates/{m.group(1)} 不存在"
+                )
+
+        for m in REL_PATH_RE.finditer(text):
+            target = (path.parent / m.group(1)).resolve()
+            where = f"{name}:{_line_of(text, m.start())}"
+            if not _inside(target, plugin_dir):
+                errors.append(
+                    f"{where}: {m.group(1)} 指向 plugin 目錄之外，安裝後會失效"
+                )
+            elif not target.exists():
+                errors.append(f"{where}: {m.group(1)} 不存在")
+
+    for check_file in sorted((references / "checks").glob("*.md")):
+        for registry in CHECK_FILE_REGISTRIES:
+            reg_path = plugin_dir / registry
+            if reg_path.exists() and check_file.name not in reg_path.read_text(
+                encoding="utf-8"
+            ):
+                errors.append(f"{registry}: 沒有列出 checks/{check_file.name}")
+
+    return errors
+
+
+ROOT_SECTION_HEADING = "## 知識庫根目錄（ROOT）"
+
+
+def _root_section(text):
+    """回傳 ROOT 段落的內文（不含標題列）；找不到時回傳 None。"""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if line.startswith(ROOT_SECTION_HEADING):
+            body = []
+            for nxt in lines[i + 1:]:
+                if nxt.startswith("## ") or nxt == "---":
+                    break
+                body.append(nxt)
+            return "\n".join(body).strip()
+    return None
+
+
+def validate_root_sections(skills_dir):
+    """三支 skill 的 ROOT 段落必須逐字相同。
+
+    段落無法抽成共用檔——要先解析出 ROOT 才讀得到共用檔——只能各抄一份，
+    所以由這裡確保沒有人只改了其中一份。
+    """
+    errors = []
+    sections = {}
+    for path in sorted(pathlib.Path(skills_dir).glob("*/SKILL.md")):
+        body = _root_section(path.read_text(encoding="utf-8"))
+        name = f"skills/{path.parent.name}/SKILL.md"
+        if body is None:
+            errors.append(f"{name}: 缺少「{ROOT_SECTION_HEADING}」段落")
+        else:
+            sections[name] = body
+    if len(set(sections.values())) > 1:
+        reference_name, reference_body = next(iter(sections.items()))
+        for name, body in sections.items():
+            if body != reference_body:
+                errors.append(f"{name}: ROOT 段落與 {reference_name} 不一致")
+    return errors
+
+
 def main():
-    root = pathlib.Path(__file__).resolve().parent.parent / "references"
+    plugin = pathlib.Path(__file__).resolve().parent.parent
+    root = plugin / "references"
     checks = parse_checks(root / "checks")
 
     mapping_path = root / "mapping.md"
@@ -351,6 +637,17 @@ def main():
         errors += cross_validate([c.id for c in checks], mapping_rows)
     else:
         errors.append("references/mapping.md 不存在")
+
+    errors += validate_mas_refs(
+        mapping_rows, parse_mas_items(root / "controls-mas-v4.md")
+    )
+    errors += validate_references(plugin)
+    errors += validate_root_sections(plugin / "skills")
+    errors += validate_doc_counts(
+        runtime_docs(plugin) + repo_docs(plugin),
+        kb_facts(root, checks, mapping_rows),
+        base=plugin,
+    )
 
     if errors:
         print(f"知識庫驗證失敗（{len(errors)} 項）：")

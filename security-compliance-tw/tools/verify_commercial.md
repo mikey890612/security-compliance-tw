@@ -1,7 +1,10 @@
 # 掃描器驗證（商用延後路徑）
 
 本文件說明**商用**掃描報告如何用於把知識庫掃描器表從 `unverified` 提升為 `verified`／`partial`。  
-開源實跑流程見 `security-compliance-tw/tools/verify_scanners.md`。
+開源實跑流程見同目錄的 `verify_scanners.md`。以下路徑一律相對於 plugin 根目錄（`security-compliance-tw/`）。
+
+回填要在 **repo 的 clone** 裡做並提交。已安裝的快照（`~/.security-compliance-tw/plugin`）
+重跑 `install.sh` 就會被覆寫，改在那裡的狀態不會留下來。
 
 **明確原則：在尚未提供合規報告前，Fortify／Checkmarx／AWVS／WebInspect／Nessus 等商用列必須維持 `unverified`。** 不得僅憑猜測或公開 rule 名稱就標 `verified`。
 
@@ -23,11 +26,11 @@
 
 ---
 
-## 2. 紅action 規則
+## 2. 遮蔽（redaction）規則
 
 `testdata/scan-artifacts/commercial/` **預設 gitignore**，禁止把客戶原始報告直接推上公開 GitHub。
 
-紅action 時必須移除或改寫：
+遮蔽時必須移除或改寫：
 
 - 客戶原始碼片段、路徑中的客戶專案／主機名稱
 - 祕密、token、連線字串、個資
@@ -45,12 +48,12 @@ internal-verified:2026-09-05
 
 ## 3. 操作者 checklist
 
-1. 將redacted 報告放到 `security-compliance-tw/testdata/scan-artifacts/commercial/`（本機即可）
+1. 將redacted 報告放到 `testdata/scan-artifacts/commercial/`（本機即可）
 2. 以報告中的規則 ID／CWE／檔案模式，對照 `references/checks/*.md` 各則 `### 掃描器怎麼標` 表列
 3. 對得上且證據充分：該列 `狀態` → `verified`；僅部分吻合 → `partial`
 4. `證據` 填公開可 commit 的字串（如 `internal-verified:YYYY-MM-DD`），**不要**填會洩漏客戶內容的路徑細節進公開 repo（若路徑必須出現，僅用已redacted 相對名）
-5. 執行 `python3 security-compliance-tw/tools/validate_kb.py`，確認商用 `verified` 列皆有非 `—` 證據
-6. 在 `security-compliance-tw/references/scanner-verification-log.md` 追加一列（工具、版本、對應 checks、摘要）
+5. 執行 `python3 tools/validate_kb.py`，確認商用 `verified` 列皆有非 `—` 證據
+6. 在 `references/scanner-verification-log.md` 追加一列（工具、版本、對應 checks、摘要）
 
 ---
 
@@ -62,4 +65,4 @@ internal-verified:2026-09-05
 | 有報告但規則對不上既有列 | 維持 `unverified` 或另開追蹤；勿捏造命中 |
 | 有報告且對得上 | `verified` 或 `partial`，並完成 log |
 
-`sec-audit` 模式 2 若命中 `unverified` 列，findings 應註明「規則名待真實報告確認」（由後續 skill 更新任務負責；本文件僅定義驗證流程）。
+`sec-audit` 模式 2 若命中 `unverified` 列，findings 應註明「規則名待真實報告確認」（`sec-audit` 已內建此規則；本文件僅定義驗證流程）。

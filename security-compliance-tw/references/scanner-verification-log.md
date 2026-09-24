@@ -5,7 +5,7 @@
 | 2026-09-05 | gosec | dev (securego/gosec/v2@latest) | sast-injection (INJ-001 G202, INJ-002 G204); sast-errors (ERR-002 G104) | sample-go: 10 findings; verified 3 rows; artifact `testdata/scan-artifacts/open-source/20260905T084457Z/gosec.json` | 埕碩 許 |
 | 2026-09-05 | bandit | 1.9.4 | sast-injection (INJ-001 B608, INJ-002 B602); sast-authz (AUTHZ-004 B103) | sample-multi (+insecure.py): 4 findings; verified 3 rows; artifact `testdata/scan-artifacts/open-source/20260905T084457Z/bandit.json` | 埕碩 許 |
 | 2026-09-05 | semgrep | 1.176.1 | sast-injection (INJ-001 string-formatted-query, INJ-002 dangerous-exec-command, INJ-004 xss ResponseWriter) | sample-go+sample-multi: 8 findings; verified 3 rows; artifact `testdata/scan-artifacts/open-source/20260905T084457Z/semgrep.json` | 埕碩 許 |
-| 2026-09-07 | mobsfscan | 1.0.0（規則集內含 semgrep 66 檔） | mast-storage（STORAGE-002/003/004）、mast-crypto（CRYPTO-001/002）、mast-network（NETWORK-001/002）、mast-platform（PLATFORM-002/004/006/007）、mast-code（CODE-002）、mast-resilience（RESILIENCE-001/002/003） | sample-android：14 條 semgrep 命中 + 11 條 manifest／best-practice；sample-ios：5 + 6。verified 18 列。artifact `testdata/scan-artifacts/open-source/20260907T001858Z/` | 埕碩 許 |
+| 2026-09-07 | mobsfscan | 1.0.0（規則集內含 semgrep 66 檔） | mast-storage（STORAGE-002/003/004）、mast-crypto（CRYPTO-001/002）、mast-network（NETWORK-001/002）、mast-platform（PLATFORM-002/004/006/007/009）、mast-code（CODE-002）、mast-resilience（RESILIENCE-001/002/003） | sample-android：14 條 semgrep 命中 + 11 條 manifest／best-practice；sample-ios：5 + 6。verified 16 列。artifact `testdata/scan-artifacts/open-source/20260907T001858Z/` | 埕碩 許 |
 
 ## 行動端驗證的執行方式與限制
 

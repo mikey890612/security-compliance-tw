@@ -78,9 +78,14 @@ security-deliverables/
 2. 否則若存在 `~/.security-compliance-tw/root` → 讀取該檔單行路徑（plugin 絕對路徑）
 3. 否則 fallback：相對於本 `SKILL.md` 的 `../..`（仍在 clone／plugin 樹的 `skills/<name>/` 下開發時）
 
+三者都找不到 `references/` 時，停下來請使用者執行 repo 的 `install.sh`——
+**不要憑印象作答**，本 skill 的價值在於答案來自知識庫。
+
 知識庫路徑一律表述為 `{ROOT}/references/…`。用 Read 工具讀**解析後的絕對路徑**（或開發時 fallback 的明確相對路徑）。
 
 **不要用 shell 的 `cd ../..` 導航**——先解析 ROOT 再 Read。`cd` 是邏輯解析，在 symlink 或已安裝的 skill 目錄下會跑錯地方。
+
+要在 shell 操作時，先解析 ROOT 取得絕對路徑，再用絕對路徑操作。
 
 ## 知識庫
 
