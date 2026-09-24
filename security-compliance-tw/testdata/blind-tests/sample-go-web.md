@@ -52,6 +52,11 @@ fixture 不含該專案的任何程式碼或內容。
 它另外指出的疑點（登入判定誤把 CSRF cookie 算進去、profile 答案與程式碼事實不一致、
 技術棧只看 manifest、放寬分級與 P0 條件的衝突、完全沒有身分鑑別該歸哪則）都已在 0.3.0 修正。
 
+第四次（套用載入規則的修正後）：仍 8／8。未勾 API 但程式碼有回 JSON 的端點 → 載入 `sast-api-authz`
+並在 findings 開頭寫明；面對商用 SAST → 載入 `dast-tls-cookie`；有 `.js`／`.html` 沒有 `package.json`
+→ JS 納入；CSRF cookie 不算登入。它另以一支小程式實測，確認 fixture 的 Log Forging 為真
+（CR 與 ESC 會原樣進入日誌），P0 的判定正確。
+
 0.1.0 與 0.2.0 兩次都另外找到 fixture 裡的真問題：所有路由沒有身分鑑別（SAST-AUTHZ-001）、
 沒有稽核紀錄（SAST-LOG-003）；0.2.0 那次還指出 CSRF 中介層先解析了整個
 multipart 本體，使上傳 handler 的大小上限對表單路徑失效。
