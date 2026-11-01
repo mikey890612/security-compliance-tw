@@ -4,7 +4,7 @@
 
 依台灣「資通安全責任等級分級辦法**附表十** 資通系統防護基準」，
 結合 OWASP Web Top 10（2021 / 2025）、API Security Top 10（2023）、
-Top 10 for LLM Applications（2025），提供給 Claude Code、Cursor
+GenAI LLM Top 10（2026；保留 2025 對照），提供給 Claude Code、Cursor
 及其他本機 agent 使用的資安知識庫與工作流程。
 
 伺服器與 Web 端涵蓋 **Go、Python、JavaScript**；
@@ -192,8 +192,8 @@ OWASP MASVS 控制項編號與 Mobile Top 10。
    [商用驗證流程](security-compliance-tw/tools/verify_commercial.md)。
 2. **尚未在真實專案的原始碼上跑過完整流程**——上述 Fortify 報告只拿來校準規則名稱與等級，
    沒有對照原始碼逐項判定；模式 1 的預判準確度仍未知。
-3. **OWASP Top 10:2025 的定稿狀態**需自行至 owasp.org/Top10 核對。
-   `mapping.md` 的 Web25 欄依 2025 版排序。
+3. **OWASP Top 10:2025 已定稿**；法遵稽核仍以指引 V3.2 對應的 2021 版為準，
+   `mapping.md` 的 Web25 欄依 2025 定稿版排序。
 4. **樣式比對無法取代污點分析**——不安全操作被包進多層 helper、
    動態組成的字串、二階注入等情形可能漏判。「未命中」不等於「無此問題」。
 5. **行動端已對 fixture 實跑過，但仍非真實專案。**

@@ -1,5 +1,9 @@
 # SAST：LLM / RAG / Agent 應用
 
+> **版本**：OWASP GenAI LLM Top 10 **2026**（2026-08-04 發布）為目前版本。`mapping.md` 的 LLM25 欄保留 2025 編號以相容舊報告，
+> 換算見 `mapping.md`「版本註記」。本檔四則 check 的 2026 對應：SAST-LLM-001 → LLM01:2026、SAST-LLM-002 → LLM10:2026 Improper Output Handling、
+> SAST-LLM-003 → LLM03:2026 Excessive Agency、SAST-LLM-004 → LLM08:2026 Hidden Context Exposure。
+
 本檔涵蓋語言模型應用特有的風險。**傳統 SAST 工具大多偵測不到**——
 污點分析引擎不認得「prompt 字串」是危險 sink，也不知道模型回應是不可信來源。
 唯一例外是 SAST-LLM-002：模型輸出被丟進 SQL / shell / eval / innerHTML
