@@ -105,10 +105,24 @@
 ## 版本註記
 
 - **Web21** = OWASP Top 10:2021。指引 V3.2 的對應版本，法遵稽核以此為準。
-- **Web25** = OWASP Top 10:2025。定稿狀態需核對 owasp.org/Top10；
+- **Web25** = OWASP Top 10:2025（已定稿發布）。
   SSRF 已併入 A01，注入降至 A05，新增供應鏈（A03）與例外處理（A10）。
 - **API23** = OWASP API Security Top 10:2023。
-- **LLM25** = OWASP Top 10 for LLM Applications:2025。
+- **LLM25** = OWASP Top 10 for LLM Applications:2025。欄位保留以相容舊的 `findings.md` 與勾稽表。
+- **LLM26** = OWASP GenAI LLM Top 10 2026（2026-08-04 發布），**目前版本**。新產出的報告請用下表換算為 2026 編號：
+
+| LLM25 | 2025 名稱 | LLM26 | 2026 名稱 | 本知識庫的 check |
+|---|---|---|---|---|
+| LLM01 | Prompt Injection | LLM01 | Prompt Injection | SAST-LLM-001 |
+| LLM02 | Sensitive Information Disclosure | LLM02 | Sensitive Information Disclosure | SAST-LOG-002 |
+| LLM03 | Supply Chain | LLM04 | Supply Chain | — |
+| LLM04 | Data and Model Poisoning | LLM05 | Data and Model Poisoning | — |
+| LLM05 | Improper Output Handling | LLM10 | Improper Output Handling | SAST-LLM-002、SAST-INJ-001/002/004 |
+| LLM06 | Excessive Agency | LLM03 | Excessive Agency | SAST-LLM-003、SAST-AUTHZ-004 |
+| LLM07 | System Prompt Leakage | LLM08 | Hidden Context Exposure（範圍擴及工具 schema、RAG 政策文字等隱藏脈絡） | SAST-LLM-004、SAST-AUTH-001 |
+| LLM08 | Vector and Embedding Weaknesses | LLM09 | Vector and Embedding Weaknesses | — |
+| LLM09 | Misinformation | LLM07 | Misinformation | — |
+| LLM10 | Unbounded Consumption | LLM06 | Unbounded Consumption | SAST-API-004 |
 - **MTop10**（行動端對照表）= OWASP Mobile Top 10:2024，短碼 M1–M10。
 - **MASVS**（行動端對照表）= OWASP MASVS V2.0 控制項編號，僅引用編號。
 
@@ -118,8 +132,8 @@
 
 | 類別 | 控制措施 |
 |---|---|
-| 4.1 存取控制 | 帳號管理 / 最小權限 / 遠端存取 |
-| 4.2 稽核與可歸責性 | 稽核事件 / 紀錄內容 / 儲存容量 / 失效回應 / 時戳校時 / 稽核資訊保護 |
+| 4.1 存取控制 | 帳號管理（含逾期臨時／緊急帳號、閒置帳號禁用；中級起閒置自動登出） / 最小權限 / 遠端存取 |
+| 4.2 事件日誌與可歸責性 | 記錄事件（日誌至少保存六個月） / 日誌紀錄內容 / 日誌儲存容量 / 日誌處理失效之回應 / 時戳及校時（定期與基準時間源同步） / 日誌資訊之保護 |
 | 4.3 營運持續計畫 | 資訊系統備份 / 備援 |
 | 4.4 識別與鑑別 | 內部使用者識別 / 身分鑑別管理 / 鑑別資訊回饋 / 加密模組鑑別 / 非內部使用者識別 |
 | 4.5 系統與服務獲得 | SSDLC 需求·設計·開發·測試·部署維運·委外 / 獲得程序 / 系統文件 |
