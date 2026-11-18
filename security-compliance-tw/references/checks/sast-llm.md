@@ -3,6 +3,7 @@
 > **版本**：OWASP GenAI LLM Top 10 **2026**（2026-08-04 發布）為目前版本。`mapping.md` 的 LLM25 欄保留 2025 編號以相容舊報告，
 > 換算見 `mapping.md`「版本註記」。本檔四則 check 的 2026 對應：SAST-LLM-001 → LLM01:2026、SAST-LLM-002 → LLM10:2026 Improper Output Handling、
 > SAST-LLM-003 → LLM03:2026 Excessive Agency、SAST-LLM-004 → LLM08:2026 Hidden Context Exposure。
+> 代理式 AI（Agent 會規劃、呼叫工具、保留記憶）另見檔尾「代理式 AI 補充檢查」，對照 OWASP Agentic Top 10（ASI01–ASI10）。
 
 本檔涵蓋語言模型應用特有的風險。**傳統 SAST 工具大多偵測不到**——
 污點分析引擎不認得「prompt 字串」是危險 sink，也不知道模型回應是不可信來源。
@@ -766,3 +767,52 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 
 灰色地帶——**一律當真漏洞修**：prompt 中的內部主機名稱、內網網段、
 內部 API 路徑——洩漏後可直接用於後續攻擊。
+
+---
+
+## 代理式 AI 補充檢查（OWASP Agentic Top 10）
+
+> 本節**不是 check**（沒有 check-id、不進勾稽表），是審查有 Agent 功能的系統時的人工清單。
+> 依據：OWASP Top 10 for Agentic Applications 2026（2025-12-09 發布）；
+> 威脅情資：FBI FLASH-20261113-001（ARTEX，2026-11-13）、Google GTIG AI Threat Tracker（2026-11-16）；
+> 防護建議：CISA 等六國聯合指引〈Careful Adoption of Agentic AI Services〉（2026-05-01）。
+> 對照表見 `../mapping.md`「OWASP Agentic Top 10 對照」。
+
+**為什麼要補**：2026 下半年的情資顯示，攻擊方已用開源多代理框架（ARTEX、CAIRN、PentAGI 等）
+自動化偵察、利用低複雜度弱點與產生一次性 payload，部分入侵從鎖定目標到取得特權不到三小時；
+另有自動比對修補檔（patch diff）來量產 n-day 利用、竊取 LLM 金鑰轉賣（LLMJacking）、
+竄改 AI 程式助手設定檔植入後門等手法。這些不會出現在 SAST 報告裡，靠下列人工檢查補位。
+
+### 逐項檢查（ASI01–ASI10）
+
+| ASI | 風險 | 審查時看什麼 | 相關 check |
+|---|---|---|---|
+| ASI01 | Agent Goal Hijack（目標劫持） | 外部內容（網頁、郵件、RAG 文件、工具回傳）能否改變 Agent 的任務目標；高影響動作前是否重新比對原始目標 | SAST-LLM-001 |
+| ASI02 | Tool Misuse & Exploitation（工具濫用） | 每個工具的參數是否有程式碼層級白名單／範圍限制；破壞性工具（刪除、轉帳、寄信、執行指令）是否需人工確認 | SAST-LLM-003 |
+| ASI03 | Identity & Privilege Abuse（身分與權限濫用） | Agent 是否用獨立的非人類身分與短效憑證（JIT）；是否繼承了使用者或管理員的完整權限；跨租戶權限是否最小化 | SAST-LLM-003、SAST-AUTHZ-004、SAST-AUTH-001 |
+| ASI04 | Agentic Supply Chain（代理式供應鏈） | MCP server、外掛、工具描述、提示範本的來源是否固定版本並有白名單；**AI 程式助手設定檔**（如 `AGENTS.md`、`.cursor/`、`.mcp.json`、`.vscode/` 設定）是否納入 code review 與 CODEOWNERS | SAST-DEP-001 |
+| ASI05 | Unexpected Code Execution（非預期程式執行） | 模型產生的程式碼或指令是否在隔離沙箱執行；是否有 `eval`／shell 直接吃模型輸出 | SAST-LLM-002、SAST-INJ-002 |
+| ASI06 | Memory & Context Poisoning（記憶與脈絡汙染） | 長期記憶、向量庫寫入是否有來源標記與審核；不可信內容能否寫進之後會被當成指示的記憶 | SAST-LLM-001 |
+| ASI07 | Insecure Inter-Agent Communication（代理間通訊不安全） | Agent 間訊息是否有雙向身分驗證、完整性保護與重送防護；是否信任未驗證的外部 Agent | — |
+| ASI08 | Cascading Failures（連鎖失效） | 單一 Agent 錯誤輸出是否會無檢查地傳給下游自動執行；是否有次數／金額／速率上限與斷路器 | SAST-API-004 |
+| ASI09 | Human-Agent Trust Exploitation（人機信任濫用） | 需人工核准的畫面是否呈現實際要執行的動作與參數，而不只是模型的摘要說明 | — |
+| ASI10 | Rogue Agents（失控代理） | 是否有 Agent 行為基準、異常告警、可中斷（kill switch）與事後可回溯的完整日誌 | SAST-LOG-002 |
+
+### 依 2026-11 情資補強的檢查
+
+- **LLM 金鑰與用量（LLMJacking）**：LLM／雲端 API 金鑰不得寫在程式碼、前端或 prompt 中（見 SAST-AUTH-001、SAST-LLM-004）；
+  帳戶需設用量上限與異常用量告警，金鑰定期輪替、依環境分開
+- **修補窗口縮短（自動化 n-day）**：攻擊方能自動比對修補檔產生利用，公告到被打的時間差縮短；
+  對外服務的元件漏洞通告與修補時程（SAST-DEP-001）應以「天」而非「月」計，並先處理對外暴露的周邊系統
+- **周邊系統與管理介面**：FBI 指出 ARTEX 類工具特別擅長打主系統以外的周邊——合作廠商入口、行動後端、
+  員工 App、舊服務、第三方整合。資產盤點要包含這些，管理介面與備份平台只開放給受信任網段或專用管理路徑
+- **AI 程式助手設定竄改**：GTIG 觀察到透過竄改自動化程式助手的設定，在開發者本機執行時植入後門。
+  把助手規則檔、MCP 設定、工作區設定視同可執行程式碼：變更需審查，CI 檢查是否出現非預期的指令或外部連線
+- **對外暴露的 Agent 主控台與 MCP 端點**：不得無驗證暴露於網際網路；MCP server 只用白名單內、固定版本的來源
+- **受控自我測試**：若要用 agentic 工具做防守驗證，須先取得書面授權、限定目標白名單，並在隔離環境執行、保留完整操作日誌
+
+### 判定方式
+
+本節項目多數掃描器偵測不到，判定沿用各相關 check 的判定準則；
+沒有對應 check 的項目（ASI07、ASI09）在報告中列為「人工審查發現」，
+附表十欄位填「—（查檢表外）」，**仍應修**。

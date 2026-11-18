@@ -123,6 +123,24 @@
 | LLM08 | Vector and Embedding Weaknesses | LLM09 | Vector and Embedding Weaknesses | — |
 | LLM09 | Misinformation | LLM07 | Misinformation | — |
 | LLM10 | Unbounded Consumption | LLM06 | Unbounded Consumption | SAST-API-004 |
+- **ASI26** = OWASP Top 10 for Agentic Applications 2026（2025-12-09 發布）。屬代理式 AI 的風險清單，
+  與 LLM Top 10 互補，不取代。本知識庫沒有獨立的 ASI check，人工檢查清單在 `checks/sast-llm.md` 檔尾。
+
+### OWASP Agentic Top 10 對照
+
+| ASI26 | 名稱 | 相關 LLM26 | 本知識庫的 check | 附表十 |
+|---|---|---|---|---|
+| ASI01 | Agent Goal Hijack | LLM01 | SAST-LLM-001 | —（查檢表外） |
+| ASI02 | Tool Misuse & Exploitation | LLM03 | SAST-LLM-003 | 4.1.2 |
+| ASI03 | Identity & Privilege Abuse | LLM03 | SAST-LLM-003、SAST-AUTHZ-004、SAST-AUTH-001 | 4.1.2、4.5.5 |
+| ASI04 | Agentic Supply Chain Vulnerabilities | LLM04 | SAST-DEP-001（僅元件漏洞通告部分） | 4.5.5 |
+| ASI05 | Unexpected Code Execution (RCE) | LLM10 | SAST-LLM-002、SAST-INJ-002 | 4.5.3.1 |
+| ASI06 | Memory & Context Poisoning | LLM01、LLM05 | SAST-LLM-001 | —（查檢表外） |
+| ASI07 | Insecure Inter-Agent Communication | — | —（人工審查） | —（查檢表外） |
+| ASI08 | Cascading Failures | LLM06 | SAST-API-004 | —（查檢表外） |
+| ASI09 | Human-Agent Trust Exploitation | LLM07 | —（人工審查） | —（查檢表外） |
+| ASI10 | Rogue Agents | LLM03 | SAST-LOG-002 | 4.2 |
+
 - **MTop10**（行動端對照表）= OWASP Mobile Top 10:2024，短碼 M1–M10。
 - **MASVS**（行動端對照表）= OWASP MASVS V2.0 控制項編號，僅引用編號。
 
@@ -148,7 +166,7 @@
 - **注入延伸**——XML 外部實體、不安全的反序列化、HTTP 標頭注入、Open Redirect
 - **API 物件層級授權**（BOLA / BOPLA / BFLA）——附表十的存取控制以頁面層級為主
 - **API 資產盤點**——影子 API、殭屍 API
-- **LLM / Agent 風險**——提示注入、過度代理權、系統提示洩漏
+- **LLM / Agent 風險**——提示注入、過度代理權、系統提示洩漏；代理式 AI 的 ASI01–ASI10（人工審查清單見 `checks/sast-llm.md` 檔尾）
 - **行動 App / MDM**——不安全本機儲存、弱密碼學、明文傳輸、本機驗證繞過、IPC／Deep Link、敏感日誌、WebView；以及 EMM／MDM 註冊、受管 App、遠端抹除
 - **供應鏈**——附表十收錄「元件漏洞通告」（見 `SAST-DEP-001`，屬查檢表 4.5.5，不在本節），本專案另補建置流程與發布管道（尚未涵蓋）
 
