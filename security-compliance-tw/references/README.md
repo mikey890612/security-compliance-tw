@@ -12,6 +12,7 @@
 | 附表十查檢表全文與分級 | `controls-appendix10.md` | sec-deliverables |
 | 行動應用 App 基本資安檢測基準的條號與標題（65 條） | `controls-mas-v4.md` | sec-deliverables |
 | 各類交付文件的產出規則與格式 | `templates/*.md` | sec-deliverables |
+| 對照 ARTEX 類 agentic AI 的受控滲透測試計畫（防守驗證模板） | `templates/agentic-pentest-plan.md` | sec-deliverables／開發期驗證 |
 | 檢測基準勾稽表的產出規則 | `templates/checklist-mas.md` | sec-deliverables |
 | 流程類項目該問誰、該備什麼證據 | `evidence-mas-process.md` | sec-deliverables |
 | 掃描器對照的驗證紀錄、工具版本與重跑方式 | `scanner-verification-log.md` | sec-audit |
