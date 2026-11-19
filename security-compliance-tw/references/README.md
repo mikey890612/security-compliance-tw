@@ -15,6 +15,10 @@
 | 檢測基準勾稽表的產出規則 | `templates/checklist-mas.md` | sec-deliverables |
 | 流程類項目該問誰、該備什麼證據 | `evidence-mas-process.md` | sec-deliverables |
 | 掃描器對照的驗證紀錄、工具版本與重跑方式 | `scanner-verification-log.md` | sec-audit |
+| 源碼深度稽核的方法（六階段、三種判定、換算回四類） | `deep-audit.md` | sec-audit（選用） |
+| 深度稽核執行目標程式碼時的沙箱與安全規則 | `deep-audit-safety.md` | sec-audit（選用） |
+| 深度稽核各領域的攻擊類別清單 | `deep-audit-hunting.md` | sec-audit（選用） |
+| 深度稽核 AI／LLM／代理的攻擊類別與 OWASP 對照 | `deep-audit-ai.md` | sec-audit（選用） |
 
 ## 路徑注意事項
 

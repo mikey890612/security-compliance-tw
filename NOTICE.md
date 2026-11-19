@@ -89,6 +89,22 @@ and layout are NOT reproduced here.
 
 ---
 
+## 開源方法論（MIT 授權，已改寫）
+
+`security-compliance-tw/references/deep-audit*.md` 改寫自 Cloudflare 的
+[security-audit-skill](https://github.com/cloudflare/security-audit-skill)
+（MIT License，Copyright (c) 2025-2026 Cloudflare, Inc.）。本專案以繁體中文摘要改寫其方法論，
+未逐字收錄，也未隨附其 schema 與驗證腳本。MIT 授權全文與受影響檔案清單見
+[`security-compliance-tw/THIRD_PARTY_NOTICES.md`](security-compliance-tw/THIRD_PARTY_NOTICES.md)
+（放在 plugin 目錄內，安裝時會一併複製）。
+
+The `references/deep-audit*.md` files are adapted (summarized and rewritten in
+Traditional Chinese) from Cloudflare's security-audit-skill, licensed under the
+MIT License, Copyright (c) 2025-2026 Cloudflare, Inc. The full license text is
+in `security-compliance-tw/THIRD_PARTY_NOTICES.md`.
+
+---
+
 ## 國際標準與清單
 
 本專案引用下列公開發布之風險清單編號，用於對照參考：
@@ -96,6 +112,7 @@ and layout are NOT reproduced here.
 - OWASP Top 10 (2021, 2025) — Open Worldwide Application Security Project
 - OWASP API Security Top 10 (2023)
 - OWASP Top 10 for LLM Applications (2025) — OWASP GenAI Security Project
+- OWASP GenAI LLM Top 10 (2026)、OWASP Top 10 for Agentic Applications (2026) — `deep-audit-ai.md` 的對照欄
 - OWASP Mobile Top 10 (2024) — `mapping.md` 的 `Mob24` 欄
 - CWE — MITRE Corporation
 
