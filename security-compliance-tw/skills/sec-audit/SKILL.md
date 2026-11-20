@@ -93,6 +93,20 @@ description: 依台灣附表十資通系統防護基準與 OWASP Web/API/LLM Top
 middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、TLS 組態，
 據以預判掃描器將觀察到的結果。
 
+## 深度稽核（選用，需明確要求）
+
+模式 1／2 回答「掃描器會不會標」。使用者要的是「**這份程式碼有沒有真的能被利用的漏洞**」——
+明確要求完整稽核、滲透測試式的原始碼審查、委外程式碼複審或事件後根因調查時，改讀
+`{ROOT}/references/deep-audit.md`，依其六階段（偵察與覆蓋帳本 → 分波獵洞 → 獨立驗證 →
+`findings.json` → 獨立複核 → 報告）進行。它**不是第三個模式**，也不取代四類判定：
+
+- 只是問資安問題或聚焦審查一段程式碼 → 只取 `deep-audit.md` 的相關段落（指引模式），**不跑六階段、不寫檔**
+- 執行任何目標程式碼前，必須符合 `{ROOT}/references/deep-audit-safety.md` 的沙箱規則；做不到就只讀原始碼，結果列待驗證。
+  **不對已上線系統做任何探測**
+- 攻擊類別清單：`{ROOT}/references/deep-audit-hunting.md`；有 LLM／RAG／Agent 時加讀 `{ROOT}/references/deep-audit-ai.md`
+- 結果要進 `findings.md` 或交付文件時，依 `deep-audit.md` 的「換算回四類」處理
+- 稽核產出含未修補的漏洞細節，預設寫在目標 repo 之外，**不得進版控**
+
 ## 產出
 
 寫入專案根目錄的 `security-audit/`：
@@ -154,6 +168,7 @@ middleware 註冊順序、安全標頭設定、Cookie flags、錯誤處理器、
 | `scanners.md` | 判讀報告或處理誤判時 |
 | `mapping.md` | 排優先序時（看分級欄與附表十欄）；需要標註附表十、檢測基準（`MAS` 欄）或 OWASP 編號時 |
 | `scanner-verification-log.md` | 需要說明某條掃描器對照的驗證依據時 |
+| `deep-audit.md`、`deep-audit-safety.md`、`deep-audit-hunting.md`、`deep-audit-ai.md` | 只在使用者明確要求深度稽核時（見上方「深度稽核」） |
 
 `controls-appendix10.md`、`controls-mas-v4.md` 與 `templates/` 屬 `sec-deliverables` 的範圍，本 skill 不讀。
 

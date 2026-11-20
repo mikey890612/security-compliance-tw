@@ -46,6 +46,9 @@ GenAI LLM Top 10（2026；保留 2025 對照），提供給 Claude Code、Cursor
 
 **本專案不執行任何掃描工具。** 掃描由人執行。
 
+另有選用的**源碼深度稽核**（六階段、三種判定、獨立驗證），只在明確要求時使用，
+方法改寫自 Cloudflare security-audit-skill（MIT）——見 [詳細用法](docs/usage/sec-audit.md#深度稽核選用)。
+
 ### sec-harden 是跨工具的
 
 它把規則安裝進你的專案，產出各家 agent 的格式：

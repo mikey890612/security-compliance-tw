@@ -44,6 +44,12 @@
 - `sast-logging.md`：補註保存期限與校時屬部署設定，需人工確認
 - `controls-mas-v4.md`：記錄檢測基準 V4.0 2026-07-20 勘誤（3.45 術語 AAID／IDFA，條目不變）與 MASTG v2.0.0
 - README：LLM Top 10 版本與 Top 10:2025 定稿狀態
+- **新增選用的源碼深度稽核方法**（改寫自 Cloudflare security-audit-skill，MIT）：
+  `deep-audit.md`（指引模式與完整稽核模式；偵察與覆蓋帳本 → 分波獵洞與覆蓋檢查 → 獨立驗證 →
+  `findings.json` → 獨立複核 → 目標中立報告；`confirmed`／`needs_validation`／`rejected` 的證據要件、嚴重度錨點、
+  換算回四類）、`deep-audit-safety.md`（沙箱四項控制、禁止事項、證據保留）、`deep-audit-hunting.md`（各領域攻擊類別，
+  對照既有 check）、`deep-audit-ai.md`（AI／LLM／代理攻擊類別，對照 LLM26 與 OWASP Agentic Top 10 2026）。
+  `sec-audit` 只在使用者明確要求時才讀；**模式 1／2 與四類判定不變**。授權聲明見 `THIRD_PARTY_NOTICES.md`
 
 ## 0.5.0（2026-09-24）
 
