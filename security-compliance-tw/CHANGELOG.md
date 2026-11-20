@@ -8,6 +8,17 @@
 - **minor**（0.**x**.0）：新增或更正 check、掃描器對照、skill 的流程——判定結果可能改變，建議更新
 - **major**（**x**.0.0）：check-id 異動或移除——舊的 `findings.md`、`false-positives.md` 可能對不上
 
+## 0.7.0（未發布）
+
+**建議更新**：新增代理式 AI（Agent）審查清單，有 Agent／MCP／工具呼叫功能的專案請對照檢查。
+
+- `sast-llm.md`：檔尾新增「代理式 AI 補充檢查」，逐項對照 OWASP Agentic Top 10（ASI01–ASI10）；
+  另依 FBI FLASH-20261113-001（ARTEX）、Google GTIG AI Threat Tracker（2026-11-16）、
+  CISA 等聯合指引〈Careful Adoption of Agentic AI Services〉（2026-05-01）補 LLMJacking、自動化 n-day、
+  周邊系統與管理介面、AI 程式助手設定竄改、對外暴露的 Agent 主控台／MCP 端點等檢查。不新增 check-id，判定結果不變
+- `mapping.md`：版本註記新增 ASI26，並新增「OWASP Agentic Top 10 對照」表（ASI ↔ LLM26 ↔ check ↔ 附表十）
+- `scanners.md`：Checkmarx 補 Engine Pack 9.8.0.1001 新增的 OWASP Top 10 for LLM preset 與其涵蓋限制
+
 ## 0.6.0（未發布）
 
 **建議更新**：附表十 115 年修正後，勾稽表的分級與條目用語改變；新增 agentic AI 受控測試計畫模板。

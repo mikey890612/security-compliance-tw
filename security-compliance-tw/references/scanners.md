@@ -31,6 +31,10 @@
 - 等級：High / Medium / Low / Information
 - 習性：對框架的內建防護辨識度較 Fortify 好，但對動態語言誤判偏多
 - 誤判處置：於結果介面標記 Not Exploitable，可設定為跨掃描持續
+- **LLM preset**：Engine Pack 9.8.0.1001（2026-11-01）新增「OWASP Top 10 for LLM」preset 與 compliance category，
+  既有 preset 不變——要看 LLM 類發現須**另選此 preset**。release note 未註明對應 LLM Top 10 的 2025 或 2026 版，
+  判讀時以報告上的類別名稱用 `mapping.md` 換算。preset 只涵蓋能用資料流表達的項目（如模型輸出流入注入 sink），
+  `checks/sast-llm.md` 標「需人工審查」的項目與代理式 AI 補充檢查仍不會被掃出
 
 ## 開源 SAST
 
