@@ -45,6 +45,11 @@
 gosec 與 bandit 只看單一函式內的樣式，把不安全操作包進 helper 函式就會漏報——
 **這代表「gosec 沒報」不等於「Fortify 不會報」**。判讀時以資料流分析工具為準。
 
+CodeQL 2.27.4（2026-11-02）起，`js/redos`、`java/redos`、`cs/redos`、`*/regex-injection` 等查詢移除
+`external/cwe/cwe-730` 標籤（MITRE 已禁止以 CWE-730 做弱點對應），其他 CWE 標籤保留。
+以 CWE-730 篩選 SARIF 的流程會漏掉 ReDoS 結果——**改用查詢 id 或 CWE-1333 對照**。
+來源：https://codeql.github.com/docs/codeql-overview/codeql-changelog/codeql-cli-2.27.4/
+
 ## DAST / 弱點掃描
 
 | 工具 | 觀察對象 |

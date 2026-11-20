@@ -12,6 +12,12 @@
 
 **建議更新**：附表十 115 年修正後，勾稽表的分級與條目用語改變；新增 agentic AI 受控測試計畫模板。
 
+- 2026-11-20 上游更新（不新增 check-id，判定結果不變）：
+  `mapping.md` 新增 OWASP MASWE 類別對照（MASWE-0001–0078 ↔ `mast-*` 檔）；
+  `evidence-mas-process.md` 新增 MAS 2026-11-03 送審前自我檢核清單的文件一致性提醒；
+  `sast-dependencies.md` 補資安署 2026-11-06 弱點處置期限指引與 11-11 AI 網攻呼籲的 72 小時修補時限（列待使用者執行）；
+  `sast-api-authz.md` 補高權限 API 大量擷取個資的情資註記；
+  `scanners.md` 補 CodeQL 2.27.4 移除 CWE-730 標籤的影響
 - **新增** `references/templates/agentic-pentest-plan.md`：對照 ARTEX 類 agentic AI 滲透框架的受控防守驗證作業規範模板（授權／白名單、隔離等級、可稽核工具、開發期 checklist）。不含 exploit／PoC／操作說明；真實資產與弱點基線不得填入公開副本
 - `references/README.md`：導覽表新增上述模板列
 

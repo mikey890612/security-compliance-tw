@@ -125,6 +125,8 @@
 | LLM10 | Unbounded Consumption | LLM06 | Unbounded Consumption | SAST-API-004 |
 - **MTop10**（行動端對照表）= OWASP Mobile Top 10:2024，短碼 M1–M10。
 - **MASVS**（行動端對照表）= OWASP MASVS V2.0 控制項編號，僅引用編號。
+- **MASWE** = OWASP Mobile Application Security Weakness Enumeration（MASVS 與 MASTG 之間的弱點清單，
+  MASWE-0001–0078）。只做類別層級對照，見檔尾「MASWE 類別對照」，不新增欄位、不影響判定。
 
 ## 附表十的七大類
 
@@ -242,3 +244,24 @@
 | MDM-PATCH-001 | —（查檢表外） | ◎ | ◎ | ◎ | — |
 | MDM-VPN-001 | —（查檢表外） | ◎ | ◎ | ◎ | — |
 | MDM-MTD-001 | —（查檢表外） | ◎ | ◎ | ◎ | — |
+
+## MASWE 類別對照（行動端，參考用）
+
+來源：https://mas.owasp.org/MASWE/ （2026-11-20 查閱，78 項，皆為 current）。
+MASWE 依 MASVS v2 控制項分類；下表只把 MASWE 編號區段對到本知識庫的 check 檔，
+方便把實驗室或 MobSF 報告上的 MASWE 編號換回 `MAST-*`。**逐則對照仍以上方行動端對照表的 `MASVS` 欄為準**，
+MASWE 不是檢測基準條號，不可填進勾稽表的條號欄。
+
+| MASVS 類別 | MASWE 區段 | 本知識庫的 check 檔 |
+|---|---|---|
+| MASVS-STORAGE-1／2 | MASWE-0001–0006 | `checks/mast-storage.md` |
+| MASVS-CRYPTO-1／2 | MASWE-0007–0017 | `checks/mast-crypto.md` |
+| MASVS-AUTH-1／2／3 | MASWE-0018–0025 | `checks/mast-auth.md` |
+| MASVS-NETWORK-1／2 | MASWE-0026–0028 | `checks/mast-network.md` |
+| MASVS-PLATFORM-1／2／3 | MASWE-0029–0040 | `checks/mast-platform.md` |
+| MASVS-CODE-1／2／3／4 | MASWE-0041–0050 | `checks/mast-code.md` |
+| MASVS-RESILIENCE-1／2／3／4 | MASWE-0051–0065 | `checks/mast-resilience.md` |
+| MASVS-PRIVACY-1／2／3／4 | MASWE-0066–0078 | 無對應 check；同意、資料使用與刪除類流程見 `evidence-mas-process.md` |
+
+MASTG 尚未替每一項 MASWE 提供測試（官方頁面列出測試數為 0 的項目），
+這類項目依 MASWE 的「Modes of Introduction」人工判斷，不要寫成「已由掃描器驗證」。
