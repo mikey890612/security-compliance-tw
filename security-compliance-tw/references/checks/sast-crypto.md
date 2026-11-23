@@ -24,7 +24,7 @@
 | SonarQube | S4790（弱雜湊）/ S5547（弱加密演算法）/ S5542（不安全模式與填充） | Critical–Major | unverified | — |
 | gosec | G401（MD5/SHA1）/ G405（DES/RC4）/ G406（MD4/RIPEMD160）/ G501 / G502 / G503 / G505 / G506 / G507（封鎖匯入） | HIGH–MEDIUM | unverified | — |
 | bandit | B303（不安全雜湊，舊版）/ B324（hashlib 弱雜湊）/ B304（弱加密）/ B305（ECB 模式） | HIGH–MEDIUM | unverified | — |
-| CodeQL | Use of a broken or weak cryptographic algorithm | — | unverified | — |
+| CodeQL | Use of a broken or weak cryptographic algorithm（`java/weak-cryptographic-algorithm`；2.27.5 起不分大小寫比對演算法與模式名稱） | — | unverified | — |
 
 gosec 的 G5xx 是**匯入層**規則：只要 `import "crypto/md5"` 出現在檔案裡就報，
 即使那行 import 已經沒有任何呼叫。清理未使用的 import 是零成本的修法。

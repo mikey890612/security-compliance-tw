@@ -110,7 +110,10 @@ await client.query("SELECT * FROM users WHERE id = $1", [userId]);
 | SonarQube | S2076 | Blocker | unverified | — |
 | gosec | G204 | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/gosec.json#rule=G204（見 `references/scanner-verification-log.md`） |
 | bandit | B602（shell=True）/ B605 | HIGH | verified | testdata/scan-artifacts/open-source/20260905T084457Z/bandit.json#rule=B602（見 `references/scanner-verification-log.md`） |
+| CodeQL | `js/command-line-injection`、`js/shell-command-constructed-from-input`、`py/command-line-injection`、`go/command-injection` | error | unverified | — |
 | AWVS / ZAP | OS Command Injection | High | unverified | — |
+
+CodeQL 2.27.5 起 `js/command-line-injection` 也追蹤 `shell: true` 時的參數陣列，`isNaN(parseInt(x))` 不再算消毒（見 `references/scanners.md`）。
 
 ### 壞味道
 
