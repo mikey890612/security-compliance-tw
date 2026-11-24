@@ -26,6 +26,22 @@
   該判定會寫入 `.fpr`，複掃時保留。分析標籤另有 Reliability Issue、
   Bad Practice、Suspicious、Exploitable
 
+- 版本變動（SAST 26.4 與 26.4 Security Content Update，2026-10；
+  [來源](https://community.opentext.com/cybersec/fortify/w/tips/54224/opentext-fortify-static-application-security-testing-sast-26-4)）——
+  升級後可能**新增、改類或減少**報告項，複掃結果與舊 `.fpr` 比對時要先排除這些因素：
+  - **Go 新框架規則**：gorilla/mux、Echo、Beego、chi、zap。用這些套件的 Go 服務，
+    升級後原本追不到的路由參數、日誌寫入可能開始出現 injection／log forging 類報告項，不代表程式碼變差
+  - 另新增 Python SQLAlchemy、.NET HtmlSanitizer 的框架模型；後者可能讓原本的 XSS 報告項減少
+  - **新類別 `Dynamic Code Evaluation: Insecure String Transformation`**（C#）：
+    與 `Dynamic Code Evaluation: Unsafe Deserialization` 相關，指字串轉換層可導致遠端執行程式碼的弱點；
+    比照反序列化類處理，不要當成一般字串格式問題
+  - **後量子密碼（PQC）規則**：涵蓋擴及 PyCryptodome、.NET Core 密碼學 API、Bouncy Castle for .NET。
+    PQC 報告項預設關閉（`com.fortify.sca.rules.enablePQCRules=true` 開啟），但 26.4 起
+    **Java／JavaScript 程式碼偵測到 PQC-safe 演算法時會自動啟用**，可用
+    `com.fortify.sca.rules.disablePQCAutoDetect` 關閉。報告突然出現「演算法不具量子抗性」類項目時，
+    先確認是否自動啟用，見 `checks/sast-crypto.md`
+  - 正規表示式掃描可用 `-regex-scan-minified` 掃壓縮過的 JS／TS——開啟後打包產物裡的硬編碼字串也會被報
+
 ### Checkmarx
 - 判定方式：以 CxQL 查詢語言對程式碼圖譜（AST + DFG）比對
 - 等級：High / Medium / Low / Information

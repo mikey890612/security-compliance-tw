@@ -19,6 +19,8 @@
 | Fortify | Weak Cryptographic Hash（不看用途：Go `md5.Sum` 算資料校驗碼也報） | Low | verified | internal-verified:2026-04-24 |
 | Fortify | Weak Encryption: Insecure Mode of Operation（ECB／CBC） | High | partial | internal-verified:2026-04-24（C#） |
 | Fortify | Weak Encryption | Critical–High | unverified | — |
+
+> Fortify SAST 26.4（2026-10）起，Java／JavaScript 偵測到 PQC-safe 演算法時會自動啟用後量子密碼規則，另擴及 PyCryptodome、.NET Core、Bouncy Castle for .NET。這類「不具量子抗性」報告項不屬本檔任一 check 的判定，目前沒有對應的 check；列為資訊類並說明掃描設定即可，不要為了消除它而改演算法。細節見 `scanners.md` Fortify 版本變動。
 | Checkmarx | Use_of_Broken_or_Risky_Cryptographic_Algorithm | High | unverified | — |
 | Semgrep | `*.security.*.use-of-md5*` / `*.security.*.use-of-weak-crypto*` / `*.security.*.insecure-cipher-mode*` | ERROR–WARNING | unverified | — |
 | SonarQube | S4790（弱雜湊）/ S5547（弱加密演算法）/ S5542（不安全模式與填充） | Critical–Major | unverified | — |

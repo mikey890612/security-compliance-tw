@@ -19,6 +19,8 @@
 - `mapping.md`：版本註記新增 ASI26，並新增「OWASP Agentic Top 10 對照」表（ASI ↔ LLM26 ↔ check ↔ 附表十）
 - `scanners.md`：Checkmarx 補 Engine Pack 9.8.0.1001 新增的 OWASP Top 10 for LLM preset 與其涵蓋限制
 
+- 2026-11-24 上游更新（不新增 check-id，判定結果不變）：`scanners.md` 補 Fortify SAST 26.4 與 26.4 Security Content Update——Go 新框架規則（gorilla/mux、Echo、Beego、chi、zap）、SQLAlchemy／HtmlSanitizer、新類別 `Dynamic Code Evaluation: Insecure String Transformation`（C#）、PQC 規則在 Java／JS 自動啟用與關閉屬性、`-regex-scan-minified`；`sast-crypto.md` 註記 PQC 報告項的判讀方式
+
 ## 0.6.0（未發布）
 
 **建議更新**：附表十 115 年修正後，勾稽表的分級與條目用語改變；新增 agentic AI 受控測試計畫模板。
