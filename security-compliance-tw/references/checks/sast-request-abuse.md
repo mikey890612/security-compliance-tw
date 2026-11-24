@@ -154,7 +154,7 @@ API 若全面改用自訂 header 承載的 bearer token（且不以 Cookie 當�
 | Checkmarx | SSRF | High | unverified | — |
 | Semgrep | `*.security.*.ssrf*` / `*.http-request*` 污點規則 | ERROR | unverified | — |
 | SonarQube | S5144 等 | Blocker | unverified | — |
-| CodeQL | `go/request-forgery`、`py/request-forgery`、`js/request-forgery` | High | unverified | — |
+| CodeQL | `go/request-forgery`、`py/request-forgery`、`js/request-forgery`、`java/ssrf`（2.27.5 起認得 `URI.getHost()` 對固定集合的允許清單） | High | unverified | — |
 | gosec | —（無穩定專屬 SSRF 規則，靠 Semgrep／CodeQL 補） | — | unverified | — |
 | bandit | B113（請求無逾時；非完整 SSRF） | MEDIUM | unverified | — |
 | AWVS / ZAP | Server Side Request Forgery | High | unverified | — |
@@ -526,7 +526,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
 | Semgrep | `javascript.express.security.audit.express-open-redirect` | WARNING | verified | testdata/scan-artifacts/open-source/20260924T115741Z/semgrep.json#rule=javascript.express.security.audit.express-open-redirect（見 `references/scanner-verification-log.md`） |
 | Semgrep | `go.lang.security.injection.open-redirect`（污點規則，認不得自寫的檢查函式） | WARNING | verified | testdata/scan-artifacts/open-source/20260924T115741Z/semgrep.json#rule=go.lang.security.injection.open-redirect（見 `references/scanner-verification-log.md`） |
 | SonarQube | S5146 | — | unverified | — |
-| CodeQL | `py/url-redirection`、`go/unvalidated-url-redirection`、`js/server-side-unvalidated-url-redirection` | — | unverified | — |
+| CodeQL | `py/url-redirection`、`go/unvalidated-url-redirection`、`js/server-side-unvalidated-url-redirection`、`java/unvalidated-url-redirection`（2.27.5 起認得主機名允許清單） | — | unverified | — |
 | AWVS / ZAP | Open redirection / External Redirect | Medium | unverified | — |
 
 ### 壞味道

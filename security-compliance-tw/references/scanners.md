@@ -70,6 +70,22 @@ CodeQL 2.27.4（2026-11-02）起，`js/redos`、`java/redos`、`cs/redos`、`*/r
 以 CWE-730 篩選 SARIF 的流程會漏掉 ReDoS 結果——**改用查詢 id 或 CWE-1333 對照**。
 來源：https://codeql.github.com/docs/codeql-overview/codeql-changelog/codeql-cli-2.27.4/
 
+CodeQL 2.27.5（2026-11-19）影響判讀的變更（升版後同一份程式碼的結果可能增減，比對前後兩次掃描時要先確認版本）：
+
+- **可能新增結果**：`js/command-line-injection` 開始回報在 `shell` 選項開啟時流入參數陣列（`spawn`／`execFile`）的遠端輸入；
+  `isNaN(parseInt(x))`／`isNaN(parseFloat(x))` 不再被當成數字檢查；帶 `m` 或未知旗標、只靠 `^…$` 錨定的正規表示式不再被當成通用消毒——
+  過去靠這類檢查「過關」的命令注入、反射型 XSS 會重新被標
+- **大小寫不敏感比對**：`java/weak-cryptographic-algorithm`、`java/potentially-weak-cryptographic-algorithm`、`java/rsa-without-oaep`
+  改為不分大小寫比對演算法與模式名稱（如 `AES/cbc/Pkcs5Padding`），改大小寫無法再躲過
+- **可能減少結果**：Java 污點查詢把「與固定字串常數做（不分大小寫的）相等比較」視為消毒；`java/ssrf`、`java/unvalidated-url-redirection`
+  也認得 `URI.getHost()` 對固定字串集合的允許清單比對（含先轉大小寫）——這是被認可的過關寫法
+- **MCP／LLM 來源**：JS／TS（`@modelcontextprotocol/sdk`、`@modelcontextprotocol/server`、`fastmcp`）與 Python（`mcp`、`fastmcp`）
+  的 MCP tool／resource／prompt handler 參數成為選用 `ai` threat model 的來源；SDK 傳入的 HTTP 標頭與 bearer token 屬 `remote` 來源。
+  要讓 CodeQL 追蹤 LLM 產生的參數流向 sink，需在分析設定啟用 `ai` threat model（預設不啟用）
+- 新增 `rust/unsafe-deserialization`；`py/tarslip` 修正 `extract`／`extractall` 參數位置（減少誤判）
+
+來源：https://codeql.github.com/docs/codeql-overview/codeql-changelog/codeql-cli-2.27.5/
+
 ## DAST / 弱點掃描
 
 | 工具 | 觀察對象 |

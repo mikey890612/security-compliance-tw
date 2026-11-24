@@ -18,6 +18,10 @@
   周邊系統與管理介面、AI 程式助手設定竄改、對外暴露的 Agent 主控台／MCP 端點等檢查。不新增 check-id，判定結果不變
 - `mapping.md`：版本註記新增 ASI26，並新增「OWASP Agentic Top 10 對照」表（ASI ↔ LLM26 ↔ check ↔ 附表十）
 - `scanners.md`：Checkmarx 補 Engine Pack 9.8.0.1001 新增的 OWASP Top 10 for LLM preset 與其涵蓋限制
+- 2026-11-23 上游更新（不新增 check-id，判定結果不變）：`scanners.md` 補 CodeQL 2.27.5（2026-11-19）影響判讀的變更——
+  `js/command-line-injection` 追蹤 `shell` 參數陣列、`isNaN(parseInt())` 與多行旗標正規表示式不再算消毒、
+  Java 弱加密查詢不分大小寫、`java/ssrf`／`java/unvalidated-url-redirection` 認得主機名允許清單、MCP handler 參數成為 `ai` threat model 來源；
+  `sast-injection.md`（INJ-002 補 CodeQL 列）、`sast-crypto.md`、`sast-request-abuse.md`、`sast-llm.md` 同步註記
 
 - 2026-11-24 上游更新（不新增 check-id，判定結果不變）：`scanners.md` 補 Fortify SAST 26.4 與 26.4 Security Content Update——Go 新框架規則（gorilla/mux、Echo、Beego、chi、zap）、SQLAlchemy／HtmlSanitizer、新類別 `Dynamic Code Evaluation: Insecure String Transformation`（C#）、PQC 規則在 Java／JS 自動啟用與關閉屬性、`-regex-scan-minified`；`sast-crypto.md` 註記 PQC 報告項的判讀方式
 

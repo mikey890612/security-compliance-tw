@@ -809,6 +809,8 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 - **AI 程式助手設定竄改**：GTIG 觀察到透過竄改自動化程式助手的設定，在開發者本機執行時植入後門。
   把助手規則檔、MCP 設定、工作區設定視同可執行程式碼：變更需審查，CI 檢查是否出現非預期的指令或外部連線
 - **對外暴露的 Agent 主控台與 MCP 端點**：不得無驗證暴露於網際網路；MCP server 只用白名單內、固定版本的來源
+- **以掃描器追蹤 LLM 產生的參數**：CodeQL 2.27.5 起把 MCP SDK（JS／TS、Python 的官方 SDK 與 `fastmcp`）handler 的參數
+  列為選用 `ai` threat model 來源；有 MCP server 的專案可啟用它，讓 tool 參數流向命令、SQL、檔案路徑等 sink 時被標（見 `references/scanners.md`）
 - **受控自我測試**：若要用 agentic 工具做防守驗證，須先取得書面授權、限定目標白名單，並在隔離環境執行、保留完整操作日誌
 
 ### 判定方式
