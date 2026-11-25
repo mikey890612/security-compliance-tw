@@ -122,10 +122,16 @@ Go 的規則，編輯 `.py` 就載入 Python 的。這是所有目標裡唯一�
 ## 直接使用模式
 
 不用安裝，你在 Claude Code 裡寫程式時它會套用。觸發不需要你明講——
-description 涵蓋了這些情境：
+description 寫明**新增或修改任何程式碼的一般開發任務都適用**，例如：
 
 寫資料庫查詢、寫 HTTP handler、處理檔案路徑、呼叫外部程式、
 處理密碼或金鑰、寫日誌、錯誤處理、設定 TLS、呼叫 LLM。
+
+`SKILL.md` 分兩層，讓每次載入的 context 固定且小：
+
+- **常駐**：`SKILL.md` 只放 12 條核心規則與路由表（約 5KB），知識庫再擴充也不會變大
+- **用到才讀**：路由表指到 `references/` 的單一檔案（`quick-patterns.md` 的某一段、某個 `checks/*.md`），
+  不預先載入；安裝模式與規則檔產出規則移到 `references/harden-guide.md`
 
 也可以主動要求：
 

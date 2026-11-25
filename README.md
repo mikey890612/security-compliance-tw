@@ -100,6 +100,7 @@ references/
 ├── controls-appendix10.md   附表十查檢表全文與分級
 ├── controls-mas-v4.md   檢測基準 V4.0 的 65 條條號與標題
 ├── quick-patterns.md    寫程式當下的速查（sec-harden 的內容來源）
+├── harden-guide.md      sec-harden 的安裝模式與完整說明（SKILL.md 只留核心規則）
 ├── templates/           各類交付文件的產出規則
 ├── profile.md           分級問答與 check 選取規則
 └── scanners.md          各工具的行為特性與誤判處置慣例

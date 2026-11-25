@@ -9,6 +9,7 @@
 | 查某個壞味道怎麼偵測、怎麼修 | `checks/*.md` | sec-audit |
 | 把 check-id 換成附表十或 OWASP 編號 | `mapping.md` | sec-audit / sec-deliverables |
 | 寫程式當下的過關寫法速查 | `quick-patterns.md` | sec-harden |
+| sec-harden 的安裝模式、規則檔產出規則、直接使用模式完整說明（`SKILL.md` 只留核心規則與路由表） | `harden-guide.md` | sec-harden |
 | 附表十查檢表全文與分級 | `controls-appendix10.md` | sec-deliverables |
 | 行動應用 App 基本資安檢測基準的條號與標題（65 條） | `controls-mas-v4.md` | sec-deliverables |
 | 各類交付文件的產出規則與格式 | `templates/*.md` | sec-deliverables |
