@@ -774,8 +774,10 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 
 > 本節**不是 check**（沒有 check-id、不進勾稽表），是審查有 Agent 功能的系統時的人工清單。
 > 依據：OWASP Top 10 for Agentic Applications 2026（2025-12-09 發布）；
-> 威脅情資：FBI FLASH-20261113-001（ARTEX，2026-11-13）、Google GTIG AI Threat Tracker（2026-11-16）；
-> 防護建議：CISA 等六國聯合指引〈Careful Adoption of Agentic AI Services〉（2026-05-01）。
+> 威脅情資：FBI FLASH-20261113-001（ARTEX，2026-11-13）、Google GTIG AI Threat Tracker（2026-11-16）、
+> 紐約州金融服務署（NYDFS）ARTEX 產業警示信（2026-11-21）、瑞士 NCSC 首批確認的 AI 代理攻擊案例（2026-11-24）；
+> 防護建議：CISA 等六國聯合指引〈Careful Adoption of Agentic AI Services〉（2026-05-01）、
+> OWASP GenAI Security Project〈Securing Agentic Applications V2〉（2026-11-10，建置與防守方指南）。
 > 對照表見 `../mapping.md`「OWASP Agentic Top 10 對照」。
 
 **為什麼要補**：2026 下半年的情資顯示，攻擊方已用開源多代理框架（ARTEX、CAIRN、PentAGI 等）
@@ -796,7 +798,7 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 | ASI07 | Insecure Inter-Agent Communication（代理間通訊不安全） | Agent 間訊息是否有雙向身分驗證、完整性保護與重送防護；是否信任未驗證的外部 Agent | — |
 | ASI08 | Cascading Failures（連鎖失效） | 單一 Agent 錯誤輸出是否會無檢查地傳給下游自動執行；是否有次數／金額／速率上限與斷路器 | SAST-API-004 |
 | ASI09 | Human-Agent Trust Exploitation（人機信任濫用） | 需人工核准的畫面是否呈現實際要執行的動作與參數，而不只是模型的摘要說明 | — |
-| ASI10 | Rogue Agents（失控代理） | 是否有 Agent 行為基準、異常告警、可中斷（kill switch）與事後可回溯的完整日誌 | SAST-LOG-002 |
+| ASI10 | Rogue Agents（失控代理） | 是否有 Agent 行為基準、異常告警、可中斷（kill switch）與事後可回溯的完整日誌 | SAST-LOG-003 |
 
 ### 依 2026-11 情資補強的檢查
 
@@ -811,6 +813,12 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 - **對外暴露的 Agent 主控台與 MCP 端點**：不得無驗證暴露於網際網路；MCP server 只用白名單內、固定版本的來源
 - **以掃描器追蹤 LLM 產生的參數**：CodeQL 2.27.5 起把 MCP SDK（JS／TS、Python 的官方 SDK 與 `fastmcp`）handler 的參數
   列為選用 `ai` threat model 來源；有 MCP server 的專案可啟用它，讓 tool 參數流向命令、SQL、檔案路徑等 sink 時被標（見 `references/scanners.md`）
+- **自動化攻擊的偵測訊號**：NYDFS（2026-11-21）點名要監控異常掃描樣式、連續驗證失敗、未經授權建立管理員帳號、
+  權限提升與異常的資料存取或大量傳出。審查時確認這些事件有寫入日誌且會告警（見 SAST-LOG-003），
+  並確認事件應變程序能在數小時內完成隔離——ARTEX 類攻擊留給防守方的反應時間很短
+- **預設與易猜密碼**：瑞士 NCSC（2026-11-24）確認的案例中，AI 代理主要利用預設／易猜密碼與對外系統的已知漏洞，
+  且 ARTEX、CyberStrikeAI 等可公開取得的代理工具數量自 2026-10 起幾乎倍增。對外系統、設備管理頁與部署預設帳號
+  要在上線前改掉預設密碼並啟用多因子（見 SAST-AUTH-001、SAST-AUTH-004 與附表十「使用者之識別與鑑別」）
 - **受控自我測試**：若要用 agentic 工具做防守驗證，須先取得書面授權、限定目標白名單，並在隔離環境執行、保留完整操作日誌
 
 ### 判定方式
