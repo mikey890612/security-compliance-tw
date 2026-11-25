@@ -1,18 +1,14 @@
 ---
 name: sec-harden
-description: 在撰寫或修改程式碼時直接套用「掃描器認得的安全寫法」，讓程式碼一開始就不會被 Fortify / Checkmarx / Semgrep / gosec / bandit / MobSF / AWVS 標紅字。也可把這套規則安裝進當前專案，產出 AGENTS.md、Cursor .mdc、Cline / Windsurf / Copilot 規則檔，讓 Cursor 或任何本機 agent 都能套用。Use when writing or modifying database queries, HTTP handlers, file path handling, subprocess calls, password or key handling, logging, error handling, TLS configuration, LLM calls, or Android / iOS app code (local storage, network and ATS / certificate pinning, WebView, exported components, biometrics, AndroidManifest.xml, Info.plist) — and when the user asks to 安裝安全規則, 設定 coding 規範, 讓 Cursor 也能用, or mentions AGENTS.md / cursor rules for security.
+description: 一般開發任務一律套用：新增或修改任何程式碼時，當下就用 Fortify / Checkmarx / Semgrep / gosec / bandit / MobSF / AWVS 認得的安全寫法（查詢、handler、檔案、命令、金鑰、日誌、錯誤、TLS、LLM、Android／iOS）。Use for ANY task that adds or modifies code; also for 安裝安全規則, 讓 Cursor 也能用, AGENTS.md / cursor rules.
 ---
 
 # sec-harden
 
-**目標：寫的當下就用過關寫法，不要事後再修。**
+**寫的當下就用過關寫法，不要事後再修。** 補救交給 `sec-audit`。
 
-預防比事後修便宜——`sec-audit` 是拿來補救的，這支是拿來避免需要補救的。
-
-## 兩個模式
-
-**使用者要求「安裝 / 設定到專案 / 讓 Cursor 也能用」→ 安裝模式。
-其餘情況（正在寫程式）→ 直接使用模式。**
+使用者要「安裝／設定到專案／讓 Cursor 也能用」→ 讀 `{ROOT}/references/harden-guide.md` 的「安裝模式」照做。
+其餘（寫或改程式）→ 套用下方核心規則，碰到路由表情境才讀對應檔。
 
 ---
 
@@ -40,265 +36,37 @@ description: 在撰寫或修改程式碼時直接套用「掃描器認得的安�
 
 ---
 
-## 直接使用模式
+## 核心規則（每次改程式都對照）
 
-讀 `{ROOT}/references/quick-patterns.md`，依當下情境套用對應段落。
+1. **參數化查詢**：placeholder／ORM 綁定，不拼接字串；欄名、排序用白名單。
+2. **輸出編碼**：用樣板自動跳脫；使用者資料不進 `innerHTML`、`template.HTML`、`|safe`、`v-html`。
+3. **每個端點在伺服端驗身分與權限**（含 POST、API、管理功能、下載）；物件存取查擁有者（防 IDOR）。
+4. **不寫死秘密**：密碼、key、token、簽章金鑰、預設帳密由環境變數或秘密管理提供；不進 git、日誌、前端。
+5. **錯誤對外只回通用訊息**；stack trace、SQL、路徑只寫伺服端日誌；不吞錯。
+6. **伺服端輸入驗證**：型別、長度、範圍、格式白名單，不合格就拒絕。
+7. **密碼與亂數**：Argon2id／bcrypt／scrypt；token、salt 用 CSPRNG（`crypto/rand`、`secrets`），不用 `math/rand`、`Math.random()`；不用 MD5／SHA1／ECB、不自創加密。
+8. **Session／token**：登入換 session ID；Cookie 加 `Secure`、`HttpOnly`、`SameSite`；token 會過期、登出或改密碼即失效、不放 URL；狀態變更防 CSRF。
+9. **日誌**：記登入成敗、權限拒絕、管理操作（時間、帳號、來源、結果）；不記密碼、token、個資；跳脫換行。
+10. **路徑／SSRF／反序列化／命令**：路徑正規化後須在基底目錄內；代發 URL 用允許清單、擋內網；不反序列化不可信資料、XML 關外部實體；命令用參數陣列不經 shell。
+11. **相依套件**：維護中版本、鎖 lockfile，新增或升級前查已知弱點。
+12. **LLM／Agent**：指令與資料分離、輸出視為不可信、系統提示不放金鑰、工具最小權限。
 
-段落依情境分：寫資料庫查詢 / 寫 HTTP handler / 處理檔案路徑 / 執行外部命令 /
-處理密碼與金鑰 / 寫日誌 / 錯誤處理 / 設定伺服器 / 呼叫 LLM /
-在行動端儲存資料 / 在行動端連線 / 處理行動端平台介面 / 做行動端身分鑑別。
+## 路由表
 
-**只讀需要的段落。** 要更完整的說明（掃描器規則名稱、誤判處置、判定準則）
-再去 `{ROOT}/references/checks/`——但寫程式時通常不需要，速查就夠。
+**不要預先載入 reference，只讀符合當下改動的那一份**（`quick-patterns.md` 只讀對應段落；勿整份貼進規則檔）。
+路徑為 `{ROOT}/references/…`；與 `checks/` 不一致時以 `checks/` 為準。
 
-撰寫 **狀態變更表單／伺服端代發 URL／檔案上傳／登入後導回** 時，
-`quick-patterns.md` 尚無 CSRF／SSRF／UPLOAD／Open Redirect 速查——改讀
-`checks/sast-request-abuse.md`（一律；`SAST-CSRF-001`／`SAST-SSRF-001`／`SAST-UPLOAD-001`／`SAST-REDIRECT-001`；勿整份貼進規則檔）。
-**解析 XML、反序列化、自組回應標頭或 `Set-Cookie`** 時，讀 `checks/sast-injection.md` 的
-`SAST-INJ-005`～`007`；**新增或升級第三方套件** 時，讀 `checks/sast-dependencies.md`。
-
-撰寫 **iOS／Android 原生 App** 時，先用 `quick-patterns.md` 的四個行動端段落
-（儲存資料 / 連線 / 平台介面 / 身分鑑別）。速查沒涵蓋的情境才讀完整 check：
-
-| 情境 | 讀 |
+| 當下改動 | 讀 |
 |---|---|
-| 行動端加解密、亂數、金鑰與 IV | `checks/mast-crypto.md` |
-| 行動端輸入驗證、注入、第三方函式庫 | `checks/mast-code.md` |
-| 四段速查不夠細時（剪貼簿、工作堆疊劫持、網域宣告等） | 對應的 `checks/mast-storage.md`／`checks/mast-network.md`／`checks/mast-platform.md`／`checks/mast-auth.md` |
-| 撰寫 Root／越獄偵測、混淆、竄改偵測程式時（F 類） | `checks/mast-resilience.md` |
-| **EMM／MDM／MAM** 整合（LOCK／JAIL／PATCH／VPN／MTD） | `checks/mdm-controls.md` |
-
-勿整份貼進規則檔。
-
----
-
-## 安裝模式
-
-把 `quick-patterns.md` 的內容產出成各家 agent 的規則檔，寫進**當前專案**。
-裝完之後不依賴 Claude Code 在場，Cursor / Cline / Codex 都能用。
-
-### 步驟 1：偵測語言
-
-| 存在的檔案 | 語言 | 產出的 .mdc |
-|---|---|---|
-| `go.mod` | Go | `sec-harden-go.mdc` |
-| `requirements.txt` / `pyproject.toml` / `Pipfile` | Python | `sec-harden-python.mdc` |
-| `package.json` | JavaScript / TypeScript | `sec-harden-web.mdc` |
-| `*.html` 或 `*.css` 存在**且**無 `package.json` | 純前端 | `sec-harden-web.mdc` |
-| `build.gradle` / `build.gradle.kts` / `settings.gradle` | Kotlin / Java（Android） | `sec-harden-android.mdc` |
-| `Podfile` / `Package.swift` / `*.xcodeproj` / `*.xcworkspace` | Swift（iOS） | `sec-harden-ios.mdc` |
-
-最後一列處理純靜態網站——它沒有 `package.json`，但 `sec-harden-web.mdc`
-的 globs 涵蓋 `.html`，若不列這條，純前端專案會落到「偵測不到」而漏裝。
-
-**只產出用得到的語言。** 沒有 Python 就不要產 `sec-harden-python.mdc`——
-少一個常駐檔就少一份 context 開銷。
-
-一種都偵測不到時，詢問使用者，不要全產。
-
-### 步驟 2：確認要寫哪些檔
-
-列出將建立或修改的檔案清單給使用者確認後才動手。清單固定順序：
-
-```
-AGENTS.md                              附加區塊
-.cursor/rules/sec-harden-<lang>.mdc    每個偵測到的語言一個檔
-.clinerules                            附加區塊
-.windsurfrules                         附加區塊
-.github/copilot-instructions.md        附加區塊
-```
-
-使用者可以只挑其中幾項。
-
-**無法取得確認時的預設行為**（非互動執行、subagent、CI 等情境）：
-若使用者的要求已明示範圍——例如「讓 Cursor 和其他 agent 也能用」、
-「裝到這個專案」——**視為已授權，直接全部產出**，不要因為等不到確認而中止。
-步驟 2 的用意是避免動到未預期的檔案，不是設一道非過不可的閘門。
-產出後在回報中逐檔列出即可。
-
-### 步驟 3：產出
-
-#### 標記區塊（AGENTS.md / .clinerules / .windsurfrules / copilot-instructions.md）
-
-這四個檔案專案裡可能已有內容。**一律附加，絕不覆蓋。**
-用下列標記包住，重跑安裝時只替換區塊內容：
-
-```markdown
-<!-- BEGIN sec-harden v{版本} — 由 security-compliance-tw 的 quick-patterns.md 產生。
-     請勿直接編輯本區塊內容，重跑安裝器即可更新。 -->
-
-## 安全撰寫規範
-
-（此處放 quick-patterns.md 的內容，依偵測到的語言篩選）
-
-<!-- END sec-harden -->
-```
-
-`{版本}` 取自 `{ROOT}/.claude-plugin/plugin.json` 的 `version`，**不要照抄上面範例或舊區塊裡的版本號**——
-專案裡的規則檔靠這個版本號判斷是否過期。
-
-已存在區塊時（以 `<!-- BEGIN sec-harden v` 開頭，不論版本號）：**只替換區塊內部**，
-區塊外的內容一字不動。檔案不存在時才建立新檔。
-
-⚠ **用正規表示式替換區塊時，替換字串必須走替換函式。**
-規則內容含 `\n`、`\r`、`\x1b` 等字面反斜線（日誌轉義那節），
-直接把內容當替換字串會被當成跳脫序列，Python 的 `re.sub` 會拋
-`bad escape \x`，其他語言則可能靜默產生錯誤內容。
-
-```python
-# ✅ 正確
-out = pattern.sub(lambda m: new_block, txt)
-
-# ❌ 會炸
-out = pattern.sub(new_block, txt)
-```
-
-替換後務必驗證：BEGIN 與 END 各剩一個、區塊外的使用者內容仍在。
-
-#### Cursor 規則檔（`.cursor/rules/sec-harden-<lang>.mdc`）
-
-每個語言一個檔，用 `globs` 自動附加——這是所有目標中唯一精準的觸發機制，
-編輯什麼檔就載入什麼規則。
-
-```markdown
----
-description: 掃描器認得的安全寫法（Go）。撰寫或修改 Go 程式碼時套用。
-globs: **/*.go
-alwaysApply: false
----
-<!-- sec-harden v{版本} — 由 security-compliance-tw 的 quick-patterns.md 產生，重跑安裝器即可更新。 -->
-
-（此處放 quick-patterns.md 的內容，只保留 Go 的 API 名稱）
-```
-
-`{版本}` 同上，取自 `plugin.json`。
-
-各語言的 `globs`：
-
-| 語言 | globs |
-|---|---|
-| Go | `**/*.go` |
-| Python | `**/*.py` |
-| JS / TS / HTML | `**/*.{js,jsx,ts,tsx,html}` |
-| Android | `**/*.{kt,java}` 以及 `**/AndroidManifest.xml`、`**/*.gradle`、`**/*.gradle.kts` |
-| iOS | `**/*.{swift,m}` 以及 `**/Info.plist` |
-
-行動端的 globs **必須涵蓋設定檔**。`android:allowBackup`、`NSAllowsArbitraryLoads`
-這類屬性正是掃描器比對的目標，而它們不在 `.kt` / `.swift` 裡——
-globs 只寫程式碼副檔名，等於規則在最需要的時候不會載入。
-
-Cursor 的檔案是獨立的，不需要標記區塊——直接覆寫整個檔案即可。
-
-### 步驟 4：回報
-
-列出實際寫了哪些檔、每個檔是新建還是更新區塊。更新時寫出版本變化
-（例如「`AGENTS.md`：v0.1.0 → v0.2.0」），讓使用者知道這次重裝帶來了什麼；
-變化內容查 `{ROOT}/CHANGELOG.md`。
-
----
-
-## 產出內容的硬性要求
-
-這些規則檔會被 commit 進 git、推上 GitHub 或 Cursor 組織空間，
-拿到它們的人不會有這個 plugin。因此：
-
-1. **不得出現任何絕對路徑。**
-   不要寫 `/Users/…` 或 `{ROOT}/references/…`——對方的 repo 沒有那些檔案。
-   需要指向完整說明時，寫「詳見 security-compliance-tw plugin 的 `references/checks/`」，
-   不要寫成可點擊的本機路徑。
-
-2. **不得出現法規或 OWASP 編號。**
-   與 `checks/` 相同的約束。規則檔是給人寫程式用的，不是法遵文件。
-
-3. **輸出順序固定**，照 `quick-patterns.md` 的段落順序。
-   順序浮動會讓每次重裝都產生整份翻動的 diff。
-
-4. **不要加時間戳記或產生者資訊。**
-   同上，會讓 diff 每次都髒。版本號寫在標記區塊裡就夠了。
-
-5. **語言篩選要確實，且兩類檔案的規則不同。**
-
-   | 檔案 | 語言範圍 |
-   |---|---|
-   | Cursor `.mdc` | **單一語言**。Go 檔不得出現 `subprocess.run`、`helmet`；Python 檔不得出現 `defer`、`filepath.` |
-   | 常駐檔（AGENTS.md 等） | **偵測到的全部語言**，未偵測到的一律剔除 |
-
-   常駐檔只有一份，要涵蓋專案實際用到的所有語言；
-   Cursor 檔由 globs 決定何時載入，必須嚴格單語言，否則編輯 Go 檔時
-   會載入一堆 Python API 名稱，白白佔用 context。
-
-   **未偵測到的語言一律剔除**——沒有 `package.json` 就不該在任何檔案裡
-   出現 `innerHTML`、`crypto.randomBytes`、`Math.random()`。
-
-   情境標題一律保留，只換 API 名稱。
-
-6. **控制長度，有具體上限。**
-   `quick-patterns.md` 全文超過 200 行（Web 九段加行動端四段）。產出時：
-
-   | 目標 | 上限 | 理由 |
-   |---|---|---|
-   | `AGENTS.md` / `.clinerules` / `.windsurfrules` / copilot | **100 行** | 常駐，每個 session 都在吃 context |
-   | Cursor `.mdc` | **180 行** | 有 globs，只在編輯該語言檔案時載入 |
-
-   **常駐檔一律用緊湊格式，這是預設不是補救**：
-
-   - 每則寫成兩行：`- ✅ …` 與 `- ❌ … — 理由`（理由**併入 ❌ 行**，不另起一行）
-   - **規則之間不留空行**，只有情境標題前留一行
-   - 多語言專案只保留**偵測到的**語言的 API 名稱，未偵測到的剔除
-
-   照這個格式寫，單語言約 75 行、雙語言約 92 行，都在 100 行內。
-   把緊湊格式當成「超標後才用的補救手段」會導致第一版就超標——
-   原始的 `quick-patterns.md` 格式（三行一則、規則間有空行）**不適合常駐檔**。
-
-   仍超標時，依序處理：
-
-   1. **未使用的情境段落**——例如專案無 AI 功能時的「呼叫 LLM 時」：
-      **保留標題，內容換成一行指向說明**，例如
-      `（本專案無 LLM 相依，完整內容見 quick-patterns.md）`。
-      留標題是為了讓人知道還有這一類，不要整段消失
-   2. 「設定伺服器時」——多為部署期設定，可比照第 1 點處理
-   3. 縮短舉例，保留判斷準則
-
-   Cursor `.mdc` 有 globs、只在編輯該語言檔案時載入，
-   可維持三行一則的完整格式並保留全部情境段落。
-
-   ⚠ **不要為了湊行數把程式碼擠成一行。** 規則檔裡的程式碼會被直接抄走，
-   壓成 `if !ok { return err }` 這種寫法不符 gofmt，抄過去會製造新問題。
-   單語言檔本來就沒有 LLM 段落可砍，若壓縮程式碼是唯一手段，
-   **應調整上限而非破壞內容**——這是 Cursor 檔上限從 160 調為 180 的原因。
-
-## 與 sec-audit 的關係
-
-| | sec-harden | sec-audit |
-|---|---|---|
-| 時機 | 寫的當下 | 送掃前 / 拿到報告後 |
-| 讀 | `quick-patterns.md` | `checks/` + `mapping.md` |
-| 產出 | 專案的規則檔 | `security-audit/` 報告 |
-
-`quick-patterns.md` 是從 `checks/` 萃取出「寫的當下能預防」的 43 則，
-Web／API／LLM 九段、行動端四段（儲存資料 / 連線 / 平台介面 / 身分鑑別）。
-尚未收入速查的：請求濫用（CSRF／SSRF／UPLOAD／Open Redirect）、XXE／反序列化／標頭注入、第三方元件、行動端密碼學與輸入驗證
-（`mast-crypto.md`、`mast-code.md`）、F 類（`mast-resilience.md`）、MDM（`mdm-controls.md`）。
-兩者內容不一致時，**以 `checks/` 為準**——那是完整版。
-
-## 行動專案的產出邊界
-
-偵測到 Android 或 iOS 時，內容來源同樣是 `quick-patterns.md`——
-取「在行動端儲存資料時 / 在行動端連線時 / 處理行動端平台介面時 /
-做行動端身分鑑別時」四個段落。
-
-**Android 與 iOS 同時偵測到時，常駐檔（`AGENTS.md` 等）的 100 行上限很容易破。**
-處理方式與多語言專案相同：常駐檔只保留兩平台**共通的判斷準則**，
-API 名稱各列一個；完整的雙平台範例留在 Cursor `.mdc`（上限 180 行，
-由 globs 決定何時載入）。**不要為了塞進去而把設定檔片段壓成單行**——
-`AndroidManifest.xml` 的屬性抄過去要能直接用。
-
-### 不產出工具設定檔
-
-detekt（`detekt.yml`）、SwiftLint（`.swiftlint.yml`）、Android Lint（`lint.xml`）
-的規則設定**不在本 skill 的產出範圍**。
-
-理由：這些檔案要寫出具體的規則 id，而 id 寫錯時工具會**靜默忽略整份設定**——
-工程師以為裝好了，實際上一條都沒生效。這比規則名稱不準嚴重得多。
-在本知識庫於真實 Android／iOS 專案驗證過之前，不產出這類檔案。
-
+| 查詢、handler、路徑、命令、金鑰、日誌、錯誤、伺服器設定、LLM | `quick-patterns.md` 對應段落 |
+| CSRF、SSRF、上傳、登入後導回 | `checks/sast-request-abuse.md` |
+| XML、反序列化、回應標頭／`Set-Cookie` | `checks/sast-injection.md`（INJ-005～007） |
+| 新增或升級套件 | `checks/sast-dependencies.md` |
+| Agent／MCP／工具呼叫 | `checks/sast-llm.md` 檔尾 |
+| Android／iOS 儲存、連線、平台、鑑別 | `quick-patterns.md` 行動端四段；不夠再讀對應 `mast-storage.md`／`mast-network.md`／`mast-platform.md`／`mast-auth.md` |
+| 行動端加密；輸入驗證與第三方庫；防竄改（F 類）；EMM／MDM | `mast-crypto.md`；`mast-code.md`；`mast-resilience.md`；`mdm-controls.md` |
+| 規則名稱、誤判處置 | 該主題 `checks/*.md` |
+| 安裝到專案、完整說明 | `harden-guide.md` |
+
+語言：Go、Python、JS／TS 的 API 名稱見 `quick-patterns.md`；Kotlin／Swift 走行動端列；
+PHP（含 Workerman）、Rust、Flutter／Dart 等尚無專屬檔，依同情境準則換成等價 API（Flutter 的 `AndroidManifest.xml`／`Info.plist` 照行動端）。

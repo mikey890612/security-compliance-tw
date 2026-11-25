@@ -24,6 +24,11 @@
   `sast-injection.md`（INJ-002 補 CodeQL 列）、`sast-crypto.md`、`sast-request-abuse.md`、`sast-llm.md` 同步註記
 
 - 2026-11-24 上游更新（不新增 check-id，判定結果不變）：`scanners.md` 補 Fortify SAST 26.4 與 26.4 Security Content Update——Go 新框架規則（gorilla/mux、Echo、Beego、chi、zap）、SQLAlchemy／HtmlSanitizer、新類別 `Dynamic Code Evaluation: Insecure String Transformation`（C#）、PQC 規則在 Java／JS 自動啟用與關閉屬性、`-regex-scan-minified`；`sast-crypto.md` 註記 PQC 報告項的判讀方式
+- `sec-harden` 改為兩層結構，讓它能在每次一般開發任務常駐套用而不隨知識庫膨脹（判定結果不變，不新增 check-id）：
+  `SKILL.md` 由 15KB 精簡為約 5KB，只留 ROOT 段落、12 條核心安全寫法與路由表，並明定「不要預先載入 reference，只讀符合當下改動的那一份」；
+  description 改為「新增或修改任何程式碼都套用」，保留掃描器關鍵字；
+  原「直接使用模式」細節、安裝模式、產出內容的硬性要求、與 sec-audit 的關係、行動專案的產出邊界與原 description 的情境細項，
+  原文移至新檔 `references/harden-guide.md`；`references/README.md`、README、`docs/usage/sec-harden.md` 同步
 
 ## 0.6.0（未發布）
 
