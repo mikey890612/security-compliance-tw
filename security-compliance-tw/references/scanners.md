@@ -51,6 +51,12 @@
   既有 preset 不變——要看 LLM 類發現須**另選此 preset**。release note 未註明對應 LLM Top 10 的 2025 或 2026 版，
   判讀時以報告上的類別名稱用 `mapping.md` 換算。preset 只涵蓋能用資料流表達的項目（如模型輸出流入注入 sink），
   `checks/sast-llm.md` 標「需人工審查」的項目與代理式 AI 補充檢查仍不會被掃出
+- **升版後結果增減**：EP 9.8.0.1001 讓過去解析失敗的 C#／Scala 檔案能完成分析（可能新增結果），
+  Java Reflected XSS 排除回傳 JSON 的 REST 方法輸入（部分既有結果消失）；EP 9.8.0.1002（2026-11-11）讓
+  TypeScript（含 Angular 範本）、Java（XHTML／JSP）、JavaScript、SQL（含 PL/SQL、T-SQL）原本解析失敗的檔案能完成分析，
+  並修正部分 C/C++ 巨集相關結果的行號。比對前後兩次掃描時先確認 Engine Pack 版本；行號變動可能讓以行號比對的
+  Not Exploitable 標記對不上，需重新確認。
+  來源：https://docs.checkmarx.com/en/34965-811285-release-notes-for-engine-pack--ep--9-8-0-patches.html
 
 ## 開源 SAST
 
@@ -85,6 +91,10 @@ CodeQL 2.27.5（2026-11-19）影響判讀的變更（升版後同一份程式碼
 - 新增 `rust/unsafe-deserialization`；`py/tarslip` 修正 `extract`／`extractall` 參數位置（減少誤判）
 
 來源：https://codeql.github.com/docs/codeql-overview/codeql-changelog/codeql-cli-2.27.5/
+
+CodeQL 2.27.6（2026-11-24）只更新 CLI 內附的 JDK（Temurin jdk-25.0.5.1+2，緩解 CVE-2026-114938），查詢與函式庫無變動，
+掃描結果可直接與 2.27.5 比對；CI 若固定 CodeQL 版本，建議升到 2.27.6 以取得 JDK 修補。
+來源：https://codeql.github.com/docs/codeql-overview/codeql-changelog/codeql-cli-2.27.6/
 
 ## DAST / 弱點掃描
 

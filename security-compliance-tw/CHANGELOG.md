@@ -30,6 +30,10 @@
   原「直接使用模式」細節、安裝模式、產出內容的硬性要求、與 sec-audit 的關係、行動專案的產出邊界與原 description 的情境細項，
   原文移至新檔 `references/harden-guide.md`；`references/README.md`、README、`docs/usage/sec-harden.md` 同步
 
+- 2026-11-25 上游更新（不新增 check-id，判定結果不變）：`sast-llm.md` 代理式 AI 補充檢查加入 NYDFS ARTEX 警示（2026-11-21）、
+  瑞士 NCSC AI 代理攻擊案例（2026-11-24）與 OWASP〈Securing Agentic Applications V2〉（2026-11-10），新增「自動化攻擊的偵測訊號」與
+  「預設與易猜密碼」兩項，並把 ASI10 列的相關 check 由 SAST-LOG-002（敏感資訊寫入日誌）更正為 SAST-LOG-003（缺少必要的稽核事件記錄）；`scanners.md` 補 Checkmarx EP 9.8.0.1001／1002 升版後結果增減與行號變動、CodeQL 2.27.6（僅更新內附 JDK，查詢不變）
+
 ## 0.6.0（未發布）
 
 **建議更新**：附表十 115 年修正後，勾稽表的分級與條目用語改變；新增 agentic AI 受控測試計畫模板。
