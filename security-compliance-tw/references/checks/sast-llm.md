@@ -775,7 +775,8 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 > 本節**不是 check**（沒有 check-id、不進勾稽表），是審查有 Agent 功能的系統時的人工清單。
 > 依據：OWASP Top 10 for Agentic Applications 2026（2025-12-09 發布）；
 > 威脅情資：FBI FLASH-20261113-001（ARTEX，2026-11-13）、Google GTIG AI Threat Tracker（2026-11-16）、
-> 紐約州金融服務署（NYDFS）ARTEX 產業警示信（2026-11-21）、瑞士 NCSC 首批確認的 AI 代理攻擊案例（2026-11-24）；
+> 紐約州金融服務署（NYDFS）ARTEX 產業警示信（2026-11-21）、瑞士 NCSC 首批確認的 AI 代理攻擊案例（2026-11-24）、
+> 英國 NCSC〈Familiar weaknesses, exploited faster: defending against agentic cyber attacks〉（2026-11-24）；
 > 防護建議：CISA 等六國聯合指引〈Careful Adoption of Agentic AI Services〉（2026-05-01）、
 > OWASP GenAI Security Project〈Securing Agentic Applications V2〉（2026-11-10，建置與防守方指南）。
 > 對照表見 `../mapping.md`「OWASP Agentic Top 10 對照」。
@@ -819,6 +820,15 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 - **預設與易猜密碼**：瑞士 NCSC（2026-11-24）確認的案例中，AI 代理主要利用預設／易猜密碼與對外系統的已知漏洞，
   且 ARTEX、CyberStrikeAI 等可公開取得的代理工具數量自 2026-10 起幾乎倍增。對外系統、設備管理頁與部署預設帳號
   要在上線前改掉預設密碼並啟用多因子（見 SAST-AUTH-001、SAST-AUTH-004 與附表十「使用者之識別與鑑別」）
+- **英國 NCSC 防禦問答（2026-11-24）**：英國 NCSC 指出代理式攻擊打的都是舊弱點——誤提交到程式碼庫的憑證、
+  IaC 設定錯誤、預設帳密或缺少驗證、API 弱點；差別在速度與窮舉程度。與程式碼審查直接相關的四點：
+  - **錯誤訊息**：Agent 會讀每一則錯誤訊息來修正下一次嘗試，對外回應只給通用訊息，不帶堆疊、欄位或後端細節（見 SAST-ERR-001）
+  - **速率限制的單位**：Agent 會輪換 proxy／VPN，只依 IP 限流擋不住；要對帳號、API token、已驗證工作階段限流，
+    並看行為樣式（短時間大量且多樣的請求、快速連續失敗）而不只看量（見 SAST-API-004）
+  - **機器人驗證要在伺服器端強制**：bot challenge 若只放在登入或表單頁面、後端 API 沒驗證，攻擊方直接呼叫 API 就繞過；
+    帳號與身分流程、搜尋、報表產生、LLM 功能等耗資源端點都要在 API 端檢查（見 SAST-API-004）
+  - **偵測訊號**：突發請求後短暫停頓、端點與參數種類異常多（含不可能成功的範例值）、錯誤率升高；
+    確認日誌能跨來源關聯這些事件（見 SAST-LOG-003）
 - **受控自我測試**：若要用 agentic 工具做防守驗證，須先取得書面授權、限定目標白名單，並在隔離環境執行、保留完整操作日誌
 
 ### 判定方式
