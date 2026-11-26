@@ -34,6 +34,11 @@
   瑞士 NCSC AI 代理攻擊案例（2026-11-24）與 OWASP〈Securing Agentic Applications V2〉（2026-11-10），新增「自動化攻擊的偵測訊號」與
   「預設與易猜密碼」兩項，並把 ASI10 列的相關 check 由 SAST-LOG-002（敏感資訊寫入日誌）更正為 SAST-LOG-003（缺少必要的稽核事件記錄）；`scanners.md` 補 Checkmarx EP 9.8.0.1001／1002 升版後結果增減與行號變動、CodeQL 2.27.6（僅更新內附 JDK，查詢不變）
 
+- 2026-11-26 上游更新（不新增 check-id，判定結果不變）：`sast-llm.md` 代理式 AI 補充檢查加入英國 NCSC
+  〈Familiar weaknesses, exploited faster〉（2026-11-24）——對外錯誤訊息最小化（SAST-ERR-001）、以帳號／token／工作階段而非 IP 限流、
+  bot challenge 須在 API 端強制（SAST-API-004）、代理式流量的偵測訊號（SAST-LOG-003）；
+  `controls-mas-v4.md` 更正 MASVS 版本註記為 v2.1.0（原誤記「仍為 v2.0.0」）
+
 ## 0.6.0（未發布）
 
 **建議更新**：附表十 115 年修正後，勾稽表的分級與條目用語改變；新增 agentic AI 受控測試計畫模板。
