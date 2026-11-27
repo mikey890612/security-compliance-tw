@@ -777,6 +777,8 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
 > 威脅情資：FBI FLASH-20261113-001（ARTEX，2026-11-13）、Google GTIG AI Threat Tracker（2026-11-16）、
 > 紐約州金融服務署（NYDFS）ARTEX 產業警示信（2026-11-21）、瑞士 NCSC 首批確認的 AI 代理攻擊案例（2026-11-24）、
 > 英國 NCSC〈Familiar weaknesses, exploited faster: defending against agentic cyber attacks〉（2026-11-24）；
+> Microsoft Threat Intelligence〈What defenders need to know about ARTEX〉（2026-11-25）；德國 BSI 新聞稿〈Offensive agentische KI verschärft Bedrohungslage〉（2026-11-26）；
+> 義大利 ACN／CSIRT Italia 公告 BL01/261123（2026-11-23）；
 > 防護建議：CISA 等六國聯合指引〈Careful Adoption of Agentic AI Services〉（2026-05-01）、
 > OWASP GenAI Security Project〈Securing Agentic Applications V2〉（2026-11-10，建置與防守方指南）。
 > 對照表見 `../mapping.md`「OWASP Agentic Top 10 對照」。
@@ -829,6 +831,17 @@ if (!(amount > 0 && amount <= refundLimitFor(caller))) throw new Error("out of r
     帳號與身分流程、搜尋、報表產生、LLM 功能等耗資源端點都要在 API 端檢查（見 SAST-API-004）
   - **偵測訊號**：突發請求後短暫停頓、端點與參數種類異常多（含不可能成功的範例值）、錯誤率升高；
     確認日誌能跨來源關聯這些事件（見 SAST-LOG-003）
+- **Microsoft ARTEX 分析（2026-11-25）**：ARTEX 不用新手法，而是以機器速度輪流嘗試常見技巧；與程式碼審查直接相關的點：
+  - **前端與文件洩漏路由**：Agent 會抓 JS bundle、source map、執行期設定檔與 API 文件來找內部路由，再逐一測注入、驗證繞過與存取控制；
+    正式環境不得公開 source map 與內部 API 文件，未公開的路由也要有完整授權檢查，不能靠「沒人知道」（見 DAST-LEAK-004、SAST-API-003）
+  - **權杖與回呼**：點名未簽章權杖與被竄改的 OAuth 回呼；JWT 必須驗證簽章並固定演算法（拒絕 `alg: none`），OAuth `redirect_uri`／`state` 須嚴格比對（見 SAST-AUTH-001、SAST-REDIRECT-001）
+  - **帳號復原流程**：密碼重設、帳號復原與登入一樣要限流與鎖定，且不可透露帳號是否存在（見 SAST-AUTH-004、SAST-API-004）
+  - **秘密檔案**：Agent 會讀 `.env`、設定檔與私鑰，也會掃公開程式碼庫找外洩的憑證；秘密不進版控與映像檔，誤提交即視同外洩並立即輪替（見 SAST-AUTH-001、DAST-LEAK-004）
+  - **對外連線限制**：對外服務只允許必要的出站目的地，降低 Agent 取得立足點後下載工具或外傳資料的能力
+  - **偵測訊號**：IP 與 User-Agent 會被輪換，最可靠的是行為——短時間大量且多樣的請求、對同一技巧反覆變化重試（見 SAST-LOG-003）
+- **BSI 與 ACN（2026-11-23／26）**：BSI 指出 ARTEX、CAIRN、PentAGI 等框架用開放權重模型即可自主攻擊，攻擊成本大降，
+  建議優先做「速效」基本防護與事件應變演練；ACN 指出單一事件（應用程式身分登入、一次 API 呼叫、讀一次雲端資料庫）看起來都像正常使用者，
+  惡意活動只有在跨來源關聯來源、頻率（不像人工操作）、資料量與動作順序後才看得出來——日誌要能關聯這些欄位（見 SAST-LOG-003）
 - **受控自我測試**：若要用 agentic 工具做防守驗證，須先取得書面授權、限定目標白名單，並在隔離環境執行、保留完整操作日誌
 
 ### 判定方式
