@@ -39,6 +39,11 @@
   bot challenge 須在 API 端強制（SAST-API-004）、代理式流量的偵測訊號（SAST-LOG-003）；
   `controls-mas-v4.md` 更正 MASVS 版本註記為 v2.1.0（原誤記「仍為 v2.0.0」）
 
+- 2026-11-27 上游更新（不新增 check-id，判定結果不變）：`sast-llm.md` 代理式 AI 補充檢查加入 Microsoft Threat Intelligence
+  ARTEX 分析（2026-11-25）——JS bundle／source map／API 文件洩漏路由、未簽章權杖與 OAuth 回呼竄改、帳號復原流程限流、
+  `.env` 與公開程式碼庫中的秘密、對外服務出站限制、以行為而非 IP／UA 偵測；另加入德國 BSI（2026-11-26）與義大利 ACN（2026-11-23）
+  關於開放權重模型降低攻擊成本與跨來源關聯偵測的提醒
+
 ## 0.6.0（未發布）
 
 **建議更新**：附表十 115 年修正後，勾稽表的分級與條目用語改變；新增 agentic AI 受控測試計畫模板。
